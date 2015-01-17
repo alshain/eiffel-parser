@@ -81,6 +81,7 @@ module.exports = function(grunt) {
       },
 
       options: {
+        allowedStartRules: ["start", "Expression"],
         wrapper: function (src, parser) {
           return 'generatedParser = ' + parser + ';';
 
