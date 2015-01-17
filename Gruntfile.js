@@ -62,7 +62,7 @@ module.exports = function(grunt) {
     },
 
     watch: {
-      files: ['Gruntfile.js', 'src/grammar/eiffel.peg', 'src/**/*.js'],
+      files: ['Gruntfile.js', 'src/grammar/eiffel.pegjs', 'src/**/*.js'],
       tasks: ['default']
     },
 
@@ -76,7 +76,7 @@ module.exports = function(grunt) {
     },
     peg: {
       eiffel: {
-        src: "src/grammar/eiffel.peg",
+        src: "src/grammar/eiffel.pegjs",
         dest: ".tmp/grammar.js"
       },
 
