@@ -518,10 +518,10 @@ EscapeCharacter
 
 
 Literal
-  = r:VoidLiteral    !IllegalAfterKeyword {return r}
-  / r:BooleanLiteral !IllegalAfterKeyword {return r}
-  / r:IntegerLiteral !IllegalAfterKeyword {return r}
-  / r:StringLiteral  !IllegalAfterKeyword {return r}
+  = pos:pos r:VoidLiteral    !(IllegalAfterKeyword) { return { type: "Void", pos:pos}}
+  / pos:pos r:BooleanLiteral !IllegalAfterKeyword {return r}
+  / pos:pos r:IntegerLiteral !IllegalAfterKeyword {return r}
+  / pos:pos r:StringLiteral  !IllegalAfterKeyword {return r}
 
 Letter
   = [a-z]
@@ -537,15 +537,15 @@ IdentifierName "identifier"
 
 ReservedWord
   = r:Keyword        !(IllegalAfterKeyword) { return r}
-  / r:VoidLiteral    !(IllegalAfterKeyword) { return r}
+  / pos:pos r:VoidLiteral    !(IllegalAfterKeyword) { return { type: "Void", pos:pos}}
   / r:BooleanLiteral !(IllegalAfterKeyword) { return r}
 
 VoidLiteral
   = "Void"
 
 BooleanLiteral
-  = TrueToken
-  / FalseToken
+  = TrueToken { return true; }
+  / FalseToken { return false; }
 
 
 
