@@ -1,0 +1,24 @@
+{
+  "name": "eiffel-parser",
+  "version": "0.0.0",
+  "main": "dist/eiffel-parser.min.js",
+  "description": "Test",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/alshain/eiffel-parser.git"
+  },
+  "keywords": [],
+  "author": "Christian Vonrüti",
+  "readmeFilename": "README.md",
+  "dependencies": {},
+  "devDependencies": {
+    "grunt": "~0.4.1",
+    "grunt-contrib-clean": "^0.6.0",
+    "grunt-contrib-concat": "~0.3.0",
+    "grunt-contrib-jshint": "~0.6.4",
+    "grunt-contrib-qunit": "~0.3.0",
+    "grunt-contrib-uglify": "~0.2.4",
+    "grunt-contrib-watch": "~0.5.3",
+    "grunt-peg": "^1.5.0"
+  }
+}
