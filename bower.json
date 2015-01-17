@@ -1,7 +1,7 @@
 {
-  "name": "eiffel-parser.js",
+  "name": "eiffel-parser",
   "version": "0.0.0",
-  "main": "dist/eiffel-parser.js.min.js",
+  "main": "dist/eiffel-parser.min.js",
   "ignore": [
     "**/.*",
     "node_modules",

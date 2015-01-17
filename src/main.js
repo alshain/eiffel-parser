@@ -1,4 +1,4 @@
-/* eiffel-parser.js main */
+/* eiffel-parser main */
 
 // Base function.
 var vees = function() {
@@ -6,8 +6,7 @@ var vees = function() {
   var parser = generatedParser;
 
   return {
-    parser: parser
-  
+    parser: parser,
   };
 };
 

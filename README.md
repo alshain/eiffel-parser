@@ -1,4 +1,4 @@
-# eiffel-parser.js
+# eiffel-parser
 
 Test
 
@@ -6,27 +6,27 @@ Test
 
 A JavaScript library by Christian Vonrüti.
 
-See the [project homepage](http://alshain.github.io/eiffel-parser.js).
+See the [project homepage](http://alshain.github.io/eiffel-parser).
 
 ## Installation
 
 Using Bower:
 
-    bower install eiffel-parser.js
+    bower install eiffel-parser
 
-Or grab the [source](https://github.com/alshain/eiffel-parser.js/dist/eiffel-parser.js.js) ([minified](https://github.com/alshain/eiffel-parser.js/dist/eiffel-parser.js.min.js)).
+Or grab the [source](https://github.com/alshain/eiffel-parser/dist/eiffel-parser.js) ([minified](https://github.com/alshain/eiffel-parser/dist/eiffel-parser.min.js)).
 
 ## Usage
 
 Basic usage is as follows:
 
-    eiffel-parser.js();
+    subject to change
 
 For advanced usage, see the documentation.
 
 ## Documentation
 
-Start with `docs/MAIN.md`.
+Under construction
 
 ## Contributing
 
@@ -38,6 +38,3 @@ We'll check out your contribution if you:
 
 We'll do our best to help you out with any contribution issues you may have.
 
-## License
-
-MIT. See `LICENSE.txt` in this directory.
