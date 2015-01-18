@@ -135,6 +135,51 @@ function compareAst(expected, actual) {
   }
   return true;
 }
+
+module("AST comparison function");
+test("should work for empty objects", function() {
+  ok(compareAst({}, {}));
+});
+
+test("should work for single values", function() {
+  ok(compareAst({a: 2}, {a: 2}));
+  ok(!compareAst({a: 3}, {a: 2}));
+  ok(!compareAst({a: 3}, {a: "stringstuff"}));
+  ok(compareAst({a: null}, {a: null}));
+  ok(!compareAst({a: 2}, {a: null}));
+  ok(!compareAst({a: null}, {a: 2}));
+});
+
+test("actual has more stuff", function() {
+  ok(compareAst({i: "hello"}, {i: "hello", more: 2}));
+  ok(compareAst({i: "hello"}, {i: "hello", more: 2}));
+  ok(!compareAst({i: "different"}, {i: "hello", more: 2}));
+});
+
+test("different values -> false", function() {
+  ok(!compareAst({a: 2}, {a: 3}));
+  ok(!compareAst({a: "hello"}, {a: null}));
+});
+
+test("should work for nested objects", function() {
+  ok(compareAst({flat: 6, nested: {nested: {}}}, {flat: 6, nested: {nested: {}}}));
+  ok(!compareAst({flat: 6, nested: {nested: { something: null}}}, {flat: 6, nested: {nested: {}}}));
+});
+
+test("should work for nested objects", function() {
+  ok(compareAst({flat: 6, nested: {nested: {}}}, {flat: 6, nested: {nested: {}}}));
+});
+
+test("should not work for non-records", function() {
+  ok(compareAst(null, {}));
+  ok(compareAst({}, null));
+  ok(compareAst(null, null));
+  ok(compareAst(2, 2));
+  ok(compareAst(3, 2));
+  ok(compareAst(3, 2));
+});
+
+module("AST");
 astTests.forEach(function(n_s_t_e) {
   var name = n_s_t_e[0];
   var start = n_s_t_e[1];
@@ -142,7 +187,7 @@ astTests.forEach(function(n_s_t_e) {
   var expected = n_s_t_e[3];
 
   test(name, function() {
-  
-    ok(compareAst(vees.parser.parse(expression, {startRule: start}), expected));
+    var actual = vees.parser.parse(expression, {startRule: start});
+    ok(compareAst(expected, actual), "Expected: \n" + JSON.stringify(expected) + "\nActual:\n" + JSON.stringify(actual));
   });
 });
