@@ -35,7 +35,6 @@ okTests.forEach(function (file__content) {
 });
 
 
-module("AST");
 
 var astTests = [
   /*
@@ -45,7 +44,8 @@ var astTests = [
     "Expression",
     "True",
     {
-      type: "bool",
+      type: "literal",
+      kind: "bool",
       value: true,
     },
   ],
@@ -56,7 +56,8 @@ var astTests = [
     "Expression",
     "True",
     {
-      type: "bool",
+      type: "literal",
+      kind: "bool",
       value: true,
     },
   ],
@@ -66,10 +67,34 @@ var astTests = [
     "Expression",
     "False",
     {
-      type: "bool",
-      value: true,
+      type: "literal",
+      kind: "bool",
+      value: false,
     },
   ],
+
+  [
+    "1 parses",
+    "Expression",
+    "1",
+    {
+      type: "literal",
+      kind: "int",
+      value: 1,
+    },
+  ],
+
+  [
+    "%n parses",
+    "Expression",
+    '"%n"',
+    {
+      type: "literal",
+      kind: "string",
+      value: "\n",
+    },
+  ],
+
  ];
 
 function compareAst(expected, actual) {
