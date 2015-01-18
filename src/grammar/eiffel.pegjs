@@ -470,24 +470,24 @@ SingleLineComment
 
 IntegerLiteral
   = DecimalIntegerLiteral {
-    return { type: "Literal", value: parseFloat(text()) };
+    return { type: "literal", kind: "int", value: parseFloat(text()) };
   }
 
 StringLiteral "string"
   = '"' chars:DoubleStringCharacter* '"' {
-  return { type: "Literal", value: chars.join("") };
+  return { type: "literal", kind: "string", value: chars.join("") };
   }
 
 CharacterLiteral "character"
   = "'" char:SingleStringCharacter "'" {
-  return { type: "Literal", value: char };
+  return { type: "literal", kind: "char", value: char };
   }
 DoubleStringCharacter
-  = !('"' / "\\" / LineTerminator) SourceCharacter { return text(); }
-  / "\\" sequence:EscapeSequence { return sequence; }
+  = !('"' / "%" / LineTerminator) SourceCharacter { return text(); }
+  / "%" sequence:EscapeSequence { return sequence; }
   / LineContinuation
 SingleStringCharacter
-  = !("'" / "\\" / LineTerminator) SourceCharacter { return text(); }
+  = !("'" / "%" / LineTerminator) SourceCharacter { return text(); }
   / "%" sequence:EscapeSequence { return sequence; }
   / LineContinuation
 LineContinuation
@@ -518,8 +518,8 @@ EscapeCharacter
 
 
 Literal
-  = pos:pos r:VoidLiteral    !(IllegalAfterKeyword) { return { type: "Void", pos:pos}}
-  / pos:pos r:BooleanLiteral !IllegalAfterKeyword {return r}
+  = pos:pos r:VoidLiteral    !(IllegalAfterKeyword) { return { type: "literal", kind: "Void", pos:pos}}
+  / pos:pos r:BooleanLiteral !IllegalAfterKeyword {return { type: "literal", kind: "bool", value: r}}
   / pos:pos r:IntegerLiteral !IllegalAfterKeyword {return r}
   / pos:pos r:StringLiteral  !IllegalAfterKeyword {return r}
 
