@@ -116,7 +116,7 @@ function compareAst(expected, actual) {
         }
       }
 
-      if (typeof v !== typeof actual) {
+      if (typeof v !== typeof actual[key]) {
         return false;
       }
 
