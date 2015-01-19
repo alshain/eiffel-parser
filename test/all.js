@@ -87,11 +87,11 @@ var astTests = [
   [
     "%n parses",
     "Expression",
-    '"%n"',
+    '"%n%""',
     {
       type: "literal",
       kind: "string",
-      value: "\n",
+      value: '%n%"',
     },
   ],
 
