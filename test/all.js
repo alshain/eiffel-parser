@@ -98,85 +98,145 @@ var astTests = [
  ];
 
 function compareAst(expected, actual) {
+  var differences = [];
 
-  for (var key in expected) {
-    if (expected.hasOwnProperty(key)) {
-      var v = expected[key];
-
-      if (!actual.hasOwnProperty(key)) {
-        return false;
-      }
-
-      if (v === null) {
-        if (actual[key] !== null) {
-          return false;
-        }
-        else {
-          continue;
-        }
-      }
-
-      if (typeof v !== typeof actual[key]) {
-        return false;
-      }
-
-      if (typeof v === 'object') {
-        if (!compareAst(v, actual[key])) {
-          return false;
-        }
-        continue;
-      }
-
-      if (v === actual[key]) {
-        continue;
-      }
-      return false;
+  function compare(expected, actual, query) {
+    function diff() {
+      var msg = Array.prototype.join.call(arguments, "\n");
+      differences.push([query, msg]);
     }
+    if (expected === actual) {
+      return;
+    }
+
+    if (expected === null && actual !== null) {
+        diff("expected is null, actual is not", JSON.stringify(actual));
+    }
+    if (expected !== null && actual == null) {
+      diff("actual is null when it should have been", JSON.stringify(actual));
+      return;
+    }
+
+    if (typeof expected !== typeof actual) {
+      differences.push(["different types\ntypeof expected" + typeof expected + "\ntypeof actual" + typeof expected])
+      diff("different types", "typeof expected " + typeof expected, "typeof actual " + typeof actual)
+      return;
+    }
+
+    if (Array.isArray(expected)) {
+      if (!Array.isArray(actual)) {
+        diff("expected is object, actual is not", JSON.stringify(actual));
+        return;
+      }
+      // both are arrays
+      if (expected.length > actual.length) {
+        diff("expected is longer", "expected: " + expected.length, "actual: " + actual.length);
+        return false;
+      }
+
+      expected.forEach(function(x, x_i) {
+        compare(x, actual[x_i], query + "[" + x_i + "]");
+      });
+    }
+
+    if (typeof expected === 'object') {
+      for (var key in expected) {
+        if (expected.hasOwnProperty(key)) {
+          if (actual.hasOwnProperty(key)) {
+            compare(expected[key], actual[key], query + "[" + key + "]");
+          }
+          else {
+            diff("actual is missing key " + key);
+          }
+        }
+      }
+      return;
+    }
+
+    else {
+      diff("different values", "Expected: " + JSON.stringify(expected), "Actual " + JSON.stringify(actual));
+      return;
+    }
+
+    diff("unknown difference");
   }
-  return true;
+
+  compare(expected, actual, "this");
+
+  if (differences.length) {
+    var msg = "\n" + differences.length + " differences:";
+    differences.forEach(function(x, x_i) {
+      msg += "\nDifference " + x_i + ":\n";
+      msg += "Query: " + x[0] + "\n";
+      msg += x[1];
+    });
+
+    msg += "\n\nExpected: " + JSON.stringify(expected);
+    msg += "\n\nActual: " + JSON.stringify(actual);
+    return msg;
+  }
+  return "";
+}
+
+function okAst(message, expected, actual) {
+  if (message === "") {
+    ok(true);
+  }
+  else {
+    ok(false, message);
+  }
+}
+
+function nokAst(message, expected, actual) {
+  if (message !== "") {
+    ok(true);
+  }
+  else {
+    ok(false, "ASTs were equal when they shouldn't have been");
+  }
 }
 
 module("AST comparison function");
 test("should work for empty objects", function() {
-  ok(compareAst({}, {}));
+  okAst(compareAst({}, {}));
 });
 
 test("should work for single values", function() {
-  ok(compareAst({a: 2}, {a: 2}));
-  ok(!compareAst({a: 3}, {a: 2}));
-  ok(!compareAst({a: 3}, {a: "stringstuff"}));
-  ok(compareAst({a: null}, {a: null}));
-  ok(!compareAst({a: 2}, {a: null}));
-  ok(!compareAst({a: null}, {a: 2}));
+  okAst(compareAst({a: 2}, {a: 2}));
+  nokAst(compareAst({a: 3}, {a: 2}));
+  nokAst(compareAst({a: 3}, {a: "stringstuff"}));
+  okAst(compareAst({a: null}, {a: null}));
+  nokAst(compareAst({a: 2}, {a: null}));
+  nokAst(compareAst({a: null}, {a: 2}));
 });
 
 test("actual has more stuff", function() {
-  ok(compareAst({i: "hello"}, {i: "hello", more: 2}));
-  ok(compareAst({i: "hello"}, {i: "hello", more: 2}));
-  ok(!compareAst({i: "different"}, {i: "hello", more: 2}));
+  okAst(compareAst({i: "hello"}, {i: "hello", more: 2}));
+  okAst(compareAst({i: "hello"}, {i: "hello", more: 2}));
+  nokAst(compareAst({i: "different"}, {i: "hello", more: 2}));
 });
 
 test("different values -> false", function() {
-  ok(!compareAst({a: 2}, {a: 3}));
-  ok(!compareAst({a: "hello"}, {a: null}));
+  nokAst(compareAst({a: 2}, {a: 3}));
+  nokAst(compareAst({a: "hello"}, {a: null}));
 });
 
 test("should work for nested objects", function() {
-  ok(compareAst({flat: 6, nested: {nested: {}}}, {flat: 6, nested: {nested: {}}}));
-  ok(!compareAst({flat: 6, nested: {nested: { something: null}}}, {flat: 6, nested: {nested: {}}}));
+  okAst(compareAst({flat: 6, nested: {nested: {}}}, {flat: 6, nested: {nested: {}}}));
+  nokAst(compareAst({flat: 6, nested: {nested: { something: null}}}, {flat: 6, nested: {nested: {}}}));
 });
 
 test("should work for nested objects", function() {
-  ok(compareAst({flat: 6, nested: {nested: {}}}, {flat: 6, nested: {nested: {}}}));
+  okAst(compareAst({flat: 6, nested: {nested: {}}}, {flat: 6, nested: {nested: {}}}));
 });
 
 test("should not work for non-records", function() {
-  ok(compareAst(null, {}));
-  ok(compareAst({}, null));
-  ok(compareAst(null, null));
-  ok(compareAst(2, 2));
-  ok(compareAst(3, 2));
-  ok(compareAst(3, 2));
+  nokAst(compareAst(null, {}));
+  nokAst(compareAst({}, null));
+  okAst(compareAst(null, null));
+  okAst(compareAst(2, 2));
+  nokAst(compareAst(3, 2));
+  nokAst(compareAst(3, {}));
 });
 
 module("AST");
@@ -188,6 +248,6 @@ astTests.forEach(function(n_s_t_e) {
 
   test(name, function() {
     var actual = vees.parser.parse(expression, {startRule: start});
-    ok(compareAst(expected, actual), "Expected: \n" + JSON.stringify(expected) + "\nActual:\n" + JSON.stringify(actual));
+    okAst(compareAst(expected, actual), "Expected: \n" + JSON.stringify(expected) + "\nActual:\n" + JSON.stringify(actual));
   });
 });
