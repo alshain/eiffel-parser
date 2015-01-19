@@ -89,7 +89,7 @@ NoteValue
 ClassName = W name:Identifier { return name.name}
 create = W CreateToken W first:Identifier rest:("," w id:Identifier { return id.name})* {return buildList(first.name, rest, gId())}
 inherit = W InheritToken W r:IdentifierList {return r}
-FeatureList 
+FeatureList
   = W FeatureToken access:(w acc:AccessSpecifier { return acc })? fs:Feature*
     { return {
         type: "featureList",
@@ -484,11 +484,11 @@ CharacterLiteral "character"
   }
 DoubleStringCharacter
   = !('"' / "%" / LineTerminator) SourceCharacter { return text(); }
-  / "%" sequence:EscapeSequence { return sequence; }
+  / "%" sequence:SourceCharacter { return "%" + sequence; }
   / LineContinuation
 SingleStringCharacter
   = !("'" / "%" / LineTerminator) SourceCharacter { return text(); }
-  / "%" sequence:EscapeSequence { return sequence; }
+  / "%" sequence:SourceCharacter{ return "%" + sequence; }
   / LineContinuation
 LineContinuation
   = "\\" LineTerminatorSequence { return ""; }
@@ -500,16 +500,31 @@ CharacterEscapeSequence
   / NonEscapeCharacter
 SingleEscapeCharacter
   = "'"
-  / '"'
-  / "%"
-  / "b" { return "\b"; }
-  / "f" { return "\f"; }
-  / "n" { return "\n"; }
-  / "r" { return "\r"; }
-  / "t" { return "\t"; }
-  / "v" { return "\x0B"; } // IE does not recognize "\v".
-  NonEscapeCharacter
+  / "A" // {return "@";}
+  / "B" // {return "\b";}
+  / "C" // {return "$";}
+  / "D" // {return "^";}
+  / "F" // {return "\f";}
+  / "H" // {return "\\";}
+  / "L" // {return "~";}
+  / "N" // {return "\n";}
+  / "Q" // {return "`";}
+  / "R" // {return "\r";}
+  / "S" // {return "#";}
+  / "T" // {return "\t";}
+  / "U" // {return "\0";}
+  / "V" // {return "|";}
+  / "%" // {return "%";}
+  / "'" // {return "'";}
+  / '"' // {return '"';}
+  / "(" // {return String.fromCharCode(91);}
+  / ")" // {return String.fromCharCode(93);}
+  / "<" // {return String.fromCharCode(123);}
+  / ">" // {return String.fromCharCode(125);}
+
+NonEscapeCharacter
 = !(EscapeCharacter / LineTerminator) SourceCharacter { return text(); }
+
 EscapeCharacter
   = SingleEscapeCharacter
   / DecimalDigit
