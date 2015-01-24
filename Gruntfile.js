@@ -10,9 +10,10 @@ module.exports = function(grunt) {
       "test/tmp"
     ],
 
-    concat: {
+    concat_sourcemap: {
       options: {
-        separator: "\n\n"
+        separator: "\n\n",
+        sourceRoot: "..",
       },
       lint: {
         src: [
@@ -40,7 +41,7 @@ module.exports = function(grunt) {
       },
       dist: {
         files: {
-          'dist/<%= pkg.name.replace(".js", "") %>.min.js': ['<%= concat.dist.dest %>']
+          'dist/<%= pkg.name.replace(".js", "") %>.min.js': ['<%=concat_sourcemap.dist.dest %>']
         }
       }
     },
@@ -57,12 +58,13 @@ module.exports = function(grunt) {
           module: true,
           document: true
         },
-        jshintrc: '.jshintrc'
+        jshintrc: '.jshintrc',
+        reporter: './node_modules/jshint-path-reporter',
       }
     },
 
     watch: {
-      files: ['Gruntfile.js', 'src/grammar/eiffel.pegjs', 'src/**/*.js'],
+      files: ['Gruntfile.js', 'src/grammar/eiffel.pegjs', 'test/**/*.js', 'src/**/*.js'],
       tasks: ['default']
     },
 
@@ -95,7 +97,7 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-contrib-jshint');
   grunt.loadNpmTasks('grunt-contrib-qunit');
   grunt.loadNpmTasks('grunt-contrib-watch');
-  grunt.loadNpmTasks('grunt-contrib-concat');
+  grunt.loadNpmTasks('grunt-concat-sourcemap');
   grunt.loadNpmTasks('grunt-contrib-clean');
   grunt.loadNpmTasks('grunt-peg');
   grunt.registerMultiTask('collectTests', function() {
@@ -120,4 +122,4 @@ module.exports = function(grunt) {
     grunt.file.write(dest, fileOutput);
   });
   grunt.registerTask('test', ['jshint', 'qunit']);
-  grunt.registerTask('default', ['clean', 'collectTests', 'peg', 'concat', 'jshint', 'qunit', 'uglify']); };
+  grunt.registerTask('default', ['clean', 'collectTests', 'peg', 'concat_sourcemap', 'jshint', 'qunit', 'uglify']); };
