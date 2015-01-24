@@ -12,26 +12,26 @@
     return result;
   }
 
-    function currentExpression() {
-      return {
-        type: "current"
-      }
+  function currentExpression() {
+    return {
+      type: "current"
     }
+  }
 
-    function buildBinaryTree(left, rest) {
-      return rest.reduce(
-        function(left, kind__right) {
-          return  {
-            type: "expression",
-          kind: kind__right.kind,
-          isbinary: true,
-          left: left,
-          right: kind__right.right,
-        }
-        },
-        left
-      );
-    }
+  function buildBinaryTree(left, rest) {
+    return rest.reduce(
+      function(left, kind__right) {
+        return  {
+          type: "expression",
+        kind: kind__right.kind,
+        isbinary: true,
+        left: left,
+        right: kind__right.right,
+      }
+      },
+      left
+    );
+  }
 
   function buildList(first, rest, f) {
       return [first].concat(extractList(rest, f));
@@ -113,7 +113,7 @@ Function
       params: h.params,
       returnType: rt,
       preconditions: b.preconditions,
-      locals: b.locals,
+      localLists: b.locals,
       instructions: b.instructions,
       postconditions: b.postconditions,
     };
@@ -127,7 +127,7 @@ Procedure
       name: h.name,
       params: h.params,
       preconditions: b.preconditions,
-      locals: b.locals,
+      localLists: b.locals,
       instructions: b.instructions,
       postconditions: b.postconditions,
     };
@@ -143,15 +143,15 @@ RoutineHeader
   }
 
 VarList 
-  = Vars (w ";" w Vars w)*
+  = v:Vars vs:(w ";" w vi:Vars w { return vi; })* { return Array.prototype.concat.call(v, vs)}
 
 Vars 
   = ids:IdentifierList w ":" w t:Type
   {
-    return ids.forEach(function(id) {
+    return ids.map(function(id) {
       return {
         type: "var",
-        name: id.name,
+        name: id,
         parameterType: t
       };
     });
@@ -201,8 +201,8 @@ LabelledCondition
   }
 ConditionLabel = i:Identifier w ":" w {return i.name;}
 
-Locals = LocalToken VarLists W
-VarLists = vs:(W v:VarList {return v;})+ {return Array.prototype.concat.apply([], vs);}
+Locals = LocalToken vs:VarLists W { return vs; }
+VarLists = vs:(W v:VarList {return v;})+ {return vs;}
 Postconditions = "a"
 Do = DoToken i:InstructionSeq {return i}
 
