@@ -29,10 +29,11 @@ var vees = function() {
     /*jshint unused:true*/
   };
   /*jshint unused:false*/
-  var Analyzer = function() {
+  var Analyzer = function Analyzer() {
     /*jshint unused:true*/
     this.classes = {};
-    this.analyze = function() {
+
+    this.discoverSymbols = function discoverSymbols() {
 
       function initRoutine(ast, classSymbol) {
         /*jshint validthis:true*/
@@ -115,11 +116,11 @@ var vees = function() {
           throw new Error("Symbol not found");
         };
       }
-      var analyzeClassASTs = function (arrayOfClasses) {
-        Array.prototype.forEach.call(arrayOfClasses, analyzeSingleClass);
+      var discoverSymbolsInClassAsts = function (arrayOfClasses) {
+        Array.prototype.forEach.call(arrayOfClasses, discoverSymbolsInSingleClass);
       }.bind(this);
 
-      var analyzeSingleClass = function (singleClass) {
+      var discoverSymbolsInSingleClass = function (singleClass) {
         var trav = new AstTraversal(singleClass);
         var className = trav.className();
         var cSym = new ClassSymbol(className);
@@ -164,7 +165,11 @@ var vees = function() {
       }.bind(this);
 
 
-      Array.prototype.forEach.call(arguments, analyzeClassASTs);
+      Array.prototype.forEach.call(arguments, discoverSymbolsInClassAsts);
+    };
+
+    this.analyze = function analyze() {
+      this.discoverSymbols.apply(this, arguments);
     };
 
   };
