@@ -251,3 +251,76 @@ astTests.forEach(function(n_s_t_e) {
     okAst(compareAst(expected, actual), "Expected: \n" + JSON.stringify(expected) + "\nActual:\n" + JSON.stringify(actual));
   });
 });
+
+module("AstTraversal");
+test("should return correct class name", function() {
+  var ast = vees.parser.parse("class CLASSNAME end");
+  var trav = new vees.AstTraversal(ast[0]);
+  equal("CLASSNAME", trav.className());
+});
+
+module("Analyzer");
+
+function analyze(source) {
+  var analyzer = new vees.Analyzer();
+  analyzer.analyze(vees.parser.parse(source));
+
+  return analyzer;
+}
+test("should pass", function () {
+  analyze("class CLASSNAME end");
+  ok(true);
+});
+
+
+function analyzerHasClass(analyzed, className) {
+  var hasClass = analyzed.classes.hasOwnProperty(className);
+  if (!hasClass) {
+    console.log(analyzed.classes);
+  }
+  ok(hasClass, "doesn't have class className");
+}
+
+function classHasSymbol(analyzed, className, symbolName) {
+  var classSymbol = analyzed.classes[className];
+  var hasSymbol = classSymbol.hasSymbol(symbolName);
+  var errorMessage = "Class " + className + " does not have symbol " + symbolName;
+  if (!hasSymbol) {
+    console.log(errorMessage);
+    console.log(analyzed.classes[className]);
+  }
+  ok(hasSymbol, errorMessage);
+
+  var symbol = classSymbol.resolveSymbol(symbolName);
+  var actualName = symbol.name;
+  equal(actualName, symbolName, "Symbol has wrong name");
+}
+
+test("should find symbol", function() {
+  var analyzed = analyze("class CLASSNAME feature test: INTEGER end");
+  ok(null != analyzed.classes["CLASSNAME"]);
+  classHasSymbol(analyzed, "CLASSNAME", "test");
+});
+
+
+test("Analyze two classes in one input", function() {
+  var analyzed = analyze("class A feature test: INTEGER end class B end");
+  analyzerHasClass(analyzed, "A");
+  analyzerHasClass(analyzed, "B");
+});
+
+
+test("Symbols exist", function() {
+  var analyzed = analyze("class A feature test: STRING test2: INTEGER f3: INTEGER do end f4 do end end");
+  classHasSymbol(analyzed, "A", "test");
+  classHasSymbol(analyzed, "A", "test2");
+  classHasSymbol(analyzed, "A", "f3");
+  classHasSymbol(analyzed, "A", "f4");
+});
+
+test("Local variables exist", function () {
+  var analyzed = analyze("class HASLOCALS feature abcd local var: INTEGER do end end");
+  var local = analyzed.classes["HASLOCALS"].methods["abcd"].locals["var"];
+
+  equal(local.name, "var", "Local variable is not named var");
+});
