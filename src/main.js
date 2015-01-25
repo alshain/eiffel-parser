@@ -11,8 +11,8 @@ var vees = function() {
   }
 
   function dispatchOnType(node, fs) {
-    var type = node.type;
-    if(!fs.hasOwnProperty(type)) {
+    var type = node.nodeType;
+    if (!fs.hasOwnProperty(type)) {
       console.log("Node");
       console.log(node);
       console.log(fs);
@@ -54,24 +54,20 @@ var vees = function() {
       function LocalSymbol(ast, owningMethod) {
         this.name = ast.name;
         this.owningMethod = owningMethod;
-
       }
 
       function FunctionSymbol(ast, classSymbol) {
         initRoutine.bind(this)(ast, classSymbol);
-
       }
 
       function ProcedureSymbol(ast, classSymbol) {
         initRoutine.bind(this)(ast, classSymbol);
-
       }
 
       function AttributeSymbol(ast, classSymbol) {
         this.name = ast.name;
         this.owningClass = classSymbol;
         this.ast = ast;
-
       }
 
       function ClassSymbol(className) {
@@ -171,8 +167,13 @@ var vees = function() {
     this.analyze = function analyze() {
       discoverSymbols.apply(this, arguments);
     };
-
   };
+
+  function Visitor(handlers) {
+    function recurse(ast) {
+    
+    }
+  }
 
   return {
     parser: parser,

@@ -3,6 +3,19 @@
     return /^(agent|alias|all|and|as|assign|attribute|check|class|convert|create|Current|debug|deferred|do|else|elseif|end|ensure|expanded|export|external|False|feature|from|frozen|if|implies|inherit|inspect|invariant|like|local|loop|not|note|obsolete|old|once|only|or|Precursor|redefine|rename|require|rescue|Result|retry|select|separate|then|True|TUPLE|undefine|until|variant|Void|when|xor)$/.test(name);
   }
 
+  function Node(nodeType, data) {
+    this.nodeType = nodeType;
+    for (var prop in data) {
+      if (data.hasOwnProperty(prop)) {
+        this[prop] = data[prop];
+      }
+    }
+  }
+
+  function _n(nodeType, data) {
+    return new Node(nodeType, data);
+  }
+
   function extractList(list, f) {
     var result = new Array(list.length), i;
     for (i = 0; i < list.length; i++) {
@@ -13,21 +26,19 @@
   }
 
   function currentExpression() {
-    return {
-      type: "current"
-    }
+    return _n("current", {
+    })
   }
 
   function buildBinaryTree(left, rest) {
     return rest.reduce(
       function(left, kind__right) {
-        return  {
-          type: "expression",
+        return  _n("expression", {
           kind: kind__right.kind,
           isbinary: true,
           left: left,
           right: kind__right.right,
-        }
+        })
       },
       left
     );
@@ -69,14 +80,13 @@
 start = class*
 class 
   = w note:Note? ClassToken name:ClassName inherit:inherit? create:create? featureLists:FeatureList* W EndToken w
-    { return {
-        type: "class",
+    { return _n("class", {
         name: name, 
         note: optionalList(note),
         inherit : optionalList(inherit), 
         create: (create == null) ? [] : create, 
         featureLists: featureLists
-      };
+      });
     } 
 
 Note = NoteToken p:NotePair+ W {return p;}
@@ -91,36 +101,76 @@ create = W CreateToken W first:Identifier rest:("," w id:Identifier { return id.
 inherit = InheritanceClause+
 
 InheritanceClause
-  = W InheritToken c:(w "{" w i:(Identifier?) w "}" w {return i;} / W { return null; })? ps:Parent+
+  = W InheritToken c:(w "{" w i:(Identifier?) w "}" {return i;} / { return null; })? ps:Parent+
   {
-    return {
-      type: "inheritance",
+    return _n("inheritance", {
       conforming: c,
       parents: ps,
-    };
+    });
   }
 
 Parent
-  = t:Type a:Adaptions?
+  = w t:Type a:Adaptions?
   {
-    return {
+    return _n("parent", {
       type: t,
       undefine: (a === null) ? null : a.undefine,
       redefine: (a === null) ? null : a.redefine,
       rename: (a === null) ? null : a.rename,
       newexport: (a === null) ? null : a.newexport,
       select: (a === null) ? null : a.select,
-    };
+    });
   }
+/** FIXME: No backtracking, END of inheritance only mandatory if at least one rule fits */
 
 Adaptions
-  = undefine:InhUndefine? redefine:InhRedefine? rename:InhRename? newexport:InhNewExports? select:InhSelect? W EndToken
+  = undefine:InhUndefine redefine:InhRedefine? rename:InhRename? newexport:InhNewExports? select:InhSelect? W EndToken
   {
     return {
       undefine: undefine,
       redefine: redefine,
       rename: rename,
       newexport: newexport,
+      select: select,
+    };
+  }
+  / redefine:InhRedefine rename:InhRename? newexport:InhNewExports? select:InhSelect? W EndToken
+  {
+    return {
+      undefine: [],
+      redefine: redefine,
+      rename: rename,
+      newexport: newexport,
+      select: select,
+    };
+  }
+  / rename:InhRename newexport:InhNewExports? select:InhSelect? W EndToken
+  {
+    return {
+      undefine: [],
+      redefine: [],
+      rename: rename,
+      newexport: newexport,
+      select: select,
+    };
+  }
+  / newexport:InhNewExports select:InhSelect? W EndToken
+  {
+    return {
+      undefine: [],
+      redefine: [],
+      rename: [],
+      newexport: newexport,
+      select: select,
+    };
+  }
+  / select:InhSelect W EndToken
+  {
+    return {
+      undefine: [],
+      redefine: [],
+      rename: [],
+      newexport: [],
       select: select,
     };
   }
@@ -156,11 +206,10 @@ InhSelect
 
 FeatureList
   = W FeatureToken access:(w acc:AccessSpecifier { return acc })? fs:Feature*
-    { return {
-        type: "featureList",
+    { return _n("featureList", {
         access : access,
         features: fs
-      };
+      });
     }
 
 Feature
@@ -172,8 +221,7 @@ Feature
 Function
   = h:RoutineHeader w ":" w rt:Type W b:RoutineBody
   {
-    return {
-      type: "function",
+    return _n("function", {
       name: h.name,
       params: h.params,
       returnType: rt,
@@ -181,21 +229,20 @@ Function
       localLists: b.locals,
       instructions: b.instructions,
       postconditions: b.postconditions,
-    };
+    });
   }
 
 Procedure
   = h:RoutineHeader w b:RoutineBody
   {
-    return {
-      type: "procedure",
+    return _n("procedure", {
       name: h.name,
       params: h.params,
       preconditions: b.preconditions,
       localLists: b.locals,
       instructions: b.instructions,
       postconditions: b.postconditions,
-    };
+    });
   }
 
 RoutineHeader 
@@ -214,33 +261,30 @@ Vars
   = ids:IdentifierList w ":" w t:Type
   {
     return ids.map(function(id) {
-      return {
-        type: "var",
+      return _n("var", {
         name: id,
         parameterType: t
-      };
+      });
     });
   }
 
 Attribute
   =  n:Identifier  w ":" w t:Type 
-  { 
-    return {
-      type: "attribute",
+  {
+    return _n("attribute", {
       name: n.name,
       attributeType: t
-    };
+    });
   }
 
 Constant 
   = a:Attribute w "=" l:Literal
   {
-    return {
-      type: "constant",
+    return _n("constant", {
       name: a.name,
       constantType: a.attributeType,
       value: l
-    }
+    });
   }
 
 RoutineBody
@@ -296,9 +340,7 @@ Instruction
 
 NoOp = w ";"
   {
-    return {
-      type: "noop"
-    };
+    return _n("noop", {});
   }
 
 
@@ -368,22 +410,20 @@ FactorExpr
 Index
   = w "[" w a:ArgList w "]"
   {
-    return {
-      type: "index",
+    return _n("index", {
       operand: undefined,
       args: optionalList(a),
-    };
+    });
   }
 
 Call
   = w "." w i:Identifier a:Args?
   {
-    return {
-      type: "call",
+    return _n("call", {
       operand: undefined,
       name: i.name,
       args: optionalList(a),
-    };
+    });
   }
 
 IllegalAfterKeyword
@@ -393,11 +433,10 @@ IllegalAfterKeyword
 Type
   = n:Identifier ts:(w "[" w g:TypeList w "]" {return g})?
   { 
-    return {
-      type: "type",
+    return _n("type", {
       name: n.name,
       typeParams: optionalList(ts),
-    }
+    })
   }
 
 TypeList
@@ -406,12 +445,11 @@ TypeList
 LoopInstr
   = FromToken fromSeq:InstructionSeq W UntilToken W until:Expression W LoopToken is:InstructionSeq W EndToken
   {
-    return {
-      type: "fromLoop",
+    return _n("fromLoop", {
       until: until,
       from: fromSeq,
       loop: is,
-    };
+    });
   }
 
 AcrossInstr
@@ -421,13 +459,12 @@ AcrossInstr
 IfInstr
   = IfToken W c:Expression W ThenToken is:InstructionSeq ei:ElseIf? e:Else? W EndToken
   { 
-    return {
-      type: "if",
+    return _n("if", {
       condition: c,
       elseif: optionalList(ei),
       else_instructions: optionalList(e),
       instructions: optionalList(is)
-    };
+    });
   }
 
 Else
@@ -438,11 +475,10 @@ ElseIf = rest:(W ElseifToken W c:Expression W ThenToken is:InstructionSeq {retur
 AssignmentInstr
   = lhs:LeftHandSide w ":=" w rhs:Expression
   {
-    return {
-      type: "assignment",
+    return _n("assignment", {
       lhs: lhs,
       rhs: rhs,
-    }
+    })
   }
 
 
@@ -452,12 +488,11 @@ LeftHandSide
 CreateInstr
   = CreateToken !(IllegalAfterKeyword) w t:ExplicitCreationType? n:Identifier m:CreationMethod?
   {
-    return {
-      type: "create",
+    return _n("create", {
       target: n.name,
       initializer: (m ? m.name : "default_create"),
       args: m ? optionalList(m.args) : []
-    }
+    })
   }
 
 CreationMethod
@@ -535,17 +570,17 @@ SingleLineComment
 
 IntegerLiteral
   = DecimalIntegerLiteral {
-    return { type: "literal", kind: "int", value: parseFloat(text()) };
+    return _n("literal", { kind: "int", value: parseFloat(text()) });
   }
 
 StringLiteral "string"
   = '"' chars:DoubleStringCharacter* '"' {
-  return { type: "literal", kind: "string", value: chars.join("") };
+  return _n("literal", { kind: "string", value: chars.join("") });
   }
 
 CharacterLiteral "character"
   = "'" char:SingleStringCharacter "'" {
-  return { type: "literal", kind: "char", value: char };
+  return _n("literal", { kind: "char", value: char });
   }
 DoubleStringCharacter
   = !('"' / "%" / LineTerminator) SourceCharacter { return text(); }
@@ -598,8 +633,8 @@ EscapeCharacter
 
 
 Literal
-  = pos:pos r:VoidLiteral    !(IllegalAfterKeyword) { return { type: "literal", kind: "Void", pos:pos}}
-  / pos:pos r:BooleanLiteral !IllegalAfterKeyword {return { type: "literal", kind: "bool", value: r}}
+  = pos:pos r:VoidLiteral    !(IllegalAfterKeyword) { return _n("literal", { kind: "Void", pos:pos})}
+  / pos:pos r:BooleanLiteral !IllegalAfterKeyword {return _n("literal", { kind: "bool", value: r})}
   / pos:pos r:IntegerLiteral !IllegalAfterKeyword {return r}
   / pos:pos r:StringLiteral  !IllegalAfterKeyword {return r}
 
@@ -609,15 +644,14 @@ Letter
 
 IdentifierName "identifier"
   = first:IdentifierStart rest:IdentifierPart* {
-    return {
-      type: "Identifier",
+    return _n("Identifier", {
       name: first + rest.join("")
-    };
+    });
 }
 
 ReservedWord
   = r:Keyword        !(IllegalAfterKeyword) { return r}
-  / pos:pos r:VoidLiteral    !(IllegalAfterKeyword) { return { type: "Void", pos:pos}}
+  / pos:pos r:VoidLiteral    !(IllegalAfterKeyword) { return _n("Void", { pos:pos})}
   / r:BooleanLiteral !(IllegalAfterKeyword) { return r}
 
 VoidLiteral

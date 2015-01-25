@@ -44,7 +44,7 @@ var astTests = [
     "Expression",
     "True",
     {
-      type: "literal",
+      nodeType: "literal",
       kind: "bool",
       value: true,
     },
@@ -56,7 +56,7 @@ var astTests = [
     "Expression",
     "True",
     {
-      type: "literal",
+      nodeType: "literal",
       kind: "bool",
       value: true,
     },
@@ -67,7 +67,7 @@ var astTests = [
     "Expression",
     "False",
     {
-      type: "literal",
+      nodeType: "literal",
       kind: "bool",
       value: false,
     },
@@ -78,7 +78,7 @@ var astTests = [
     "Expression",
     "1",
     {
-      type: "literal",
+      nodeType: "literal",
       kind: "int",
       value: 1,
     },
@@ -89,7 +89,7 @@ var astTests = [
     "Expression",
     '"%n%""',
     {
-      type: "literal",
+      nodeType: "literal",
       kind: "string",
       value: '%n%"',
     },
