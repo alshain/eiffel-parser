@@ -221,7 +221,7 @@ Feature
 Function
   = h:RoutineHeader w ":" w rt:Type W b:RoutineBody
   {
-    return _n("function", {
+    return _n("feature.function", {
       name: h.name,
       params: h.params,
       returnType: rt,
@@ -235,7 +235,7 @@ Function
 Procedure
   = h:RoutineHeader w b:RoutineBody
   {
-    return _n("procedure", {
+    return _n("feature.procedure", {
       name: h.name,
       params: h.params,
       preconditions: b.preconditions,
@@ -271,7 +271,7 @@ Vars
 Attribute
   =  n:Identifier  w ":" w t:Type 
   {
-    return _n("attribute", {
+    return _n("feature.attribute", {
       name: n.name,
       attributeType: t
     });
@@ -280,7 +280,7 @@ Attribute
 Constant 
   = a:Attribute w "=" l:Literal
   {
-    return _n("constant", {
+    return _n("feature.constant", {
       name: a.name,
       constantType: a.attributeType,
       value: l

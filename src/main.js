@@ -10,17 +10,38 @@ var vees = function() {
     });
   }
 
+  function recurse(ast, dispatcher) {
+  }
+
   function dispatchOnType(node, fs) {
     var type = node.nodeType;
-    if (!fs.hasOwnProperty(type)) {
+    var splitted = type.split(".");
+    var typeBySpecifity = splitted.map(function(_, i, all) {
+      return all.slice(0, all.length - i).join(".");
+    });
+
+    var foundFunction = false;
+    typeBySpecifity.some(function(typePart) {
+      if(fs.hasOwnProperty(typePart)) {
+        foundFunction = true;
+        fs[typePart](node);
+        return true;
+      }
+
+      return false;
+    });
+
+    if (foundFunction) {
+      return;
+    }
+    else {
       console.log("Node");
       console.log(node);
       console.log(fs);
       throw new Error("Function for type " + type + " does not exist");
     }
-
-    fs[type](node);
   }
+
   /*jshint unused:false*/
   var AstTraversal = function(ast) {
       this.className = function className() {
@@ -146,9 +167,9 @@ var vees = function() {
             }.bind(this);
 
             var fs = {
-              "attribute": analyzeAttribute,
-              "procedure": analyzeProcedure,
-              "function": analyzeFunction,
+              "feature.attribute": analyzeAttribute,
+              "feature.procedure": analyzeProcedure,
+              "feature.function": analyzeFunction,
             };
             dispatchOnType(feature, fs);
 
