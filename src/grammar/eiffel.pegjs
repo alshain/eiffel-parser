@@ -114,7 +114,7 @@ Parent
   }
 
 Adaptions
-  = undefine:InhUndefine? redefine:InhRedefine? rename:InhRename? newexport:InhNewExports? select:InhSelect? EndToken
+  = undefine:InhUndefine? redefine:InhRedefine? rename:InhRename? newexport:InhNewExports? select:InhSelect? W EndToken
   {
     return {
       undefine: undefine,
