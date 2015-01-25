@@ -244,13 +244,17 @@ Procedure
   }
 
 RoutineHeader 
-  = n:Identifier p:(w "(" w ps:VarList? ")" {return ps;})?
+  = n:Identifier alias:Alias? p:(w "(" w ps:VarList? ")" {return ps;})?
   {
     return {
       name: n.name,
+      alias: alias,
       params: optionalList(p)
     }
   }
+
+Alias
+  = W AliasToken w s:StringLiteral
 
 VarList 
   = v:Vars vs:(w ";" w vi:Vars w { return vi; })* { return Array.prototype.concat.call(v, vs)}
