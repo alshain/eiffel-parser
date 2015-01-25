@@ -33,7 +33,7 @@ var vees = function() {
     /*jshint unused:true*/
     this.classes = {};
 
-    this.discoverSymbols = function discoverSymbols() {
+    var discoverSymbols = function discoverSymbols() {
 
       function initRoutine(ast, classSymbol) {
         /*jshint validthis:true*/
@@ -166,10 +166,10 @@ var vees = function() {
 
 
       Array.prototype.forEach.call(arguments, discoverSymbolsInClassAsts);
-    };
+    }.bind(this);
 
     this.analyze = function analyze() {
-      this.discoverSymbols.apply(this, arguments);
+      discoverSymbols.apply(this, arguments);
     };
 
   };
