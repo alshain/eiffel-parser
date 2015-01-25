@@ -26,8 +26,7 @@
   }
 
   function currentExpression() {
-    return _n("current", {
-    });
+    return _n("current", {});
   }
 
   function buildBinaryTree(left, rest) {
