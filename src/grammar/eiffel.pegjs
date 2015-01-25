@@ -23,11 +23,11 @@
       function(left, kind__right) {
         return  {
           type: "expression",
-        kind: kind__right.kind,
-        isbinary: true,
-        left: left,
-        right: kind__right.right,
-      }
+          kind: kind__right.kind,
+          isbinary: true,
+          left: left,
+          right: kind__right.right,
+        }
       },
       left
     );
