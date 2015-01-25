@@ -64,7 +64,13 @@ module.exports = function(grunt) {
     },
 
     watch: {
-      files: ['Gruntfile.js', 'src/grammar/eiffel.pegjs', 'test/**/*.js', 'src/**/*.js'],
+      files: [
+        'Gruntfile.js',
+        'src/grammar/eiffel.pegjs',
+        'src/**/*.js',
+        'test/**/*.js',
+        'test/**/*.e',
+      ],
       tasks: ['default']
     },
 
