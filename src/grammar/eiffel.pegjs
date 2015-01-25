@@ -32,8 +32,7 @@
   function buildBinaryTree(left, rest) {
     return rest.reduce(
       function(left, kind__right) {
-        return  _n("expression", {
-          kind: kind__right.kind,
+        return  _n("expression.binary." + kind__right.kind, {
           isbinary: true,
           left: left,
           right: kind__right.right,
@@ -373,25 +372,21 @@ BinMultExpr
 ExponentExpr
   = l:UnaryExpr w k:"^" w r:ExponentExpr
     {
-      return {
-        "type": "expression",
+      return _n("expression.binary." + k, {
         isbinary: true,
-        kind: k,
         left: l,
         right: r,
-      }
+      });
     }
   / UnaryExpr
 
 UnaryExpr
   = o:("-" !("-") {return "-"} / "+" {return "+"} / "not" !IllegalAfterKeyword) w u:UnaryExpr
     {
-      return {
-        "type": "expression",
-        "kind": o,
+      return _n("exp.unary." + o, {
         is_unary: true,
         operand: u,
-      };
+      });
     }
   / FactorExpr
 
