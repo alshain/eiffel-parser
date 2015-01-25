@@ -88,7 +88,45 @@ NoteValue
 
 ClassName = W name:Identifier { return name.name}
 create = W CreateToken W first:Identifier rest:("," w id:Identifier { return id.name})* {return buildList(first.name, rest, gId())}
-inherit = W InheritToken W r:IdentifierList {return r}
+inherit = InheritanceClause+
+InheritanceClause
+  = W InheritToken c:(w "{" i:(Identifier?) "}" {return i;} / W { return null; })? ps:Parent+
+  {
+    return {
+      type: "inheritance",
+      conforming: c,
+    };
+  }
+
+Parent
+  = Type Adaptions?
+
+Adaptions
+  = InhUndefine? InhRedefine? InhRename? InhNewExports? InhSelect? EndToken
+
+InhUndefine
+  = W UndefineToken W IdentifierList
+
+InhRedefine
+  = W RedefineToken W IdentifierList
+
+InhRename
+  = W RenameToken W IdentifierList
+
+InhNewExports
+  = W ExportToken ExportChangeset+
+
+ExportChangeset
+  = w "{" w cs:IdentifierList w "}" FeatureSet w ";"
+
+FeatureSet
+  = IdentifierList
+  / AllToken
+
+InhSelect
+  = "unimplemented"
+
+
 FeatureList
   = W FeatureToken access:(w acc:AccessSpecifier { return acc })? fs:Feature*
     { return {
