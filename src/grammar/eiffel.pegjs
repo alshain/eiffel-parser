@@ -27,7 +27,7 @@
 
   function currentExpression() {
     return _n("current", {
-    })
+    });
   }
 
   function buildBinaryTree(left, rest) {
@@ -38,7 +38,7 @@
           isbinary: true,
           left: left,
           right: kind__right.right,
-        })
+        });
       },
       left
     );
@@ -49,7 +49,7 @@
   }
 
   function merge() {
-    return Array.prototype.reduce.call(arguments, function(xs, x) { return xs.concat(x)});
+    return Array.prototype.reduce.call(arguments, function(xs, x) { return xs.concat(x);});
   }
 
   function buildIndexArgTree(first, rest) {
@@ -436,7 +436,7 @@ Type
     return _n("type", {
       name: n.name,
       typeParams: optionalList(ts),
-    })
+    });
   }
 
 TypeList
@@ -478,7 +478,7 @@ AssignmentInstr
     return _n("assignment", {
       lhs: lhs,
       rhs: rhs,
-    })
+    });
   }
 
 
@@ -492,7 +492,7 @@ CreateInstr
       target: n.name,
       initializer: (m ? m.name : "default_create"),
       args: m ? optionalList(m.args) : []
-    })
+    });
   }
 
 CreationMethod
@@ -633,10 +633,10 @@ EscapeCharacter
 
 
 Literal
-  = pos:pos r:VoidLiteral    !(IllegalAfterKeyword) { return _n("literal", { kind: "Void", pos:pos})}
-  / pos:pos r:BooleanLiteral !IllegalAfterKeyword {return _n("literal", { kind: "bool", value: r})}
-  / pos:pos r:IntegerLiteral !IllegalAfterKeyword {return r}
-  / pos:pos r:StringLiteral  !IllegalAfterKeyword {return r}
+  = pos:pos r:VoidLiteral    !(IllegalAfterKeyword) { return _n("literal", { kind: "Void", pos:pos});}
+  / pos:pos r:BooleanLiteral !IllegalAfterKeyword {return _n("literal", { kind: "bool", value: r});}
+  / pos:pos r:IntegerLiteral !IllegalAfterKeyword {return r;}
+  / pos:pos r:StringLiteral  !IllegalAfterKeyword {return r;}
 
 Letter
   = [a-z]
@@ -651,8 +651,8 @@ IdentifierName "identifier"
 
 ReservedWord
   = r:Keyword        !(IllegalAfterKeyword) { return r}
-  / pos:pos r:VoidLiteral    !(IllegalAfterKeyword) { return _n("Void", { pos:pos})}
-  / r:BooleanLiteral !(IllegalAfterKeyword) { return r}
+  / pos:pos r:VoidLiteral    !(IllegalAfterKeyword) { return _n("Void", { pos:pos});}
+  / r:BooleanLiteral !(IllegalAfterKeyword) { return r;}
 
 VoidLiteral
   = "Void"
