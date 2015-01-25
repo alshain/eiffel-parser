@@ -89,35 +89,62 @@ NoteValue
 ClassName = W name:Identifier { return name.name}
 create = W CreateToken W first:Identifier rest:("," w id:Identifier { return id.name})* {return buildList(first.name, rest, gId())}
 inherit = InheritanceClause+
+
 InheritanceClause
-  = W InheritToken c:(w "{" i:(Identifier?) "}" {return i;} / W { return null; })? ps:Parent+
+  = W InheritToken c:(w "{" w i:(Identifier?) w "}" w {return i;} / W { return null; })? ps:Parent+
   {
     return {
       type: "inheritance",
       conforming: c,
+      parents: ps,
     };
   }
 
 Parent
-  = Type Adaptions?
+  = t:Type a:Adaptions?
+  {
+    return {
+      type: t,
+      undefine: (a === null) ? null : a.undefine,
+      redefine: (a === null) ? null : a.redefine,
+      rename: (a === null) ? null : a.rename,
+      newexport: (a === null) ? null : a.newexport,
+      select: (a === null) ? null : a.select,
+    };
+  }
 
 Adaptions
-  = InhUndefine? InhRedefine? InhRename? InhNewExports? InhSelect? EndToken
+  = undefine:InhUndefine? redefine:InhRedefine? rename:InhRename? newexport:InhNewExports? select:InhSelect? EndToken
+  {
+    return {
+      undefine: undefine,
+      redefine: redefine,
+      rename: rename,
+      newexport: newexport,
+      select: select,
+    };
+  }
 
 InhUndefine
-  = W UndefineToken W IdentifierList
+  = W UndefineToken W l:IdentifierList { return l; }
 
 InhRedefine
-  = W RedefineToken W IdentifierList
+  = W RedefineToken W l:IdentifierList { return l; }
 
 InhRename
-  = W RenameToken W IdentifierList
+  = W RenameToken W l:IdentifierList { return l; }
 
 InhNewExports
-  = W ExportToken ExportChangeset+
+  = W ExportToken es:ExportChangeset+ { return es; }
 
 ExportChangeset
-  = w "{" w cs:IdentifierList w "}" FeatureSet w ";"
+  = w "{" w cs:IdentifierList w "}" fs:FeatureSet w ";"
+  {
+    return {
+      access: cs,
+      features: fs,
+    };
+  }
 
 FeatureSet
   = IdentifierList
