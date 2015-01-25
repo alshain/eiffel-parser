@@ -173,9 +173,10 @@ generatedParser = (function() {
         peg$c43 = ")",
         peg$c44 = { type: "literal", value: ")", description: "\")\"" },
         peg$c45 = function(ps) {return ps;},
-        peg$c46 = function(n, p) {
+        peg$c46 = function(n, alias, p) {
             return {
               name: n.name,
+              alias: alias,
               params: optionalList(p)
             }
           },
@@ -285,24 +286,20 @@ generatedParser = (function() {
         peg$c112 = "^",
         peg$c113 = { type: "literal", value: "^", description: "\"^\"" },
         peg$c114 = function(l, k, r) {
-              return {
-                "type": "expression",
+              return _n("expression.binary." + k, {
                 isbinary: true,
-                kind: k,
                 left: l,
                 right: r,
-              }
+              });
             },
         peg$c115 = function() {return "+"},
         peg$c116 = "not",
         peg$c117 = { type: "literal", value: "not", description: "\"not\"" },
         peg$c118 = function(o, u) {
-              return {
-                "type": "expression",
-                "kind": o,
+              return _n("exp.unary." + o, {
                 is_unary: true,
                 operand: u,
-              };
+              });
             },
         peg$c119 = function(e) { return e},
         peg$c120 = function(f, ops) { return buildIndexArgTree(f, ops)},
@@ -1935,67 +1932,110 @@ generatedParser = (function() {
     }
 
     function peg$parseRoutineHeader() {
-      var s0, s1, s2, s3, s4, s5, s6, s7;
+      var s0, s1, s2, s3, s4, s5, s6, s7, s8;
 
       s0 = peg$currPos;
       s1 = peg$parseIdentifier();
       if (s1 !== peg$FAILED) {
-        s2 = peg$currPos;
-        s3 = peg$parsew();
-        if (s3 !== peg$FAILED) {
-          if (input.charCodeAt(peg$currPos) === 40) {
-            s4 = peg$c41;
-            peg$currPos++;
-          } else {
-            s4 = peg$FAILED;
-            if (peg$silentFails === 0) { peg$fail(peg$c42); }
-          }
-          if (s4 !== peg$FAILED) {
-            s5 = peg$parsew();
-            if (s5 !== peg$FAILED) {
-              s6 = peg$parseVarList();
-              if (s6 === peg$FAILED) {
-                s6 = peg$c2;
-              }
-              if (s6 !== peg$FAILED) {
-                if (input.charCodeAt(peg$currPos) === 41) {
-                  s7 = peg$c43;
-                  peg$currPos++;
-                } else {
-                  s7 = peg$FAILED;
-                  if (peg$silentFails === 0) { peg$fail(peg$c44); }
-                }
-                if (s7 !== peg$FAILED) {
-                  peg$reportedPos = s2;
-                  s3 = peg$c45(s6);
-                  s2 = s3;
-                } else {
-                  peg$currPos = s2;
-                  s2 = peg$c1;
-                }
-              } else {
-                peg$currPos = s2;
-                s2 = peg$c1;
-              }
-            } else {
-              peg$currPos = s2;
-              s2 = peg$c1;
-            }
-          } else {
-            peg$currPos = s2;
-            s2 = peg$c1;
-          }
-        } else {
-          peg$currPos = s2;
-          s2 = peg$c1;
-        }
+        s2 = peg$parseAlias();
         if (s2 === peg$FAILED) {
           s2 = peg$c2;
         }
         if (s2 !== peg$FAILED) {
-          peg$reportedPos = s0;
-          s1 = peg$c46(s1, s2);
-          s0 = s1;
+          s3 = peg$currPos;
+          s4 = peg$parsew();
+          if (s4 !== peg$FAILED) {
+            if (input.charCodeAt(peg$currPos) === 40) {
+              s5 = peg$c41;
+              peg$currPos++;
+            } else {
+              s5 = peg$FAILED;
+              if (peg$silentFails === 0) { peg$fail(peg$c42); }
+            }
+            if (s5 !== peg$FAILED) {
+              s6 = peg$parsew();
+              if (s6 !== peg$FAILED) {
+                s7 = peg$parseVarList();
+                if (s7 === peg$FAILED) {
+                  s7 = peg$c2;
+                }
+                if (s7 !== peg$FAILED) {
+                  if (input.charCodeAt(peg$currPos) === 41) {
+                    s8 = peg$c43;
+                    peg$currPos++;
+                  } else {
+                    s8 = peg$FAILED;
+                    if (peg$silentFails === 0) { peg$fail(peg$c44); }
+                  }
+                  if (s8 !== peg$FAILED) {
+                    peg$reportedPos = s3;
+                    s4 = peg$c45(s7);
+                    s3 = s4;
+                  } else {
+                    peg$currPos = s3;
+                    s3 = peg$c1;
+                  }
+                } else {
+                  peg$currPos = s3;
+                  s3 = peg$c1;
+                }
+              } else {
+                peg$currPos = s3;
+                s3 = peg$c1;
+              }
+            } else {
+              peg$currPos = s3;
+              s3 = peg$c1;
+            }
+          } else {
+            peg$currPos = s3;
+            s3 = peg$c1;
+          }
+          if (s3 === peg$FAILED) {
+            s3 = peg$c2;
+          }
+          if (s3 !== peg$FAILED) {
+            peg$reportedPos = s0;
+            s1 = peg$c46(s1, s2, s3);
+            s0 = s1;
+          } else {
+            peg$currPos = s0;
+            s0 = peg$c1;
+          }
+        } else {
+          peg$currPos = s0;
+          s0 = peg$c1;
+        }
+      } else {
+        peg$currPos = s0;
+        s0 = peg$c1;
+      }
+
+      return s0;
+    }
+
+    function peg$parseAlias() {
+      var s0, s1, s2, s3, s4;
+
+      s0 = peg$currPos;
+      s1 = peg$parseW();
+      if (s1 !== peg$FAILED) {
+        s2 = peg$parseAliasToken();
+        if (s2 !== peg$FAILED) {
+          s3 = peg$parsew();
+          if (s3 !== peg$FAILED) {
+            s4 = peg$parseStringLiteral();
+            if (s4 !== peg$FAILED) {
+              s1 = [s1, s2, s3, s4];
+              s0 = s1;
+            } else {
+              peg$currPos = s0;
+              s0 = peg$c1;
+            }
+          } else {
+            peg$currPos = s0;
+            s0 = peg$c1;
+          }
         } else {
           peg$currPos = s0;
           s0 = peg$c1;
@@ -7790,15 +7830,13 @@ generatedParser = (function() {
       }
 
       function currentExpression() {
-        return _n("current", {
-        });
+        return _n("current", {});
       }
 
       function buildBinaryTree(left, rest) {
         return rest.reduce(
           function(left, kind__right) {
-            return  _n("expression", {
-              kind: kind__right.kind,
+            return  _n("expression.binary." + kind__right.kind, {
               isbinary: true,
               left: left,
               right: kind__right.right,
