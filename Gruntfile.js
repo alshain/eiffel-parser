@@ -19,7 +19,8 @@ module.exports = function(grunt) {
         src: [
           'src/_intro.js',
           'src/main.js',
-          'src/_outro.js'
+          'src/_outro.js',
+          "src/eiffel/**/*.js",
         ],
         dest: '.tmp/lint.js'
       },
@@ -29,7 +30,8 @@ module.exports = function(grunt) {
           'src/_intro.js',
           '.tmp/grammar.js',
           'src/main.js',
-          'src/_outro.js'
+          'src/_outro.js',
+          "src/eiffel/**/*.js",
         ],
         dest: 'dist/<%= pkg.name.replace(".js", "") %>.js'
       }
@@ -37,7 +39,9 @@ module.exports = function(grunt) {
 
     uglify: {
       options: {
-        banner: '/*! <%= pkg.name.replace(".js", "") %> <%= grunt.template.today("dd-mm-yyyy") %> */\n'
+        banner: '/*! <%= pkg.name.replace(".js", "") %> <%= grunt.template.today("dd-mm-yyyy") %> */\n',
+        sourceMap: true,
+        sourceMapIn: "dist/eiffel-parser.js.map"
       },
       dist: {
         files: {

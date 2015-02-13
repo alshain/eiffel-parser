@@ -44,8 +44,7 @@ var astTests = [
     "Expression",
     "True",
     {
-      nodeType: "literal",
-      kind: "bool",
+      nodeType: "literal.bool",
       value: true,
     },
   ],
@@ -56,9 +55,10 @@ var astTests = [
     "Expression",
     "True",
     {
-      nodeType: "literal",
-      kind: "bool",
+      nodeType: "literal.bool",
       value: true,
+      start: {column: 1},
+      end: {},
     },
   ],
 
@@ -67,9 +67,10 @@ var astTests = [
     "Expression",
     "False",
     {
-      nodeType: "literal",
-      kind: "bool",
+      nodeType: "literal.bool",
       value: false,
+      start: {},
+      end: { line: 1},
     },
   ],
 
@@ -78,9 +79,10 @@ var astTests = [
     "Expression",
     "1",
     {
-      nodeType: "literal",
-      kind: "int",
+      nodeType: "literal.int",
       value: 1,
+      start: {},
+      end: {},
     },
   ],
 
@@ -89,9 +91,21 @@ var astTests = [
     "Expression",
     '"%n%""',
     {
-      nodeType: "literal",
-      kind: "string",
+      nodeType: "literal.string",
       value: '%n%"',
+      start: {},
+      end: {},
+    },
+  ],
+
+  [
+    "Void parses",
+    "Expression",
+    'Void',
+    {
+      nodeType: "literal.void",
+      start: {},
+      end: {},
     },
   ],
 

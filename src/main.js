@@ -1,3 +1,4 @@
+/* @flow */
 /* eiffel-parser main */
 
 // Base function.
@@ -12,6 +13,35 @@ var vees = function() {
 
   function recurse(ast, dispatcher) {
   }
+
+  var sanctionedAstTypes = [
+    "feature.attribute",
+    "feature.constant",
+    "feature.function",
+    "feature.procedure",
+    "control.if",
+    "control.else",
+    "control.from",
+    "control.across",
+    "contract.invariant",
+    "contract.precondition",
+    "contract.postcondition",
+    "contract.variant",
+    "exp.bin.+",
+    "exp.bin.-",
+    "exp.bin.*",
+    "exp.bin./",
+    "exp.bin.\\",
+    "exp.bin.\\\\",
+    "exp.bin.^",
+    "exp.bin.or",
+    "exp.bin.or_e",
+    "exp.bin.and",
+    "exp.bin.implies",
+    "exp.bin.dotdot",
+    "exp.bin.",
+    "exp.bin.and",
+  ];
 
   function dispatchOnType(node, fs) {
     var type = node.nodeType;
@@ -42,10 +72,101 @@ var vees = function() {
     }
   }
 
+  function LocalSymbol(ast, owningMethod) {
+    this.name = ast.name.name;
+    this.owningMethod = owningMethod;
+  }
+
+  function FunctionSymbol(name, classSymbol) {
+    initRoutine.bind(this)(name, classSymbol);
+  }
+
+  function ProcedureSymbol(name, classSymbol) {
+    initRoutine.bind(this)(name, classSymbol);
+  }
+
+  function AttributeSymbol(name, classSymbol) {
+    this.name = name;
+    this.owningClass = classSymbol;
+  }
+
+  function ClassSymbol(className) {
+    this.name = className;
+    this.methods = {};
+    this.functions = {};
+    this.procedures = {};
+    this.attributes = {};
+    this.parents = [];
+
+    this.hasSymbol = function hasSymbol(name) {
+      if (this.methods.hasOwnProperty(name)) {
+        return true;
+      }
+      if (this.attributes.hasOwnProperty(name)) {
+        return true;
+      }
+      if (this.functions.hasOwnProperty(name)) {
+        return true;
+      }
+      if (this.procedures.hasOwnProperty(name)) {
+        return true;
+      }
+
+      return false;
+    };
+
+    this.resolveSymbol = function resolveSymbol(name) {
+      if (this.methods.hasOwnProperty(name)) {
+        return this.methods[name];
+      }
+      if (this.procedures.hasOwnProperty(name)) {
+        return this.procedures[name];
+      }
+      if (this.functions.hasOwnProperty(name)) {
+        return this.functions[name];
+      }
+      if (this.attributes.hasOwnProperty(name)) {
+        return this.attributes[name];
+      }
+
+      throw new Error("Symbol not found");
+    };
+
+    this.addSymbol = function addSymbol(sym) {
+      if (sym instanceof ProcedureSymbol) {
+        this.methods[sym.name] = sym;
+        this.procedures[sym.name] = sym;
+      }
+      else if (sym instanceof FunctionSymbol) {
+        this.functions[sym.name] = sym;
+        this.methods[sym.name] = sym;
+      }
+      else if (sym instanceof AttributeSymbol) {
+        this.attributes[sym.name] = sym;
+      }
+    };
+}
+
+  function initRoutine(name, classSymbol) {
+    /*jshint validthis:true*/
+    this.name = name;
+    this.owningClass = classSymbol;
+    this.locals = {};
+
+    ast.localLists.forEach(function(localList) {
+      localList.forEach(function(local) {
+        var localName = local.name.name;
+        this.locals[localName] = new LocalSymbol(local, this);
+
+      }, this);
+    }, this);
+  }
+
+
   /*jshint unused:false*/
   var AstTraversal = function(ast) {
       this.className = function className() {
-        return ast.name;
+        return ast.name.name;
       };
     /*jshint unused:true*/
   };
@@ -54,85 +175,19 @@ var vees = function() {
     /*jshint unused:true*/
     this.classes = {};
 
+    var initBuiltin = function initBuiltin() {
+      var classDef = function classDef(name, parents, fields, funcs, procs, consts) {
+        this.classes[name] = new ClassSymbol(name);
+      
+      }.bind(this);
+      vees.builtin.classes.forEach(function(classFunc) {
+      
+      });
+    
+    }
+
     var discoverSymbols = function discoverSymbols() {
 
-      function initRoutine(ast, classSymbol) {
-        /*jshint validthis:true*/
-        this.name = ast.name;
-        this.owningClass = classSymbol;
-        this.locals = {};
-        this.ast = ast;
-
-        ast.localLists.forEach(function(localList) {
-          localList.forEach(function(local) {
-            var localName = local.name;
-            this.locals[localName] = new LocalSymbol(local, this);
-
-          }, this);
-        }, this);
-      }
-
-      function LocalSymbol(ast, owningMethod) {
-        this.name = ast.name;
-        this.owningMethod = owningMethod;
-      }
-
-      function FunctionSymbol(ast, classSymbol) {
-        initRoutine.bind(this)(ast, classSymbol);
-      }
-
-      function ProcedureSymbol(ast, classSymbol) {
-        initRoutine.bind(this)(ast, classSymbol);
-      }
-
-      function AttributeSymbol(ast, classSymbol) {
-        this.name = ast.name;
-        this.owningClass = classSymbol;
-        this.ast = ast;
-      }
-
-      function ClassSymbol(className) {
-        this.name = className;
-        this.methods = {};
-        this.functions = {};
-        this.procedures = {};
-        this.attributes = {};
-        this.parents = [];
-
-        this.hasSymbol = function hasSymbol(name) {
-          if (this.methods.hasOwnProperty(name)) {
-            return true;
-          }
-          if (this.attributes.hasOwnProperty(name)) {
-            return true;
-          }
-          if (this.functions.hasOwnProperty(name)) {
-            return true;
-          }
-          if (this.procedures.hasOwnProperty(name)) {
-            return true;
-          }
-
-          return false;
-        };
-
-        this.resolveSymbol = function resolveSymbol(name) {
-          if (this.methods.hasOwnProperty(name)) {
-            return this.methods[name];
-          }
-          if (this.procedures.hasOwnProperty(name)) {
-            return this.procedures[name];
-          }
-          if (this.functions.hasOwnProperty(name)) {
-            return this.functions[name];
-          }
-          if (this.attributes.hasOwnProperty(name)) {
-            return this.attributes[name];
-          }
-
-          throw new Error("Symbol not found");
-        };
-      }
       var discoverSymbolsInClassAsts = function (arrayOfClasses) {
         Array.prototype.forEach.call(arrayOfClasses, discoverSymbolsInSingleClass);
       }.bind(this);
@@ -142,27 +197,32 @@ var vees = function() {
         var className = trav.className();
         var cSym = new ClassSymbol(className);
         this.classes[className] = cSym;
+        singleClass.sym = cSym;
         debug("Analyzing class: " + trav.className());
 
         var analyzeFeatureList = function analyzeFeatureList(featureList) {
           var analyzeFeature = function analyzeFeature(feature) {
             var analyzeAttribute = function analyzeAttribute(attribute) {
-              var attrName = attribute.name;
-              cSym.attributes[attrName] = new AttributeSymbol(attribute, cSym);
+              var attrSym = new AttributeSymbol(attribute.name.name, cSym);
+              attrSym.ast = attribute;
+              cSym.addSymbol(attrSym);
+              attribute.sym = attrSym;
 
             }.bind(this);
 
-            var analyzeProcedure = function analyzeProcedure(procedure) {
-              var procName = procedure.name;
-              cSym.procedures[procName] = new ProcedureSymbol(procedure, cSym);
-              cSym.methods[procName] = cSym.procedures[procName];
+            var analyzeProcedure = function analyzeProcedure(proc) {
+              var procSym = new ProcedureSymbol(proc.name.name, cSym);
+              procSym.proc = proc;
+              cSym.addSymbol(procSym);
+              proc.sym = procSym;
 
             }.bind(this);
 
             var analyzeFunction = function analyzeFunction(func) {
-              var funcName = func.name;
-              cSym.functions[funcName] = new FunctionSymbol(func, cSym);
-              cSym.methods[funcName] = cSym.functions[funcName];
+              var funcSym = new FunctionSymbol(func.name.name, cSym);
+              funcSym.ast = func;
+              cSym.addSymbol(funcSym);
+              func.sym = funcSym;
 
             }.bind(this);
 
@@ -196,7 +256,24 @@ var vees = function() {
     }
   }
 
+  var builtin = {
+    classes: [],
+    _util: {
+      c: function(name, parents, fields, funcs, procs, consts) {
+        var cSym = new ClassSymbol();
+      },
+      a: function() {
+      },
+      p: function() {
+      },
+      f: function() {
+      }
+    },
+  
+  };
+
   return {
+    builtin: builtin,
     parser: parser,
     Analyzer: Analyzer,
     AstTraversal: AstTraversal,

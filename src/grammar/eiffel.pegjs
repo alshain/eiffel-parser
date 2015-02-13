@@ -88,14 +88,14 @@ class
     } 
 
 Note = NoteToken p:NotePair+ W {return p;}
-NotePair = W i:Identifier w ":" w v:NoteValue {return {key: i.name, value: v.value};}
+NotePair = W i:Identifier w ":" w v:NoteValue {return {key: i, value: v.value};}
 
 NoteValue
   = StringLiteral
   / IntegerLiteral
 
-ClassName = W name:Identifier { return name.name}
-create = W CreateToken W first:Identifier rest:("," w id:Identifier { return id.name})* {return buildList(first.name, rest, gId())}
+ClassName = W name:Identifier { return name}
+create = W CreateToken W first:Identifier rest:("," w id:Identifier { return id})* {return buildList(first, rest, gId())}
 inherit = InheritanceClause+
 
 InheritanceClause
@@ -247,7 +247,7 @@ RoutineHeader
   = n:Identifier alias:Alias? p:(w "(" w ps:VarList? ")" {return ps;})?
   {
     return {
-      name: n.name,
+      name: n,
       alias: alias,
       params: optionalList(p)
     }
@@ -274,7 +274,7 @@ Attribute
   =  n:Identifier  w ":" w t:Type 
   {
     return _n("feature.attribute", {
-      name: n.name,
+      name: n,
       attributeType: t
     });
   }
@@ -283,7 +283,7 @@ Constant
   = a:Attribute w "=" l:Literal
   {
     return _n("feature.constant", {
-      name: a.name,
+      name: a,
       constantType: a.attributeType,
       value: l
     });
@@ -310,7 +310,7 @@ LabelledCondition
       expression: e,
     };
   }
-ConditionLabel = i:Identifier w ":" w {return i.name;}
+ConditionLabel = i:Identifier w ":" w {return i;}
 
 Locals = LocalToken vs:VarLists W { return vs; }
 VarLists = vs:(W v:VarList {return v;})+ {return vs;}
@@ -350,46 +350,50 @@ Expression
   = ImpliesExpr
 
 ImpliesExpr
-  = l:OrExpr rest:(w o:"implies" !IllegalAfterKeyword w r:OrExpr { return {kind: o, right:r}})* { return buildBinaryTree(l, rest)}
+  = start:pos l:OrExpr rest:(w o:"implies" !IllegalAfterKeyword w r:OrExpr { return {kind: o, right:r}})* end:pos { return buildBinaryTree(l, rest, start, end)}
     
 OrExpr 
-  = l:AndExpr rest:(w o:("or else" / "or") !IllegalAfterKeyword w r:AndExpr { return {kind: o, right:r}})* { return buildBinaryTree(l, rest)}
+  = start:pos l:AndExpr rest:(w o:("or else" / "or") !IllegalAfterKeyword w r:AndExpr { return {kind: o, right:r}})* end:pos { return buildBinaryTree(l, rest, start, end)}
     
 AndExpr
-  = l:CompExpr rest:(w o:("and then" / "and") !IllegalAfterKeyword w r:CompExpr { return {kind: o, right:r}})* { return buildBinaryTree(l, rest)}
+  = start:pos l:CompExpr rest:(w o:("and then" / "and") !IllegalAfterKeyword w r:CompExpr { return {kind: o, right:r}})* end:pos { return buildBinaryTree(l, rest, start, end)}
 
 CompExpr 
-  = l:DotDotExpr rest:(w o:CompOperator w r:DotDotExpr { return {kind: o, right:r}})* { return buildBinaryTree(l, rest)}
+  = start:pos l:DotDotExpr rest:(w o:CompOperator w r:DotDotExpr { return {kind: o, right:r}})* end:pos { return buildBinaryTree(l, rest, start, end)}
 
 DotDotExpr
-  = l:BinPlusMinusExpr rest:(w o:".." !IllegalAfterKeyword w r:BinPlusMinusExpr { return {kind: o, right:r}})* { return buildBinaryTree(l, rest)}
+  = start:pos l:BinPlusMinusExpr rest:(w o:".." !IllegalAfterKeyword w r:BinPlusMinusExpr { return {kind: o, right:r}})* end:pos { return buildBinaryTree(l, rest, start, end)}
 
 CompOperator = ("=" / "/=" / "~" / "/~" / "<=" / ">=" / "<" / ">" )
 
 BinPlusMinusExpr
-  = l:BinMultExpr rest:(w o:("+" / "-" !("-") {return "-"}) w r:BinMultExpr { return {kind: o, right:r}})* { return buildBinaryTree(l, rest)}
+  = start:pos l:BinMultExpr rest:(w o:("+" / "-" !("-") {return "-"}) w r:BinMultExpr { return {kind: o, right:r}})* end:pos { return buildBinaryTree(l, rest, start, end)}
 
 BinMultExpr
-  = l:ExponentExpr rest:(w o:("//" / "/" / "\\\\" / "*") w r:ExponentExpr { return {kind: o, right:r}})* { return buildBinaryTree(l, rest)}
+  = start:pos l:ExponentExpr rest:(w o:("//" / "/" / "\\\\" / "*") w r:ExponentExpr { return {kind: o, right:r}})* end:pos { return buildBinaryTree(l, rest, start, end)}
     
 
 ExponentExpr
-  = l:UnaryExpr w k:"^" w r:ExponentExpr
+  = start:pos l:UnaryExpr w k:"^" w r:ExponentExpr end:pos
     {
       return _n("expression.binary." + k, {
         isbinary: true,
         left: l,
         right: r,
+        start: end,
+        end: end,
       });
     }
   / UnaryExpr
 
 UnaryExpr
-  = o:("-" !("-") {return "-"} / "+" {return "+"} / "not" !IllegalAfterKeyword) w u:UnaryExpr
+  = start:pos o:("-" !("-") {return "-"} / "+" {return "+"} / "not" !IllegalAfterKeyword) w u:UnaryExpr end:pos
     {
       return _n("exp.unary." + o, {
         is_unary: true,
         operand: u,
+        start: end,
+        end: end,
       });
     }
   / FactorExpr
@@ -419,7 +423,7 @@ Call
   {
     return _n("call", {
       operand: undefined,
-      name: i.name,
+      name: i,
       args: optionalList(a),
     });
   }
@@ -432,7 +436,7 @@ Type
   = n:Identifier ts:(w "[" w g:TypeList w "]" {return g})?
   { 
     return _n("type", {
-      name: n.name,
+      name: n,
       typeParams: optionalList(ts),
     });
   }
@@ -487,8 +491,8 @@ CreateInstr
   = CreateToken !(IllegalAfterKeyword) w t:ExplicitCreationType? n:Identifier m:CreationMethod?
   {
     return _n("create", {
-      target: n.name,
-      initializer: (m ? m.name : "default_create"),
+      target: n,
+      initializer: (m ? m : "default_create"),
       args: m ? optionalList(m.args) : []
     });
   }
@@ -500,7 +504,7 @@ CreationCall
   = "." n:Identifier as:Args?
   {
     return {
-      name: n.name,
+      name: n,
       args: optionalList(as)
     }
   }
@@ -513,14 +517,14 @@ ArgList
 
 ExplicitCreationType
   = "{" w t:Identifier w "}"
-  { return t.name }
+  { return t }
     
 
 AccessSpecifier
   = "{" w ids:IdentifierList w "}" {return ids;}
 
 IdentifierList
-  = first:Identifier rest:("," w id:Identifier { return id.name})* {return buildList(first.name, rest, gId())}
+  = first:Identifier rest:("," w id:Identifier { return id})* {return buildList(first, rest, gId())}
 
 id "identifier" = [a-zA-Z][a-zA-Z0-9_]*
 
@@ -567,18 +571,18 @@ SingleLineComment
   = "--" (!LineTerminator SourceCharacter)*
 
 IntegerLiteral
-  = DecimalIntegerLiteral {
-    return _n("literal", { kind: "int", value: parseFloat(text()) });
+  = start:pos DecimalIntegerLiteral end:pos {
+    return _n("literal.int", { start:start, end:end, kind: "int", value: parseFloat(text()) });
   }
 
 StringLiteral "string"
-  = '"' chars:DoubleStringCharacter* '"' {
-  return _n("literal", { kind: "string", value: chars.join("") });
+  = start:pos '"' chars:DoubleStringCharacter* '"' end:pos {
+  return _n("literal.string", { start:start, end:end, kind: "string", value: chars.join("") });
   }
 
 CharacterLiteral "character"
   = "'" char:SingleStringCharacter "'" {
-  return _n("literal", { kind: "char", value: char });
+  return _n("literal.char", { kind: "char", value: char });
   }
 DoubleStringCharacter
   = !('"' / "%" / LineTerminator) SourceCharacter { return text(); }
@@ -631,19 +635,21 @@ EscapeCharacter
 
 
 Literal
-  = pos:pos r:VoidLiteral    !(IllegalAfterKeyword) { return _n("literal", { kind: "Void", pos:pos});}
-  / pos:pos r:BooleanLiteral !IllegalAfterKeyword {return _n("literal", { kind: "bool", value: r});}
-  / pos:pos r:IntegerLiteral !IllegalAfterKeyword {return r;}
-  / pos:pos r:StringLiteral  !IllegalAfterKeyword {return r;}
+  = start:pos r:VoidLiteral    end:pos !IllegalAfterKeyword { return _n("literal.void", r);}
+  / start:pos r:BooleanLiteral end:pos !IllegalAfterKeyword {return _n("literal.bool", { start:start, end:end, value: r});}
+  / r:IntegerLiteral !IllegalAfterKeyword {return r;}
+  / r:StringLiteral  !IllegalAfterKeyword {return r;}
 
 Letter
   = [a-z]
   / [A-Z]
 
 IdentifierName "identifier"
-  = first:IdentifierStart rest:IdentifierPart* {
+  = start:pos first:IdentifierStart rest:IdentifierPart* end:pos {
     return _n("Identifier", {
-      name: first + rest.join("")
+      name: first + rest.join(""),
+      start: start,
+      end: end,
     });
 }
 
@@ -653,7 +659,7 @@ ReservedWord
   / r:BooleanLiteral !(IllegalAfterKeyword) { return r;}
 
 VoidLiteral
-  = "Void"
+  = VoidToken
 
 BooleanLiteral
   = TrueToken { return true; }
@@ -724,62 +730,62 @@ Keyword
 
 /* Tokens */
 
-AgentToken = "agent"
-AliasToken = "alias"
-AllToken = "all"
-AndToken = "and"
-AssignToken = "assign"
-AsToken = "as"
-AttributeToken = "attribute"
-CheckToken = "check"
-ClassToken = "class"
-ConvertToken = "convert"
-CreateToken = "create"
-CurrentToken = "Current"
-DebugToken = "debug"
-DeferredToken = "deferred"
-DoToken = "do"
-ElseToken = "else"
-ElseifToken = "elseif"
-EndToken = "end"
-EnsureToken = "ensure"
-ExpandedToken = "expanded"
-ExportToken = "export"
-ExternalToken = "external"
-FalseToken = "False"
-FeatureToken = "feature"
-FromToken = "from"
-FrozenToken = "frozen"
-IfToken = "if"
-ImpliesToken = "implies"
-InheritToken = "inherit"
-InspectToken = "inspect"
-InvariantToken = "invariant"
-LikeToken = "like"
-LocalToken = "local"
-LoopToken = "loop"
-NotToken = "not"
-NoteToken = "note"
-ObsoleteToken = "obsolete"
-OldToken = "old"
-OnceToken = "once"
-OnlyToken = "only"
-OrToken = "or"
-PrecursorToken = "Precursor"
-RedefineToken = "redefine"
-RenameToken = "rename"
-RequireToken = "require"
-RescueToken = "rescue"
-ResultToken = "Result"
-RetryToken = "retry"
-SelectToken = "select"
-SeparateToken = "separate"
-ThenToken = "then"
-TrueToken = "True"
-TUPLEToken = "TUPLE"
-UndefineToken = "undefine"
-UntilToken = "until"
-VariantToken = "variant"
-VoidToken = "Void"
-WhenToken = "when"
-XorToken = "xor"
+AgentToken = start:pos s:"agent" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
+AliasToken = start:pos s:"alias" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
+AllToken = start:pos s:"all" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
+AndToken = start:pos s:"and" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
+AssignToken = start:pos s:"assign" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
+AsToken = start:pos s:"as" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
+AttributeToken = start:pos s:"attribute" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
+CheckToken = start:pos s:"check" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
+ClassToken = start:pos s:"class" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
+ConvertToken = start:pos s:"convert" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
+CreateToken = start:pos s:"create" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
+CurrentToken = start:pos s:"Current" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
+DebugToken = start:pos s:"debug" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
+DeferredToken = start:pos s:"deferred" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
+DoToken = start:pos s:"do" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
+ElseToken = start:pos s:"else" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
+ElseifToken = start:pos s:"elseif" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
+EndToken = start:pos s:"end" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
+EnsureToken = start:pos s:"ensure" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
+ExpandedToken = start:pos s:"expanded" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
+ExportToken = start:pos s:"export" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
+ExternalToken = start:pos s:"external" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
+FalseToken = start:pos s:"False" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
+FeatureToken = start:pos s:"feature" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
+FromToken = start:pos s:"from" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
+FrozenToken = start:pos s:"frozen" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
+IfToken = start:pos s:"if" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
+ImpliesToken = start:pos s:"implies" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
+InheritToken = start:pos s:"inherit" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
+InspectToken = start:pos s:"inspect" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
+InvariantToken = start:pos s:"invariant" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
+LikeToken = start:pos s:"like" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
+LocalToken = start:pos s:"local" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
+LoopToken = start:pos s:"loop" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
+NotToken = start:pos s:"not" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
+NoteToken = start:pos s:"note" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
+ObsoleteToken = start:pos s:"obsolete" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
+OldToken = start:pos s:"old" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
+OnceToken = start:pos s:"once" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
+OnlyToken = start:pos s:"only" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
+OrToken = start:pos s:"or" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
+PrecursorToken = start:pos s:"Precursor" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
+RedefineToken = start:pos s:"redefine" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
+RenameToken = start:pos s:"rename" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
+RequireToken = start:pos s:"require" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
+RescueToken = start:pos s:"rescue" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
+ResultToken = start:pos s:"Result" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
+RetryToken = start:pos s:"retry" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
+SelectToken = start:pos s:"select" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
+SeparateToken = start:pos s:"separate" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
+ThenToken = start:pos s:"then" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
+TrueToken = start:pos s:"True" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
+TUPLEToken = start:pos s:"TUPLE" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
+UndefineToken = start:pos s:"undefine" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
+UntilToken = start:pos s:"until" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
+VariantToken = start:pos s:"variant" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
+VoidToken = start:pos s:"Void" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
+WhenToken = start:pos s:"when" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
+XorToken = start:pos s:"xor" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
