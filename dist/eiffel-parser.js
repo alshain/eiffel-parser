@@ -10311,19 +10311,21 @@ var vees = function() {
     };
 }
 
-  function initRoutine(name, classSymbol) {
+  function initRoutine(name, classSymbol, ast) {
     /*jshint validthis:true*/
     this.name = name;
     this.owningClass = classSymbol;
     this.locals = {};
 
-    ast.localLists.forEach(function(localList) {
-      localList.forEach(function(local) {
-        var localName = local.name.name;
-        this.locals[localName] = new LocalSymbol(local, this);
+    if (ast) {
+      ast.localLists.forEach(function(localList) {
+        localList.forEach(function(local) {
+          var localName = local.name.name;
+          this.locals[localName] = new LocalSymbol(local, this);
 
+        }, this);
       }, this);
-    }, this);
+    }
   }
 
 
@@ -10345,6 +10347,7 @@ var vees = function() {
       
       }.bind(this);
       vees.builtin.classes.forEach(function(classFunc) {
+        classFunc(classDef);
       
       });
     
