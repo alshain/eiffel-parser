@@ -77,12 +77,12 @@ var vees = function() {
     this.owningMethod = owningMethod;
   }
 
-  function FunctionSymbol(name, classSymbol) {
-    initRoutine.bind(this)(name, classSymbol);
+  function FunctionSymbol(name, classSymbol, ast) {
+    initRoutine.bind(this)(name, classSymbol, ast);
   }
 
-  function ProcedureSymbol(name, classSymbol) {
-    initRoutine.bind(this)(name, classSymbol);
+  function ProcedureSymbol(name, classSymbol, ast) {
+    initRoutine.bind(this)(name, classSymbol, ast);
   }
 
   function AttributeSymbol(name, classSymbol) {
@@ -170,24 +170,38 @@ var vees = function() {
       this.className = function className() {
         return ast.name.name;
       };
-    /*jshint unused:true*/
+    /*jshint unused:vars*/
   };
   /*jshint unused:false*/
   var Analyzer = function Analyzer() {
-    /*jshint unused:true*/
+    /*jshint unused:vars*/
     this.classes = {};
 
-    var initBuiltin = function initBuiltin() {
+    this.initBuiltin = function initBuiltin() {
       var classDef = function classDef(name, parents, fields, funcs, procs, consts) {
         this.classes[name] = new ClassSymbol(name);
+        console.log(name);
       
       }.bind(this);
-      vees.builtin.classes.forEach(function(classFunc) {
-        classFunc(classDef);
+
+      var funcDef = function funcDef(name, params) {
+      }.bind(this);
+
+      var attrDef = function attrDef(name, params) {
+      }.bind(this);
+
+      var procDef = function procDef(name, params) {
+      }.bind(this);
+
+      var constDef = function constDef(name, params) {
+      }.bind(this);
+
+
+      root.vees.builtin.classes.forEach(function(classFunc) {
+        classFunc(classDef, attrDef, procDef, funcDef, constDef);
       
       });
-    
-    }
+    };
 
     var discoverSymbols = function discoverSymbols() {
 
@@ -214,7 +228,7 @@ var vees = function() {
             }.bind(this);
 
             var analyzeProcedure = function analyzeProcedure(proc) {
-              var procSym = new ProcedureSymbol(proc.name.name, cSym);
+              var procSym = new ProcedureSymbol(proc.name.name, cSym, proc);
               procSym.proc = proc;
               cSym.addSymbol(procSym);
               proc.sym = procSym;
@@ -222,7 +236,7 @@ var vees = function() {
             }.bind(this);
 
             var analyzeFunction = function analyzeFunction(func) {
-              var funcSym = new FunctionSymbol(func.name.name, cSym);
+              var funcSym = new FunctionSymbol(func.name.name, cSym, func);
               funcSym.ast = func;
               cSym.addSymbol(funcSym);
               func.sym = funcSym;
@@ -248,6 +262,7 @@ var vees = function() {
       Array.prototype.forEach.call(arguments, discoverSymbolsInClassAsts);
     }.bind(this);
 
+    this.initBuiltin();
     this.analyze = function analyze() {
       discoverSymbols.apply(this, arguments);
     };

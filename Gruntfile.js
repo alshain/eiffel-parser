@@ -19,6 +19,7 @@ module.exports = function(grunt) {
         src: [
           'src/_intro.js',
           'src/main.js',
+          'src/eiffel/**/*.js',
           'src/_outro.js',
           "src/eiffel/**/*.js",
         ],
@@ -30,6 +31,7 @@ module.exports = function(grunt) {
           'src/_intro.js',
           '.tmp/grammar.js',
           'src/main.js',
+          'src/eiffel/**/*.js',
           'src/_outro.js',
           "src/eiffel/**/*.js",
         ],

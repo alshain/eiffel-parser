@@ -335,6 +335,7 @@ test("Symbols exist", function() {
 test("Local variables exist", function () {
   var analyzed = analyze("class HASLOCALS feature abcd local var: INTEGER do end end");
   var local = analyzed.classes["HASLOCALS"].methods["abcd"].locals["var"];
+  console.log(local);
 
   equal(local.name, "var", "Local variable is not named var");
 });

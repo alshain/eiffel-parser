@@ -1,7 +1,4 @@
-var vees;
-
-vees.builtin.classes.push(function(c, a, p) {
-  "use strict";
+root.vees.builtin.classes.push(function(c, a, p) {
   c(
     "STD_FILES",
     ["ANY"],

@@ -1,7 +1,5 @@
 
-var vees;
-vees.builtin.classes.push(function(c, a, p, f) {
-  "use strict";
+root.vees.builtin.classes.push(function(c, a, p, f) {
   c("ANY", null,
     // Fields
     [
