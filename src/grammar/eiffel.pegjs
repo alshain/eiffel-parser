@@ -531,7 +531,7 @@ id "identifier" = [a-zA-Z][a-zA-Z0-9_]*
 Indent = (" " / "\t")+
 
 W "whitespace" 
-    = (" " / "\t" / "\n" / ("--" (!(LineTerminatorSequence) .)*))+
+    = (" " / "\t" / "\n" / "\r" / ("--" (!(LineTerminatorSequence) .)*))+
 w = W?
 
 Identifier
