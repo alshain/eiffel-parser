@@ -82,7 +82,7 @@ module.exports = function(grunt) {
 
     collectTests: {
       syntax: {
-        files: [ 
+        files: [
           { src: "test/tests/parsing/**/*.ok.e", varName:  "okTests"},
           { src: "test/tests/parsing/**/*.nok.e", varName: "nokTests"},
         ]
@@ -95,7 +95,7 @@ module.exports = function(grunt) {
       },
 
       options: {
-        allowedStartRules: ["start", "Expression"],
+        allowedStartRules: ["start", "Expression", "Type"],
         wrapper: function (src, parser) {
           return 'generatedParser = ' + parser + ';';
 
