@@ -43,6 +43,17 @@ var vees = function() {
     "exp.bin.and",
   ];
 
+  var sanctionedAliases = {
+    "and": 1,
+    "and then": 1,
+    "or": 1,
+    "or else": 1,
+    "xor": 1,
+    "imples": 1,
+    "not": 0,
+    "[]": "*",
+  };
+
   function dispatchOnType(node, fs) {
     var type = node.nodeType;
     var splitted = type.split(".");
@@ -77,17 +88,24 @@ var vees = function() {
     this.owningMethod = owningMethod;
   }
 
-  function FunctionSymbol(name, classSymbol, ast) {
-    initRoutine.bind(this)(name, classSymbol, ast);
+  function FunctionSymbol(name, parameters, rawType, alias, ast) {
+    this.rawType = rawType;
+    this.alias = alias;
+    initRoutine.bind(this)(name, parameters, ast);
   }
 
-  function ProcedureSymbol(name, classSymbol, ast) {
-    initRoutine.bind(this)(name, classSymbol, ast);
+  function ProcedureSymbol(name, parameters, ast) {
+    initRoutine.bind(this)(name, parameters, ast);
   }
 
-  function AttributeSymbol(name, classSymbol) {
+  function AttributeSymbol(name, rawType) {
     this.name = name;
-    this.owningClass = classSymbol;
+    this.rawType = rawType;
+  }
+
+  function TypeInstance(baseSymbol, parameterInstances) {
+    this.baseSymbol = baseSymbol;
+    this.parameters = parameterInstances;
   }
 
   function ClassSymbol(className) {
@@ -97,6 +115,7 @@ var vees = function() {
     this.procedures = {};
     this.attributes = {};
     this.parents = [];
+    this.aliases = {};
 
     this.hasSymbol = function hasSymbol(name) {
       if (this.methods.hasOwnProperty(name)) {
@@ -129,7 +148,7 @@ var vees = function() {
         return this.attributes[name];
       }
 
-      throw new Error("Symbol not found");
+      throw new Error("Symbol '" + name + "' not found in class '" + this.name + "'");
     };
 
     this.addSymbol = function addSymbol(sym) {
@@ -140,25 +159,76 @@ var vees = function() {
       else if (sym instanceof FunctionSymbol) {
         this.functions[sym.name] = sym;
         this.methods[sym.name] = sym;
+        if (sym.alias) {
+          if (!sanctionedAliases.hasOwnProperty(sym.alias)) {
+            throw new Error("Invalid alias: " + sym.alias);
+          }
+          var requiredParamCount = sanctionedAliases[sym.alias];
+          if (requiredParamCount !== sym.parameters.length) {
+            throw new Error("This alias requires exactly " + requiredParamCount + " parameters. " +
+                sym.name + " has " + sym.parameters.length
+              );
+          }
+          this.aliases[sym.alias] = sym;
+        }
       }
       else if (sym instanceof AttributeSymbol) {
         this.attributes[sym.name] = sym;
       }
+      else {
+        throw new Error("Invalid symbol: " + sym);
+      }
+      sym.owningClass = this;
+    };
+
+    this.forEachSymbol = function forEachSymbol(symbols, f) {
+      for (var symName in symbols) {
+        if (symbols.hasOwnProperty(symName)) {
+          f.call(this, symbols[symName]);
+        }
+      }
+    };
+
+    this.forEachAttribute = function forEachAttribute(f) {
+      this.forEachSymbol(this.attributes, f);
+    };
+
+    this.forEachMethod = function forEachMethod(f) {
+      this.forEachSymbol(this.methods, f);
+    };
+
+    this.forEachProcedure = function forEachProcedure(f) {
+      this.forEachSymbol(this.procedures, f);
+    };
+
+    this.forEachFunction = function forEachFunction(f) {
+      this.forEachSymbol(this.functions, f);
     };
 }
 
-  function initRoutine(name, classSymbol, ast) {
+  function initRoutine(name, params, ast) {
     /*jshint validthis:true*/
     this.name = name;
-    this.owningClass = classSymbol;
-    this.locals = {};
+    this.parameters = params;
+    var paramsByName = {};
+    params.forEach(function paramToParamByName (param) {
+      paramsByName[param.name] = param;
+    });
+
+    this.parametersByName = paramsByName;
+
+    this.locals = [];
+    this.localsByName = {};
 
     if (ast) {
       ast.localLists.forEach(function(localList) {
         localList.forEach(function(local) {
           var localName = local.name.name;
-          this.locals[localName] = new LocalSymbol(local, this);
-
+          var newLocal = new LocalSymbol(local, this);
+          newLocal.ast = local;
+          newLocal.rawType = local.parameterType;
+          this.locals.push(newLocal);
+          this.localsByName[localName] = newLocal;
         }, this);
       }, this);
     }
@@ -179,15 +249,31 @@ var vees = function() {
 
     this.initBuiltin = function initBuiltin() {
       var classDef = function classDef(name, parents, fields, funcs, procs, consts) {
-        this.classes[name] = new ClassSymbol(name);
-        console.log(name);
-      
+        var classSymbol = new ClassSymbol(name);
+        this.classes[name] = classSymbol;
+        fields.forEach(function(field, index){
+          classSymbol.addSymbol(field);
+        });
       }.bind(this);
 
-      var funcDef = function funcDef(name, params) {
+      function groupParams(params) {
+        var result = [];
+        for(var k = 0, paramsLength = params.length / 2; k < paramsLength; k++){
+          result.push({
+            name: params[k * 2],
+            rawType: parser.parse(params[k * 2 + 1], {startRule: "Type"}),
+          });
+        }
+
+        return result;
+      }
+
+      var funcDef = function funcDef(name, params, returnType, alias) {
+        return new FunctionSymbol(name, groupParams(params), parser.parse(returnType, {startRule: "Type"}), alias);
       }.bind(this);
 
-      var attrDef = function attrDef(name, params) {
+      var attrDef = function attrDef(name, type) {
+        return new AttributeSymbol(name, parser.parse(type, {startRule: "Type"}));
       }.bind(this);
 
       var procDef = function procDef(name, params) {
@@ -199,7 +285,7 @@ var vees = function() {
 
       root.vees.builtin.classes.forEach(function(classFunc) {
         classFunc(classDef, attrDef, procDef, funcDef, constDef);
-      
+
       });
     };
 
@@ -215,12 +301,23 @@ var vees = function() {
         var cSym = new ClassSymbol(className);
         this.classes[className] = cSym;
         singleClass.sym = cSym;
-        debug("Analyzing class: " + trav.className());
+
+        function astParamsToList(ast) {
+          var result = [];
+          ast.params.forEach(function addParamToList (param) {
+            result.push({
+              name: param.name.name,
+              rawType: param.parameterType,
+              ast: param,
+            });
+          });
+          return result;
+        }
 
         var analyzeFeatureList = function analyzeFeatureList(featureList) {
           var analyzeFeature = function analyzeFeature(feature) {
             var analyzeAttribute = function analyzeAttribute(attribute) {
-              var attrSym = new AttributeSymbol(attribute.name.name, cSym);
+              var attrSym = new AttributeSymbol(attribute.name.name, attribute.attributeType);
               attrSym.ast = attribute;
               cSym.addSymbol(attrSym);
               attribute.sym = attrSym;
@@ -228,7 +325,7 @@ var vees = function() {
             }.bind(this);
 
             var analyzeProcedure = function analyzeProcedure(proc) {
-              var procSym = new ProcedureSymbol(proc.name.name, cSym, proc);
+              var procSym = new ProcedureSymbol(proc.name.name, astParamsToList(proc), proc);
               procSym.proc = proc;
               cSym.addSymbol(procSym);
               proc.sym = procSym;
@@ -236,7 +333,7 @@ var vees = function() {
             }.bind(this);
 
             var analyzeFunction = function analyzeFunction(func) {
-              var funcSym = new FunctionSymbol(func.name.name, cSym, func);
+              var funcSym = new FunctionSymbol(func.name.name, astParamsToList(func), func.returnType, func.alias, func);
               funcSym.ast = func;
               cSym.addSymbol(funcSym);
               func.sym = funcSym;
@@ -262,32 +359,69 @@ var vees = function() {
       Array.prototype.forEach.call(arguments, discoverSymbolsInClassAsts);
     }.bind(this);
 
+    var connectSymbols = function connectSymbols () {
+      var rawTypeToTypeInstance =  function rawTypeToTypeInstance(rawType) {
+        if (rawType.nodeType !== "type") {
+          console.error(rawType);
+          throw new Error("Invalid AST:");
+        }
+        var parameterInstances = rawType.typeParams.forEach(rawTypeToTypeInstance);
+        var typeName = rawType.name.name;
+        if (!this.classes.hasOwnProperty(typeName)) {
+          throw new Error("Type '" + typeName + "' does not exist");
+        }
+
+        var result = new TypeInstance(this.classes[typeName], parameterInstances);
+        return result;
+      }.bind(this);
+      function connectInAttr(aSym) {
+        /*jshint validthis:true*/ // this==classSym
+
+        aSym.type = rawTypeToTypeInstance(aSym.rawType);
+      }
+
+      function connectInMethod(mSym) {
+        /*jshint validthis:true*/ // this==classSym
+        if (mSym instanceof FunctionSymbol) {
+          if (mSym.rawType && mSym.rawType.nodeType !== "type") {
+            throw new Error("Invalid AST:" + mSym.rawType.nodeTyp);
+          }
+          mSym.type = rawTypeToTypeInstance(mSym.rawType);
+        }
+
+        mSym.parameters.forEach(function connectInMethodParam (parameter) {
+          parameter.type = rawTypeToTypeInstance(parameter.rawType);
+        });
+
+        mSym.locals.forEach(function connectInMethodParam (parameter) {
+          parameter.type = rawTypeToTypeInstance(parameter.rawType);
+        });
+      }
+
+      for (var className in this.classes) {
+        if (this.classes.hasOwnProperty(className)) {
+          var classSym = this.classes[className];
+          classSym.forEachAttribute(connectInAttr);
+          classSym.forEachMethod(connectInMethod);
+        }
+      }
+    }.bind(this);
+
     this.initBuiltin();
     this.analyze = function analyze() {
       discoverSymbols.apply(this, arguments);
+      connectSymbols();
     };
   };
 
   function Visitor(handlers) {
     function recurse(ast) {
-    
+
     }
   }
 
   var builtin = {
     classes: [],
-    _util: {
-      c: function(name, parents, fields, funcs, procs, consts) {
-        var cSym = new ClassSymbol();
-      },
-      a: function() {
-      },
-      p: function() {
-      },
-      f: function() {
-      }
-    },
-  
   };
 
   return {
