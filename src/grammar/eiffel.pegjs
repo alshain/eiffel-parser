@@ -76,16 +76,16 @@
   }
 }
 start = class*
-class 
+class
   = w note:Note? ClassToken name:ClassName inherit:inherit? create:create? featureLists:FeatureList* W EndToken w
     { return _n("class", {
-        name: name, 
+        name: name,
         note: optionalList(note),
-        inherit : optionalList(inherit), 
-        create: (create == null) ? [] : create, 
+        inherit : optionalList(inherit),
+        create: (create == null) ? [] : create,
         featureLists: featureLists
       });
-    } 
+    }
 
 Note = NoteToken p:NotePair+ W {return p;}
 NotePair = W i:Identifier w ":" w v:NoteValue {return {key: i, value: v.value};}
@@ -222,6 +222,7 @@ Function
     return _n("feature.function", {
       name: h.name,
       params: h.params,
+      alias: h.alias,
       returnType: rt,
       preconditions: b.preconditions,
       localLists: b.locals,
@@ -236,6 +237,7 @@ Procedure
     return _n("feature.procedure", {
       name: h.name,
       params: h.params,
+      alias: h.alias,
       preconditions: b.preconditions,
       localLists: b.locals,
       instructions: b.instructions,
@@ -243,7 +245,7 @@ Procedure
     });
   }
 
-RoutineHeader 
+RoutineHeader
   = n:Identifier alias:Alias? p:(w "(" w ps:VarList? ")" {return ps;})?
   {
     return {
@@ -255,11 +257,14 @@ RoutineHeader
 
 Alias
   = W AliasToken w s:StringLiteral
+  {
+    return s.value;
+  }
 
-VarList 
-  = v:Vars vs:(w ";" w vi:Vars w { return vi; })* { return Array.prototype.concat.call(v, vs)}
+VarList
+  = v:Vars vs:(w ";" w vi:Vars w { return vi; })* { return Array.prototype.concat.apply(v, vs)}
 
-Vars 
+Vars
   = ids:IdentifierList w ":" w t:Type
   {
     return ids.map(function(id) {
@@ -271,7 +276,7 @@ Vars
   }
 
 Attribute
-  =  n:Identifier  w ":" w t:Type 
+  =  n:Identifier  w ":" w t:Type
   {
     return _n("feature.attribute", {
       name: n,
@@ -279,7 +284,7 @@ Attribute
     });
   }
 
-Constant 
+Constant
   = a:Attribute w "=" l:Literal
   {
     return _n("feature.constant", {
@@ -300,10 +305,10 @@ RoutineBody
     }
   }
 
-Preconditions 
+Preconditions
   = RequireToken c:LabelledCondition* W {return c;}
-LabelledCondition 
-  = W l:ConditionLabel? e:Expression 
+LabelledCondition
+  = W l:ConditionLabel? e:Expression
   {
     return {
       name: l,
@@ -351,14 +356,14 @@ Expression
 
 ImpliesExpr
   = start:pos l:OrExpr rest:(w o:"implies" !IllegalAfterKeyword w r:OrExpr { return {kind: o, right:r}})* end:pos { return buildBinaryTree(l, rest, start, end)}
-    
-OrExpr 
+
+OrExpr
   = start:pos l:AndExpr rest:(w o:("or else" / "or") !IllegalAfterKeyword w r:AndExpr { return {kind: o, right:r}})* end:pos { return buildBinaryTree(l, rest, start, end)}
-    
+
 AndExpr
   = start:pos l:CompExpr rest:(w o:("and then" / "and") !IllegalAfterKeyword w r:CompExpr { return {kind: o, right:r}})* end:pos { return buildBinaryTree(l, rest, start, end)}
 
-CompExpr 
+CompExpr
   = start:pos l:DotDotExpr rest:(w o:CompOperator w r:DotDotExpr { return {kind: o, right:r}})* end:pos { return buildBinaryTree(l, rest, start, end)}
 
 DotDotExpr
@@ -371,7 +376,7 @@ BinPlusMinusExpr
 
 BinMultExpr
   = start:pos l:ExponentExpr rest:(w o:("//" / "/" / "\\\\" / "*") w r:ExponentExpr { return {kind: o, right:r}})* end:pos { return buildBinaryTree(l, rest, start, end)}
-    
+
 
 ExponentExpr
   = start:pos l:UnaryExpr w k:"^" w r:ExponentExpr end:pos
@@ -434,7 +439,7 @@ IllegalAfterKeyword
 
 Type
   = n:Identifier ts:(w "[" w g:TypeList w "]" {return g})?
-  { 
+  {
     return _n("type", {
       name: n,
       typeParams: optionalList(ts),
@@ -460,7 +465,7 @@ AcrossInstr
 
 IfInstr
   = IfToken W c:Expression W ThenToken is:InstructionSeq ei:ElseIf? e:Else? W EndToken
-  { 
+  {
     return _n("if", {
       condition: c,
       elseif: optionalList(ei),
@@ -518,7 +523,7 @@ ArgList
 ExplicitCreationType
   = "{" w t:Identifier w "}"
   { return t }
-    
+
 
 AccessSpecifier
   = "{" w ids:IdentifierList w "}" {return ids;}
@@ -530,7 +535,7 @@ id "identifier" = [a-zA-Z][a-zA-Z0-9_]*
 
 Indent = (" " / "\t")+
 
-W "whitespace" 
+W "whitespace"
     = (" " / "\t" / "\n" / "\r" / ("--" (!(LineTerminatorSequence) .)*))+
 w = W?
 

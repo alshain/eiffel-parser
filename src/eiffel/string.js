@@ -1,6 +1,6 @@
 root.vees.builtin.classes.push(function(c, a, p, f) {
   c(
-    "STD_FILES",
+    "STRING",
     ["ANY"],
     // Fields
     [
@@ -12,10 +12,6 @@ root.vees.builtin.classes.push(function(c, a, p, f) {
     ],
     // Procedures:
     [
-      p("put_string", {s: "STRING"}, function(ctx, s) {
-        //this.r("standard_default").f()
-
-      }),
 
     ],
     // Constants
