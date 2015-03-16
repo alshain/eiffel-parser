@@ -369,3 +369,9 @@ test("Alias registers correctly", function () {
     equal(e.message, "This alias requires exactly 1 parameters. b has 2",  "Throws on wrong parameter count");
   }
 });
+
+
+test("Function return types resolve correctly", function () {
+  var analyzed = analyze("class A feature b: A do end end");
+  ok(analyzed.classes["A"].resolveSymbol("b").type.baseSymbol === analyzed.classes["A"], "Type was not resolved");
+});
