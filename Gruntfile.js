@@ -77,7 +77,7 @@ module.exports = function(grunt) {
         'test/**/*.js',
         'test/**/*.e',
       ],
-      tasks: ['default']
+      tasks: ['toolchain']
     },
 
     collectTests: {
@@ -101,7 +101,28 @@ module.exports = function(grunt) {
 
         }
       }
-    }
+    },
+
+    browserSync: {
+      default_options: {
+        bsFiles: {
+          src: [
+            "dist/*",
+            "src/**/*.html",
+            "src/**/*.css",
+            "test/**/*.html",
+            "test/tmp/collected.js",
+            "test/all.js",
+          ]
+        },
+      },
+      options: {
+        watchTask: true,
+        server: {
+            baseDir: "./"
+        },
+      },
+    },
 
   });
 
@@ -112,6 +133,8 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-concat-sourcemap');
   grunt.loadNpmTasks('grunt-contrib-clean');
   grunt.loadNpmTasks('grunt-peg');
+  grunt.loadNpmTasks('grunt-browser-sync');
+
   grunt.registerMultiTask('collectTests', function() {
     var target = this.target;
     var results = [];
@@ -134,4 +157,6 @@ module.exports = function(grunt) {
     grunt.file.write(dest, fileOutput);
   });
   grunt.registerTask('test', ['jshint', 'qunit']);
-  grunt.registerTask('default', ['clean', 'collectTests', 'peg', 'concat_sourcemap', 'jshint', 'qunit', 'uglify']); };
+  grunt.registerTask('toolchain', ['clean', 'collectTests', 'peg', 'concat_sourcemap', 'jshint', 'qunit', 'uglify']);
+  grunt.registerTask('default', ['toolchain', 'browserSync', 'watch']);
+};
