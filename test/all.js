@@ -375,3 +375,11 @@ test("Function return types resolve correctly", function () {
   var analyzed = analyze("class A feature b: A do end end");
   ok(analyzed.classes["A"].resolveSymbol("b").type.baseSymbol === analyzed.classes["A"], "Type was not resolved");
 });
+
+test("Local variables type resolves correctly", function () {
+  var analyzed = analyze("class HASLOCALS feature abcd local var: INTEGER do end end");
+  var local = analyzed.classes["HASLOCALS"].methods["abcd"].localsByName["var"];
+  ok(local.type.baseSymbol === analyzed.classes["INTEGER"], "Type was not resolved");
+
+  equal(local.name, "var", "Local variable is not named var");
+});
