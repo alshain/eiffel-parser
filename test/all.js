@@ -343,7 +343,16 @@ test("Symbols exist", function() {
 test("Local variables exist", function () {
   var analyzed = analyze("class HASLOCALS feature abcd local var: INTEGER do end end");
   var local = analyzed.classes["HASLOCALS"].methods["abcd"].locals["var"];
-  console.log(local);
-
   equal(local.name, "var", "Local variable is not named var");
+});
+
+
+test("Symbols resolve correctly in attributes", function () {
+  var analyzed = analyze("class A feature a: A end", "class B feature a: A end class C feature b: B end");
+  var aSym = analyzed.classes["A"];
+  var bSym = analyzed.classes["B"];
+  var cSym = analyzed.classes["C"];
+  ok(aSym.resolveSymbol("a").type.baseSymbol === aSym, "Type was not resolved");
+  ok(bSym.resolveSymbol("a").type.baseSymbol === aSym, "Type was not resolved");
+  ok(cSym.resolveSymbol("b").type.baseSymbol === bSym, "Type was not resolved");
 });
