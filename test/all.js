@@ -356,3 +356,16 @@ test("Symbols resolve correctly in attributes", function () {
   ok(bSym.resolveSymbol("a").type.baseSymbol === aSym, "Type was not resolved");
   ok(cSym.resolveSymbol("b").type.baseSymbol === bSym, "Type was not resolved");
 });
+
+
+test("Alias registers correctly", function () {
+  var analyzed = analyze('class A feature b  alias "and then" (other: A): A do end end');
+
+  ok(analyzed.classes["A"].resolveSymbol("b") === analyzed.classes["A"].aliases["and then"], "Alias was not registered");
+  try{
+    var analyzed = analyze('class A feature b  alias "and then" (other: A; other3: A): A do end end');
+    ok(false, "Did not throw");
+  } catch (e){
+    equal(e.message, "This alias requires exactly 1 parameters. b has 2",  "Throws on wrong parameter count");
+  }
+});
