@@ -14,3 +14,6 @@ results/
 *.out
 *.pid
 *.gz
+
+/.idea/workspace.xml
+/.idea/tasks.xml
