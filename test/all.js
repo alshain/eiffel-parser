@@ -336,6 +336,8 @@ test("Symbols exist", function() {
   classHasSymbol(analyzed, "A", "test2");
   classHasSymbol(analyzed, "A", "f3");
   classHasSymbol(analyzed, "A", "f4");
+  classHasSymbol(analyzed, "ANY", "Io");
+
 });
 
 test("Local variables exist", function () {
