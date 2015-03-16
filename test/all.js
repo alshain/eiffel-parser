@@ -275,9 +275,10 @@ test("should return correct class name", function() {
 
 module("Analyzer");
 
-function analyze(source) {
+function analyze() {
   var analyzer = new vees.Analyzer();
-  analyzer.analyze(vees.parser.parse(source));
+  var parsed = Array.prototype.map.call(arguments, function (x, i) { return vees.parser.parse(x)});
+  analyzer.analyze.apply(analyzer, parsed);
 
   return analyzer;
 }
@@ -323,6 +324,11 @@ test("Analyze two classes in one input", function() {
   analyzerHasClass(analyzed, "B");
 });
 
+test("Analyze two classes two sources", function() {
+  var analyzed = analyze("class A feature test: INTEGER end", "class B end");
+  analyzerHasClass(analyzed, "A");
+  analyzerHasClass(analyzed, "B");
+});
 
 test("Symbols exist", function() {
   var analyzed = analyze("class A feature test: STRING test2: INTEGER f3: INTEGER do end f4 do end end");
