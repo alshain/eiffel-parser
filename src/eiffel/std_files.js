@@ -1,4 +1,4 @@
-root.vees.builtin.classes.push(function(c, a, p, f) {
+vees.builtin.classes.push(function(c, a, p, f) {
   c(
     "STD_FILES",
     ["ANY"],
