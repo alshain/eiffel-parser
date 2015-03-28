@@ -34,7 +34,7 @@ module eiffel {
 
     vChildren(ast:AST, arg:A):R {
       let result = null;
-      ast.children.forEach(function (t: AST) {
+      ast.children.forEach(function (t:AST) {
         result = t._acceptor.accept(this, arg);
       });
       return result;
@@ -111,6 +111,10 @@ module eiffel {
 
     vExpression(expression:Expression, arg:A):R {
       return this.vDefault(expression, arg);
+    }
+
+    vCurrentExpr(currentExpression:CurrentExpression, arg:A):R {
+      return this.vDefault(currentExpression, arg);
     }
 
 
