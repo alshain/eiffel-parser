@@ -329,11 +329,11 @@ InstructionSeq
 pos
   =
   {
-    return {
-      offset: offset(),
-      line: line(),
-      column: column(),
-    };
+    return new eiffel.Pos(
+      offset(),
+      line(),
+      column()
+    );
   }
 
 Instruction
@@ -540,7 +540,13 @@ W "whitespace"
 w = W?
 
 Identifier
-  = !ReservedWord name:IdentifierName { if (isReserved(name.name)) {expected("Identifier, Keyword " + name.name + " found"); } return name;}
+  = !ReservedWord name:IdentifierName
+  {
+    if (isReserved(name.name)) {
+      expected("Identifier, Keyword " + name.name + " found");
+    }
+    return name;
+  }
 
 IdentifierStart
   = Letter
