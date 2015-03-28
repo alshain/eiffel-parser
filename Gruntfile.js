@@ -10,6 +10,13 @@ module.exports = function(grunt) {
       "test/tmp"
     ],
 
+    ts: {
+      default: {
+        src: ["src/ts/**/*.ts"],
+        outDir: ".tmp/ts",
+      },
+    },
+
     concat_sourcemap: {
       options: {
         separator: "\n\n",
@@ -29,6 +36,7 @@ module.exports = function(grunt) {
       dist: {
         src: [
           'src/_intro.js',
+          '.tmp/ts/**/*.js',
           '.tmp/grammar.js',
           'src/main.js',
           'src/eiffel/**/*.js',
@@ -74,6 +82,7 @@ module.exports = function(grunt) {
         'Gruntfile.js',
         'src/grammar/eiffel.pegjs',
         'src/**/*.js',
+        "src/ts/**/*.ts",
         'test/**/*.js',
         'test/**/*.e',
       ],
@@ -134,6 +143,8 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-contrib-clean');
   grunt.loadNpmTasks('grunt-peg');
   grunt.loadNpmTasks('grunt-browser-sync');
+  grunt.loadNpmTasks('grunt-ts');
+
 
   grunt.registerMultiTask('collectTests', function() {
     var target = this.target;
@@ -157,6 +168,6 @@ module.exports = function(grunt) {
     grunt.file.write(dest, fileOutput);
   });
   grunt.registerTask('test', ['jshint', 'qunit']);
-  grunt.registerTask('toolchain', ['clean', 'collectTests', 'peg', 'concat_sourcemap', 'jshint', 'qunit', 'uglify']);
+  grunt.registerTask('toolchain', ['clean', 'ts', 'collectTests', 'peg', 'concat_sourcemap', 'jshint', 'qunit', 'uglify']);
   grunt.registerTask('default', ['toolchain', 'browserSync', 'watch']);
 };
