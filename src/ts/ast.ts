@@ -27,6 +27,11 @@
     }
 
     export class Pos {
+        constructor(offset, line, column) {
+            this.offset = offset;
+            this.line = line;
+            this.column = column;
+        }
         // Zero based index respective to start of input
         offset:number;
         // 1 based line number
