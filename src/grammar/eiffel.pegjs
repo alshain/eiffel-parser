@@ -25,8 +25,8 @@
     return result;
   }
 
-  function currentExpression() {
-    return _n("current", {});
+  function currentExpression(pos) {
+    return new eiffel.CurrentExpression(pos);
   }
 
   function buildBinaryTree(left, rest) {
@@ -405,7 +405,10 @@ UnaryExpr
 
 FirstExpr
   = "(" w e:Expression w ")" { return e}
-  / CurrentToken
+  / start:pos CurrentToken end:pos
+    {
+      return new eiffel.CurrentExpression(start, end);
+    }
   / Identifier Args
   / Identifier
   / StringLiteral
