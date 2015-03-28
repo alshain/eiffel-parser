@@ -230,11 +230,11 @@ eiffel.parser = (function() {
         peg$c66 = function(ns, r) {if(ns) { return [ns, r]} else { return [ns]}},
         peg$c67 = function(i, rest) {return merge([i], rest)},
         peg$c68 = function() {
-            return {
-              offset: offset(),
-              line: line(),
-              column: column(),
-            };
+            return new eiffel.Pos(
+              offset(),
+              line(),
+              column()
+            );
           },
         peg$c69 = function() {
             return _n("noop", {});
@@ -394,7 +394,12 @@ eiffel.parser = (function() {
         peg$c162 = "--",
         peg$c163 = { type: "literal", value: "--", description: "\"--\"" },
         peg$c164 = { type: "any", description: "any character" },
-        peg$c165 = function(name) { if (isReserved(name.name)) {expected("Identifier, Keyword " + name.name + " found"); } return name;},
+        peg$c165 = function(name) {
+            if (isReserved(name.name)) {
+              expected("Identifier, Keyword " + name.name + " found");
+            }
+            return name;
+          },
         peg$c166 = "_",
         peg$c167 = { type: "literal", value: "_", description: "\"_\"" },
         peg$c168 = "0",
