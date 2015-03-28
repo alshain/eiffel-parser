@@ -4,7 +4,7 @@
 // Base function.
 var vees = function() {
   // Add functionality here.
-  var parser = generatedParser;
+  var parser = eiffel.parser;
   function debug() {
     Array.prototype.forEach.call(arguments, function (msg) {
       console.log(msg);
