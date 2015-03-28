@@ -126,6 +126,15 @@ module eiffel {
   }
 
   export class CurrentExpression extends AST implements Expression {
+    constructor(pos:eiffel.Pos, end: Pos) {
+      super(this);
+      this.start = pos;
+      this.end = end;
+    }
+
+    start: Pos;
+    end: Pos;
+
     sym:eiffel.TypeInstance;
 
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
