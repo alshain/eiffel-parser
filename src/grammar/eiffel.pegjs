@@ -268,12 +268,10 @@ VarList
 Vars
   = ids:IdentifierList w ":" w t:Type
   {
-    return ids.map(function(id) {
-      return _n("var", {
-        name: id,
-        parameterType: t
-      });
+    var varDeclEntries = ids.map(function(id) {
+      return new eiffel.ast.VarDeclEntry(id);
     });
+    return new eiffel.ast.VarDeclList(varDeclEntries, t);
   }
 
 Attribute
