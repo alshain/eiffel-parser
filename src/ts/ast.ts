@@ -188,6 +188,8 @@ module eiffel.ast {
       this.parameters = parameters;
       this.start = start;
       this.end = end;
+      this.children.push(name);
+      Array.prototype.push.apply(this.children, parameters);
     }
 
     name:Identifier;
