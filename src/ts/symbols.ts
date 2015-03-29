@@ -1,43 +1,51 @@
 module eiffel.symbols {
     export class Symbol {
-        name: String;
+
+      constructor(name: string) {
+        this.name = name;
+      }
+
+      name: string;
     }
 
     export class RoutineSymbol extends Symbol {
+      constructor(name: string, ast:ast.Routine) {
+        super(name);
+        this.ast = ast;
+      }
 
+      ast: ast.Routine;
     }
 
     export class FunctionSymbol extends RoutineSymbol {
-      rawReturnType: eiffel.ast.Type;
+      constructor(name: string, ast:ast.Function) {
+        super(name, ast);
+      }
 
+      ast: ast.Function;
     }
 
     export class ProcedureSymbol extends RoutineSymbol {
 
-      rawReturnType: eiffel.ast.Type;
+
+      ast: ast.Procedure;
     }
 
   export class AttributeSymbol extends Symbol {
 
     constructor(name: string, attr:ast.VarOrConstAttribute) {
-      super();
-      this.name = name;
-      this.attr = attr;
+      super(name);
+      this.ast = attr;
     }
 
     name: string;
-    attr: ast.VarOrConstAttribute;
+    ast: ast.VarOrConstAttribute;
   }
 
     export class ClassSymbol extends Symbol {
-
-
       constructor(name:string) {
-        super();
-        this.name = name;
+        super(name);
       }
-
-      name: string;
 
       functions: LookupTable<FunctionSymbol> = {};
       procedures: LookupTable<ProcedureSymbol> = {};

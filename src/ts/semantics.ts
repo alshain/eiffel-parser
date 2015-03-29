@@ -75,7 +75,7 @@ module eiffel.semantics {
       var functionName = func.name.name;
       this.errorOnDuplicateFeature(classSymbol, functionName);
 
-      var sym = new symbols.FunctionSymbol();
+      var sym = new symbols.FunctionSymbol(functionName, func);
 
       func.sym = sym;
       classSymbol.functions[functionName] = sym;
@@ -95,7 +95,7 @@ module eiffel.semantics {
       var procedureName = procedure.name.name;
       this.errorOnDuplicateFeature(classSymbol, procedureName);
 
-      var sym = new symbols.FunctionSymbol();
+      var sym = new symbols.FunctionSymbol(procedureName, procedure);
 
       procedure.sym = sym;
       classSymbol.procedures[procedureName] = sym;
