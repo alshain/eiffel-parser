@@ -38,7 +38,6 @@ module eiffel.symbols {
       this.ast = attr;
     }
 
-    name: string;
     ast: ast.VarOrConstAttribute;
   }
 
