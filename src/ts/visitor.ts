@@ -158,5 +158,13 @@ module eiffel.ast {
     vIndexExpression(indexExpression: IndexExpression, arg:A):R {
       return this.vExpression(indexExpression, arg);
     }
+
+    vVarDeclList(varDeclList: VarDeclList, arg:A):R {
+      return this.vDefault(varDeclList, arg);
+    }
+
+    vVarDeclEntry(varDeclEntry: VarDeclEntry, arg:A):R {
+      return this.vDefault(varDeclEntry, arg);
+    }
   }
 }

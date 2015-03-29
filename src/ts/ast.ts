@@ -130,6 +130,43 @@ module eiffel.ast {
     }
   }
 
+  export class VarDeclList extends AST implements VisitorAcceptor {
+    constructor(varDecls: VarDeclEntry[], rawType: Type)  {
+      super(this);
+      this.varDecls = varDecls;
+      this.rawType = rawType;
+      varDecls.forEach(function (varDecl) {
+        varDecl.varDeclList = this;
+      });
+      Array.prototype.push.apply(this.children, varDecls);
+      this.children.push(rawType);
+    }
+
+    rawType: Type;
+    varDecls: VarDeclEntry[];
+
+    accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
+      return visitor.vVarDeclList(this, arg);
+    }
+  }
+
+  export class VarDeclEntry extends AST implements VisitorAcceptor {
+
+    constructor(name:eiffel.ast.Identifier) {
+      super(this);
+      this.name = name;
+      this.children.push(name);
+    }
+
+    name: Identifier;
+    varDeclList: VarDeclList;
+    sym: symbols.VariableSymbol;
+
+    accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
+      return visitor.vVarDeclEntry(this, arg);
+    }
+  }
+
   export class Parameter extends AST implements VisitorAcceptor {
     constructor() {
       super(this);
