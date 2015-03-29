@@ -47,7 +47,7 @@ module eiffel.semantics {
   class FeatureDiscovery extends SemanticVisitor<symbols.ClassSymbol, any> {
     vClass(_class:eiffel.ast.Class, _:symbols.ClassSymbol):any {
       var name = _class.name.name;
-      var classSymbol = new symbols.ClassSymbol(name);
+      var classSymbol = new symbols.ClassSymbol(name, _class);
 
       this.classSymbols[name] = classSymbol;
       return this.vChildren(_class, classSymbol);

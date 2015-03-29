@@ -20,6 +20,7 @@ module eiffel.symbols {
     export class FunctionSymbol extends RoutineSymbol {
       constructor(name: string, ast:ast.Function) {
         super(name, ast);
+        this.ast = ast;
       }
 
       ast: ast.Function;
@@ -27,6 +28,11 @@ module eiffel.symbols {
 
     export class ProcedureSymbol extends RoutineSymbol {
 
+
+      constructor(name:string, ast:ast.Procedure) {
+        super(name, ast);
+        this.ast = ast;
+      }
 
       ast: ast.Procedure;
     }
@@ -42,10 +48,12 @@ module eiffel.symbols {
   }
 
     export class ClassSymbol extends Symbol {
-      constructor(name:string) {
+      constructor(name:string, ast: ast.Class) {
         super(name);
+        this.ast = ast;
       }
 
+      ast: ast.Class;
       functions: LookupTable<FunctionSymbol> = {};
       procedures: LookupTable<ProcedureSymbol> = {};
       routines: LookupTable<RoutineSymbol> = {};
