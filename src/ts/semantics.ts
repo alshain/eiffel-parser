@@ -6,7 +6,7 @@ module eiffel.semantics {
   export function analyze(asts: ast.Class[]): AnalysisResult {
     var analysisContext = new AnalysisContext();
     asts.forEach(function (ast) {
-      ast.accept(new FeatureDiscovery(analysisContext.classSymbols), null);
+      ast.accept(new FeatureDiscovery(analysisContext), null);
     });
     var newVar = {
         asts: asts,
@@ -19,18 +19,33 @@ module eiffel.semantics {
 
   class AnalysisContext {
     classSymbols: LookupTable<sym.ClassSymbol> = {};
+    errors: string[] = [];
   }
 
-  class FeatureDiscovery extends ast.Visitor<symbols.ClassSymbol, any> {
+  class SemanticVisitor<A, R> extends ast.Visitor<A, R> {
     classSymbols:LookupTable<sym.ClassSymbol>;
+    analysisContext: AnalysisContext;
 
 
-    constructor(classSymbols: LookupTable<sym.ClassSymbol>) {
+    constructor(analysisContext: AnalysisContext) {
       super();
-      this.classSymbols = classSymbols;
+      this.analysisContext = analysisContext;
+      this.classSymbols = analysisContext.classSymbols;
     }
 
-    vClass(_class:eiffel.ast.Class, arg:symbols.ClassSymbol):any {
+    error(message: string, kind: SemanticErrors) {
+      this.analysisContext.errors.push(SemanticErrors[kind] + message);
+    }
+  }
+
+  enum SemanticErrors {
+    DuplicateFeatureName,
+    DuplicateParameterName,
+    DuplicateClassName,
+  }
+
+  class FeatureDiscovery extends SemanticVisitor<symbols.ClassSymbol, any> {
+    vClass(_class:eiffel.ast.Class, _:symbols.ClassSymbol):any {
       var name = _class.name.name;
       var classSymbol = new symbols.ClassSymbol(name);
 
@@ -38,32 +53,68 @@ module eiffel.semantics {
       return this.vChildren(_class, classSymbol);
     }
 
-    vFeature(feature:eiffel.ast.Feature, arg:symbols.ClassSymbol):any {
-      return super.vFeature(feature, arg);
+    vFeature(feature:eiffel.ast.Feature, classSymbol:symbols.ClassSymbol):any {
+      return super.vFeature(feature, classSymbol);
     }
 
 
-    vAttr(attr:eiffel.ast.Attribute, arg:symbols.ClassSymbol):any {
-      console.log(attr);
-      return super.vAttr(attr, arg);
+    vAttr(attr:eiffel.ast.Attribute, classSymbol:symbols.ClassSymbol):any {
+      var name = attr.name.name;
+      this.errorOnDuplicateFeature(classSymbol, name);
+
+      var attributeSymbol = new symbols.AttributeSymbol(name, attr);
+
+      attr.sym = attributeSymbol;
+      classSymbol.attributes[name] = attributeSymbol;
+
+      return super.vAttr(attr, classSymbol);
     }
 
-    vFunction(func:eiffel.ast.Function, arg:symbols.ClassSymbol):any {
+    vFunction(func:eiffel.ast.Function, classSymbol:symbols.ClassSymbol):any {
       console.log(func);
       var functionName = func.name.name;
+      this.errorOnDuplicateFeature(classSymbol, functionName);
+
       var sym = new symbols.FunctionSymbol();
+
       func.sym = sym;
-      arg.functions[functionName] = sym;
-      return super.vFunction(func, arg);
+      classSymbol.functions[functionName] = sym;
+      classSymbol.routines[functionName] = sym;
+
+      return super.vFunction(func, classSymbol);
     }
 
-    vProcedure(procedure:eiffel.ast.Procedure, arg:symbols.ClassSymbol):any {
+    private errorOnDuplicateFeature(classSymbol, featureName) {
+      if (classSymbol.hasSymbol(featureName)) {
+        this.error("Feature with name " + featureName + " already exists", SemanticErrors.DuplicateFeatureName);
+      }
+    }
+
+    vProcedure(procedure:eiffel.ast.Procedure, classSymbol:symbols.ClassSymbol):any {
       console.log(procedure);
-      return super.vProcedure(procedure, arg);
+      var procedureName = procedure.name.name;
+      this.errorOnDuplicateFeature(classSymbol, procedureName);
+
+      var sym = new symbols.FunctionSymbol();
+
+      procedure.sym = sym;
+      classSymbol.procedures[procedureName] = sym;
+      classSymbol.routines[procedureName] = sym;
+
+      return super.vProcedure(procedure, classSymbol);
     }
 
-    vConstantAttribute(constantAttribute:eiffel.ast.ConstantAttribute, arg:symbols.ClassSymbol):any {
-      return super.vConstantAttribute(constantAttribute, arg);
+    vConstantAttribute(constantAttribute:eiffel.ast.ConstantAttribute, classSymbol:symbols.ClassSymbol):any {
+      console.log(constantAttribute);
+      var name = constantAttribute.name.name;
+      this.errorOnDuplicateFeature(classSymbol, name);
+
+      var attributeSymbol = new symbols.AttributeSymbol(name, constantAttribute);
+
+      constantAttribute.sym = attributeSymbol;
+      classSymbol.attributes[name] = attributeSymbol;
+
+      return super.vConstantAttribute(constantAttribute, classSymbol);
     }
   }
 

@@ -34,14 +34,12 @@ module eiffel.symbols {
 
       functions: LookupTable<FunctionSymbol> = {};
       procedures: LookupTable<ProcedureSymbol> = {};
+      routines: LookupTable<RoutineSymbol> = {};
       attributes: LookupTable<AttributeSymbol> = {};
 
 
       hasSymbol(name: string): boolean {
-        if (this.functions.hasOwnProperty(name)) {
-          return true;
-        }
-        if (this.procedures.hasOwnProperty(name)) {
+        if (this.routines.hasOwnProperty(name)) {
           return true;
         }
         if (this.attributes.hasOwnProperty(name)) {
@@ -51,7 +49,7 @@ module eiffel.symbols {
       }
 
       resolveSymbol(name: string): Symbol {
-        if (this.functions.hasOwnProperty(name)) {
+        if (this.routines.hasOwnProperty(name)) {
           return this.functions[name];
         }
         if (this.procedures.hasOwnProperty(name)) {
