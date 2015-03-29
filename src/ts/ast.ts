@@ -167,18 +167,6 @@ module eiffel.ast {
     }
   }
 
-  export class Parameter extends AST implements VisitorAcceptor {
-    constructor() {
-      super(this);
-    }
-
-    name:Identifier;
-
-    accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
-      return visitor.vParameter(this, arg);
-    }
-  }
-
   export class Type extends AST implements VisitorAcceptor {
     end: eiffel.ast.Pos;
     start : eiffel.ast.Pos;

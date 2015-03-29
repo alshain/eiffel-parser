@@ -52,10 +52,6 @@ module eiffel.ast {
       return this.vDefault(parent, arg);
     }
 
-    vParameter(parameter:Parameter, arg:A):R {
-      return this.vDefault(parameter, arg);
-    }
-
     vInstruction(instruction:Instruction, arg:A):R {
       return this.vDefault(instruction, arg);
     }
