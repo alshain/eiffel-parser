@@ -14,6 +14,9 @@ module eiffel.symbols {
         this.ast = ast;
       }
 
+      locals: VariableSymbol[] = [];
+      localsAndParamsByName: LookupTable<VariableSymbol> = {};
+      paramsInOrder: VariableSymbol[] = [];
       ast: ast.Routine;
     }
 
