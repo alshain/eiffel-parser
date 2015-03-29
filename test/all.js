@@ -55,7 +55,6 @@ var astTests = [
     "Expression",
     "True",
     {
-      nodeType: "literal.bool",
       value: true,
       start: {column: 1},
       end: {},
@@ -67,7 +66,7 @@ var astTests = [
     "Expression",
     "False",
     {
-      nodeType: "literal.bool",
+      __instanceof: eiffel.ast.BooleanLiteral,
       value: false,
       start: {},
       end: { line: 1},
@@ -79,8 +78,17 @@ var astTests = [
     "Expression",
     "1",
     {
-      nodeType: "literal.int",
       value: 1,
+      start: {},
+      end: {},
+    },
+  ],
+  [
+    "'1' parses",
+    "Expression",
+    "'1'",
+    {
+      value: "1",
       start: {},
       end: {},
     },
@@ -91,7 +99,6 @@ var astTests = [
     "Expression",
     '"%n%""',
     {
-      nodeType: "literal.string",
       value: '%n%"',
       start: {},
       end: {},
@@ -103,7 +110,6 @@ var astTests = [
     "Expression",
     'Void',
     {
-      nodeType: "literal.void",
       start: {},
       end: {},
     },
@@ -156,11 +162,18 @@ function compareAst(expected, actual) {
     if (typeof expected === 'object') {
       for (var key in expected) {
         if (expected.hasOwnProperty(key)) {
-          if (actual.hasOwnProperty(key)) {
-            compare(expected[key], actual[key], query + "[" + key + "]");
+          if (key === "__instanceof") {
+            if (!(actual instanceof expected[key])) {
+              diff("actual has wrong type");
+            }
           }
-          else {
-            diff("actual is missing key " + key);
+          else{
+            if (actual.hasOwnProperty(key)) {
+              compare(expected[key], actual[key], query + "[" + key + "]");
+            }
+            else {
+              diff("actual is missing key " + key);
+            }
           }
         }
       }
@@ -262,7 +275,14 @@ astTests.forEach(function(n_s_t_e) {
 
   test(name, function() {
     var actual = vees.parser.parse(expression, {startRule: start});
-    okAst(compareAst(expected, actual), "Expected: \n" + JSON.stringify(expected) + "\nActual:\n" + JSON.stringify(actual));
+    var msg = compareAst(expected, actual);
+    if (msg === "") {
+        okAst("", "", "");
+    }
+    else {
+      console.log("Actual", actual);
+      okAst(msg, "Expected: \n" + JSON.stringify(expected) + "\nActual:\n possibly recursive" );
+    }
   });
 });
 
@@ -278,7 +298,7 @@ module("Analyzer");
 function analyze() {
   var analyzer = new vees.Analyzer();
   var parsed = Array.prototype.map.call(arguments, function (x, i) { return vees.parser.parse(x)});
-  analyzer.analyze.apply(analyzer, parsed);
+  eiffel.semantics.analyze.apply(analyzer, parsed);
 
   return analyzer;
 }

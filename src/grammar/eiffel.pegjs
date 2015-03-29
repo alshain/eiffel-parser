@@ -26,7 +26,7 @@
   }
 
   function currentExpression(pos) {
-    return new eiffel.CurrentExpression(pos);
+    return new eiffel.ast.CurrentExpression(pos);
   }
 
   function buildBinaryTree(left, rest) {
@@ -78,13 +78,13 @@
 start = class*
 class
   = w note:Note? ClassToken name:ClassName inherit:inherit? create:create? featureLists:FeatureList* W EndToken w
-    { return _n("class", {
-        name: name,
-        note: optionalList(note),
-        inherit : optionalList(inherit),
-        create: (create == null) ? [] : create,
-        featureLists: featureLists
-      });
+    { return new eiffel.ast.Class(
+        name,
+        optionalList(note),
+        optionalList(inherit),
+        (create == null) ? [] : create,
+        featureLists
+      );
     }
 
 Note = NoteToken p:NotePair+ W {return p;}
@@ -204,10 +204,10 @@ InhSelect
 
 FeatureList
   = W FeatureToken access:(w acc:AccessSpecifier { return acc })? fs:Feature*
-    { return _n("featureList", {
-        access : access,
-        features: fs
-      });
+    { return new eiffel.ast.FeatureList(
+        optionalList(access),
+        fs
+      );
     }
 
 Feature
@@ -219,30 +219,31 @@ Feature
 Function
   = h:RoutineHeader w ":" w rt:Type W b:RoutineBody
   {
-    return _n("feature.function", {
-      name: h.name,
-      params: h.params,
-      alias: h.alias,
-      returnType: rt,
-      preconditions: b.preconditions,
-      localLists: b.locals,
-      instructions: b.instructions,
-      postconditions: b.postconditions,
-    });
+    return new eiffel.ast.Function(
+      h.name,
+      h.params,
+      h.alias,
+      rt,
+      b.preconditions,
+      b.locals,
+      b.instructions,
+      b.postconditions
+    );
   }
 
 Procedure
   = h:RoutineHeader w b:RoutineBody
   {
-    return _n("feature.procedure", {
-      name: h.name,
-      params: h.params,
-      alias: h.alias,
-      preconditions: b.preconditions,
-      localLists: b.locals,
-      instructions: b.instructions,
-      postconditions: b.postconditions,
-    });
+    return new eiffel.ast.Procedure(
+      h.name,
+      h.params,
+      h.alias,
+      rt,
+      b.preconditions,
+      b.locals,
+      b.instructions,
+      b.postconditions
+    );
   }
 
 RoutineHeader
@@ -256,9 +257,9 @@ RoutineHeader
   }
 
 Alias
-  = W AliasToken w s:StringLiteral
+  = W start:pos AliasToken w s:StringLiteral end:pos
   {
-    return s.value;
+    return new eiffel.ast.Alias(s, start, end);
   }
 
 VarList
@@ -278,20 +279,20 @@ Vars
 Attribute
   =  n:Identifier  w ":" w t:Type
   {
-    return _n("feature.attribute", {
-      name: n,
-      attributeType: t
-    });
+    return new eiffel.ast.Attribute(
+      n,
+      t
+    );
   }
 
 Constant
   = a:Attribute w "=" l:Literal
   {
-    return _n("feature.constant", {
-      name: a,
-      constantType: a.attributeType,
-      value: l
-    });
+    return new eiffel.ast.ConstantAttribute(
+      a,
+      a.attributeType,
+      l
+    );
   }
 
 RoutineBody
@@ -306,7 +307,24 @@ RoutineBody
   }
 
 Preconditions
-  = RequireToken c:LabelledCondition* W {return c;}
+  = RequireToken c:Precondition* W {return c;}
+
+Postconditions
+  = EnsureToken c:Postcondition* W {return c;}
+
+
+Precondition
+  = l:LabelledCondition
+  {
+    return new eiffel.ast.Precondition(l.name, l.expression);
+  }
+
+Postcondition
+  = l:LabelledCondition
+  {
+    return new eiffel.ast.Postcondition(l.name, l.expression);
+  }
+
 LabelledCondition
   = W l:ConditionLabel? e:Expression
   {
@@ -315,11 +333,11 @@ LabelledCondition
       expression: e,
     };
   }
+
 ConditionLabel = i:Identifier w ":" w {return i;}
 
 Locals = LocalToken vs:VarLists W { return vs; }
 VarLists = vs:(W v:VarList {return v;})+ {return vs;}
-Postconditions = "a"
 Do = DoToken i:InstructionSeq {return i}
 
 InstructionSeq
@@ -329,7 +347,7 @@ InstructionSeq
 pos
   =
   {
-    return new eiffel.Pos(
+    return new eiffel.ast.Pos(
       offset(),
       line(),
       column()
@@ -358,10 +376,10 @@ ImpliesExpr
   = start:pos l:OrExpr rest:(w o:"implies" !IllegalAfterKeyword w r:OrExpr { return {kind: o, right:r}})* end:pos { return buildBinaryTree(l, rest, start, end)}
 
 OrExpr
-  = start:pos l:AndExpr rest:(w o:("or else" / "or") !IllegalAfterKeyword w r:AndExpr { return {kind: o, right:r}})* end:pos { return buildBinaryTree(l, rest, start, end)}
+  = start:pos l:AndExpr rest:(w o:("or " w "else" { return "or else"} / "or") !IllegalAfterKeyword w r:AndExpr { return {kind: o, right:r}})* end:pos { return buildBinaryTree(l, rest, start, end)}
 
 AndExpr
-  = start:pos l:CompExpr rest:(w o:("and then" / "and") !IllegalAfterKeyword w r:CompExpr { return {kind: o, right:r}})* end:pos { return buildBinaryTree(l, rest, start, end)}
+  = start:pos l:CompExpr rest:(w o:("and " w "then" { return "and then" } / "and") !IllegalAfterKeyword w r:CompExpr { return {kind: o, right:r}})* end:pos { return buildBinaryTree(l, rest, start, end)}
 
 CompExpr
   = start:pos l:DotDotExpr rest:(w o:CompOperator w r:DotDotExpr { return {kind: o, right:r}})* end:pos { return buildBinaryTree(l, rest, start, end)}
@@ -407,7 +425,7 @@ FirstExpr
   = "(" w e:Expression w ")" { return e}
   / start:pos CurrentToken end:pos
     {
-      return new eiffel.CurrentExpression(start, end);
+      return new eiffel.ast.CurrentExpression(start, end);
     }
   / Identifier Args
   / Identifier
@@ -485,10 +503,10 @@ ElseIf = rest:(W ElseifToken W c:Expression W ThenToken is:InstructionSeq {retur
 AssignmentInstr
   = lhs:LeftHandSide w ":=" w rhs:Expression
   {
-    return _n("assignment", {
-      lhs: lhs,
-      rhs: rhs,
-    });
+    return new eiffel.ast.Assignment(
+      lhs,
+      rhs
+    );
   }
 
 
@@ -498,11 +516,11 @@ LeftHandSide
 CreateInstr
   = CreateToken !(IllegalAfterKeyword) w t:ExplicitCreationType? n:Identifier m:CreationMethod?
   {
-    return _n("create", {
-      target: n,
-      initializer: (m ? m : "default_create"),
-      args: m ? optionalList(m.args) : []
-    });
+    return new eiffel.ast.CreateInstruction(
+      n,
+      (m ? m : "default_create"),
+      m ? optionalList(m.args) : []
+    );
   }
 
 CreationMethod
@@ -586,17 +604,17 @@ SingleLineComment
 
 IntegerLiteral
   = start:pos DecimalIntegerLiteral end:pos {
-    return _n("literal.int", { start:start, end:end, kind: "int", value: parseFloat(text()) });
+    return new eiffel.ast.IntLiteral(parseFloat(text()), start, end);
   }
 
 StringLiteral "string"
   = start:pos '"' chars:DoubleStringCharacter* '"' end:pos {
-  return _n("literal.string", { start:start, end:end, kind: "string", value: chars.join("") });
+  return new eiffel.ast.StringLiteral(chars.join(""), start, end);
   }
 
-CharacterLiteral "character"
-  = "'" char:SingleStringCharacter "'" {
-  return _n("literal.char", { kind: "char", value: char });
+CharLiteral "character"
+  = start:pos "'" char:SingleStringCharacter "'" end:pos {
+    return new eiffel.ast.StringLiteral(char, start, end);
   }
 DoubleStringCharacter
   = !('"' / "%" / LineTerminator) SourceCharacter { return text(); }
@@ -649,10 +667,11 @@ EscapeCharacter
 
 
 Literal
-  = start:pos r:VoidLiteral    end:pos !IllegalAfterKeyword { return _n("literal.void", r);}
-  / start:pos r:BooleanLiteral end:pos !IllegalAfterKeyword {return _n("literal.bool", { start:start, end:end, value: r});}
+  = start:pos r:VoidLiteral    end:pos !IllegalAfterKeyword { return new eiffel.ast.VoidLiteral(start, end);}
+  / start:pos r:BooleanLiteral end:pos !IllegalAfterKeyword {return new eiffel.ast.BooleanLiteral(r, start, end);}
   / r:IntegerLiteral !IllegalAfterKeyword {return r;}
   / r:StringLiteral  !IllegalAfterKeyword {return r;}
+  / r:CharLiteral  !IllegalAfterKeyword {return r;}
 
 Letter
   = [a-z]
@@ -660,11 +679,11 @@ Letter
 
 IdentifierName "identifier"
   = start:pos first:IdentifierStart rest:IdentifierPart* end:pos {
-    return _n("Identifier", {
-      name: first + rest.join(""),
-      start: start,
-      end: end,
-    });
+    return new eiffel.ast.Identifier(
+      first + rest.join(""),
+      start,
+      end
+    );
 }
 
 ReservedWord

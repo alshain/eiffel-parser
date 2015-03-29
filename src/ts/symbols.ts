@@ -1,17 +1,23 @@
-module eiffel {
-    export interface Symbol {
+module eiffel.symbols {
+    export class Symbol {
         name: String;
     }
 
-    export interface RoutineSymbol extends Symbol {
+    export class RoutineSymbol extends Symbol {
 
     }
 
-    export interface FunctionSymbol extends RoutineSymbol {
-        rawReturnType: Type;
+    export class FunctionSymbol extends RoutineSymbol {
+      rawReturnType: eiffel.ast.Type;
+
     }
 
-    export interface ClassSymbol extends Symbol {
+    export class ProcedureSymbol extends RoutineSymbol {
+      rawReturnType: eiffel.ast.Type;
+    }
 
+    export class ClassSymbol extends Symbol {
+      functions: LookupTable<FunctionSymbol> = {};
+      procedures: LookupTable<ProcedureSymbol> = {};
     }
 }

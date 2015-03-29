@@ -55,6 +55,9 @@ var vees = function() {
   };
 
   function dispatchOnType(node, fs) {
+    if (!(node instanceof Node)) {
+      throw new Error("Node not of instance Node");
+    }
     var type = node.nodeType;
     var splitted = type.split(".");
     var typeBySpecifity = splitted.map(function(_, i, all) {
