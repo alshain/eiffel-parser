@@ -33,12 +33,12 @@ module eiffel.semantics {
       this.classSymbols = analysisContext.classSymbols;
     }
 
-    error(message: string, kind: SemanticErrors) {
-      this.analysisContext.errors.push(SemanticErrors[kind] + message);
+    error(message: string, kind: SemanticErrorKind) {
+      this.analysisContext.errors.push(SemanticErrorKind[kind] + message);
     }
   }
 
-  enum SemanticErrors {
+  enum SemanticErrorKind {
     DuplicateFeatureName,
     DuplicateParameterName,
     DuplicateClassName,
@@ -86,7 +86,7 @@ module eiffel.semantics {
 
     private errorOnDuplicateFeature(classSymbol, featureName) {
       if (classSymbol.hasSymbol(featureName)) {
-        this.error("Feature with name " + featureName + " already exists", SemanticErrors.DuplicateFeatureName);
+        this.error("Feature with name " + featureName + " already exists", SemanticErrorKind.DuplicateFeatureName);
       }
     }
 
