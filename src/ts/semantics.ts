@@ -10,7 +10,7 @@ module eiffel.semantics {
     });
     var newVar = {
         asts: asts,
-        errors: [],
+        errors: analysisContext.errors,
         context: analysisContext,
       };
     console.log(newVar);
