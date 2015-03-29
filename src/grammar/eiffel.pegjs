@@ -238,7 +238,7 @@ Procedure
       h.name,
       h.params,
       h.alias,
-      rt,
+      null,
       b.preconditions,
       b.locals,
       b.instructions,
