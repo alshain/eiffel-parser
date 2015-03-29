@@ -143,8 +143,14 @@ module eiffel.ast {
   }
 
   export class Type extends AST implements VisitorAcceptor {
-    constructor() {
+    end: eiffel.ast.Pos;
+    start : eiffel.ast.Pos;
+    constructor(name: Identifier, parameters: Type[], start: Pos, end: Pos) {
       super(this);
+      this.name = name;
+      this.parameters = parameters;
+      this.start = start;
+      this.end = end;
     }
 
     name:Identifier;
@@ -156,6 +162,7 @@ module eiffel.ast {
   }
 
   export class Function extends Routine {
+    sym: symbols.FunctionSymbol;
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vFunction(this, arg);
     }
@@ -542,7 +549,18 @@ module eiffel.ast {
   };
 
   export class CallExpression extends AST implements Expression, VisitorAcceptor {
+    constructor(operand:eiffel.ast.Expression, name:eiffel.ast.Identifier, parameters:eiffel.ast.Expression[]) {
+      super(this);
+      this.operand = operand;
+      this.name = name;
+      this.parameters = parameters;
+    }
+
     sym:eiffel.ast.TypeInstance;
+
+    operand: Expression;
+    name: Identifier;
+    parameters: Expression[];
 
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vCallExpression(this, arg);
@@ -550,11 +568,14 @@ module eiffel.ast {
   }
 
   export class IndexExpression extends AST implements Expression, VisitorAcceptor {
-    
+    constructor(operand: eiffel.ast.Expression, argument: eiffel.ast.Expression) {
+      super(this);
+      this.operand = operand;
+      this.argument = argument;
+    }
 
-    target: Expression;
+    operand: Expression;
     argument: Expression;
-
 
     sym:eiffel.ast.TypeInstance;
 

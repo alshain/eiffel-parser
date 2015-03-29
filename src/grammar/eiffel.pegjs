@@ -438,20 +438,20 @@ FactorExpr
 Index
   = w "[" w a:ArgList w "]"
   {
-    return _n("index", {
-      operand: undefined,
-      args: optionalList(a),
-    });
+    return new eiffel.ast.IndexExpression(
+      undefined,
+      optionalList(a)
+    );
   }
 
 Call
   = w "." w i:Identifier a:Args?
   {
-    return _n("call", {
-      operand: undefined,
-      name: i,
-      args: optionalList(a),
-    });
+    return new eiffel.ast.CallExpression(
+      undefined,
+      i,
+      optionalList(a)
+    );
   }
 
 IllegalAfterKeyword
@@ -459,12 +459,14 @@ IllegalAfterKeyword
   / DecimalDigit
 
 Type
-  = n:Identifier ts:(w "[" w g:TypeList w "]" {return g})?
+  = start:pos n:Identifier ts:(w "[" w g:TypeList w "]" {return g})? end:pos
   {
-    return _n("type", {
-      name: n,
-      typeParams: optionalList(ts),
-    });
+    return new eiffel.ast.Type(
+      n,
+      optionalList(ts),
+      start,
+      end
+    );
   }
 
 TypeList

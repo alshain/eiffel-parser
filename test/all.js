@@ -309,9 +309,9 @@ test("should pass", function () {
 
 
 function analyzerHasClass(analyzed, className) {
-  var hasClass = analyzed.classes.hasOwnProperty(className);
+  var hasClass = analyzed.context.classSymbols.hasOwnProperty(className);
   if (!hasClass) {
-    console.log(analyzed.classes);
+    console.log(analyzed.context.classSymbols);
   }
   ok(hasClass, "doesn't have class className");
 }
