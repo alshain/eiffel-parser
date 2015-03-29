@@ -218,6 +218,7 @@ module eiffel.ast {
 
     name:Identifier;
     rawType:eiffel.ast.Type;
+    sym: eiffel.symbols.AttributeSymbol;
 
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vVarOrConstAttribute(this, arg);
