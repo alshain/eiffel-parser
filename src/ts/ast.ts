@@ -105,23 +105,23 @@ module eiffel.ast {
   }
 
   export class Routine extends AST implements Feature {
-    constructor(name: Identifier, parameters: Parameter[], alias: Alias, rt: any, preconditions: Precondition[], instructions: Instruction[], postconditions: Postcondition[]) {
+    constructor(name: Identifier, parameters: VarDeclList[], alias: Alias, rt: any, preconditions: Precondition[], locals: VarDeclList[][], instructions: Instruction[], postconditions: Postcondition[]) {
       super(this);
       this.name = name;
       this.parameters = parameters;
       this.alias = alias;
       this.preconditions = preconditions;
+      this.locals = locals;
       this.instructions = instructions;
       this.postconditions = postconditions;
     }
 
-    children:AST[];
-    _acceptor:VisitorAcceptor;
     name:Identifier;
     instructions:eiffel.ast.Instruction[];
     preconditions:Precondition[];
+    locals: VarDeclList[][];
     postconditions:Postcondition[];
-    parameters:Parameter[];
+    parameters:VarDeclList[];
     sym: eiffel.symbols.RoutineSymbol;
     alias: Alias;
 
