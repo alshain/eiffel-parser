@@ -28,10 +28,18 @@ var paths = {
     'src/ts/**/*.ts',
   ],
 
+  "peg": [
+    "src/grammar/eiffel.pegjs",
+  ]
+
 };
 
 gulp.task("clean", ["cleanCollected", "cleanTypescript", "cleanParser", "cleanBuiltin", "cleanVees"], function(cb) {
   del(["dist", "test/tmp", ".tmp"], cb);
+});
+
+gulp.task("cleanPeg", function(cb) {
+  del(["dist/parser.js"], cb);
 });
 
 gulp.task("cleanTypescript", function(cb) {
@@ -67,9 +75,8 @@ gulp.task("cleanCollected", function(cb) {
 
 
 
-gulp.task("peg", ["clean"], function() {
+gulp.task("peg", ["cleanPeg"], function() {
   gulp.src("src/grammar/eiffel.pegjs")
-    .pipe(watch("src/grammar/eiffel.pegjs"))
     .pipe(peg({
         allowedStartRules: ["start", "Expression", "Type"],
         exportVar: "eiffel.parser",
@@ -83,7 +90,7 @@ gulp.task('typescript', ["cleanTypescript"], function() {
    var tsResult = gulp.src('src/ts/**/*.ts')
                       .pipe(sourcemaps.init()) // This means sourcemaps will be generated
                       .pipe(ts({
-                        sortOutput: true,
+                        //sortOutput: true,
                         target: "es6",
                            // ...
                       }));
