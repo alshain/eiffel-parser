@@ -47,6 +47,16 @@ module eiffel.symbols {
     ast: ast.VarOrConstAttribute;
   }
 
+  export class VariableSymbol extends Symbol {
+
+    constructor(name:string, ast:ast.VarDeclEntry) {
+      super(name);
+      this.ast = ast;
+    }
+
+    ast: ast.VarDeclEntry;
+  }
+
   export class ClassSymbol extends Symbol {
     constructor(name:string, ast: ast.Class) {
       super(name);
