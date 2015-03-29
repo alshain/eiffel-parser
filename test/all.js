@@ -296,11 +296,8 @@ test("should return correct class name", function() {
 module("Analyzer");
 
 function analyze() {
-  var analyzer = new vees.Analyzer();
   var parsed = Array.prototype.map.call(arguments, function (x, i) { return vees.parser.parse(x)});
-  eiffel.semantics.analyze.apply(analyzer, parsed);
-
-  return analyzer;
+  return eiffel.semantics.analyze.apply(null, parsed);
 }
 test("should pass", function () {
   analyze("class CLASSNAME end");
@@ -362,16 +359,16 @@ test("Symbols exist", function() {
 
 test("Local variables exist", function () {
   var analyzed = analyze("class HASLOCALS feature abcd local var: INTEGER do end end");
-  var local = analyzed.classes["HASLOCALS"].methods["abcd"].localsByName["var"];
+  var local = analyzed.context.classSymbols["HASLOCALS"].routines["abcd"].localsByName["var"];
   equal(local.name, "var", "Local variable is not named var");
 });
 
 
 test("Symbols resolve correctly in attributes", function () {
   var analyzed = analyze("class A feature a: A end", "class B feature a: A end class C feature b: B end");
-  var aSym = analyzed.classes["A"];
-  var bSym = analyzed.classes["B"];
-  var cSym = analyzed.classes["C"];
+  var aSym = analyzed.context.classSymbols["A"];
+  var bSym = analyzed.context.classSymbols["B"];
+  var cSym = analyzed.context.classSymbols["C"];
   ok(aSym.resolveSymbol("a").type.baseSymbol === aSym, "Type was not resolved");
   ok(bSym.resolveSymbol("a").type.baseSymbol === aSym, "Type was not resolved");
   ok(cSym.resolveSymbol("b").type.baseSymbol === bSym, "Type was not resolved");
@@ -381,7 +378,7 @@ test("Symbols resolve correctly in attributes", function () {
 test("Alias registers correctly", function () {
   var analyzed = analyze('class A feature b  alias "and then" (other: A): A do end end');
 
-  ok(analyzed.classes["A"].resolveSymbol("b") === analyzed.classes["A"].aliases["and then"], "Alias was not registered");
+  ok(analyzed.context.classSymbols["A"].resolveSymbol("b") === analyzed.context.classSymbols["A"].aliases["and then"], "Alias was not registered");
   try{
     var analyzed = analyze('class A feature b  alias "and then" (other: A; other3: A): A do end end');
     ok(false, "Did not throw");
@@ -393,13 +390,14 @@ test("Alias registers correctly", function () {
 
 test("Function return types resolve correctly", function () {
   var analyzed = analyze("class A feature b: A do end end");
-  ok(analyzed.classes["A"].resolveSymbol("b").type.baseSymbol === analyzed.classes["A"], "Type was not resolved");
+  ok(analyzed.context.classSymbols["A"].resolveSymbol("b").type.baseSymbol === analyzed.context.classSymbols["A"], "Type was not resolved");
 });
 
 test("Local variables type resolves correctly", function () {
   var analyzed = analyze("class HASLOCALS feature abcd local var: INTEGER do end end");
-  var local = analyzed.classes["HASLOCALS"].methods["abcd"].localsByName["var"];
-  ok(local.type.baseSymbol === analyzed.classes["INTEGER"], "Type was not resolved");
+  console.log("LOCAL VARS", analyzed);
+  var local = analyzed.context.classSymbols["HASLOCALS"].routines["abcd"].localsByName["var"];
+  ok(local.type.baseSymbol === analyzed.context.classSymbols["INTEGER"], "Type was not resolved");
 
   equal(local.name, "var", "Local variable is not named var");
 });
