@@ -19,7 +19,14 @@ module eiffel.symbols {
 
   export class AttributeSymbol extends Symbol {
 
-      attr: ast.VarOrConstAttribute;
+    constructor(name: string, attr:ast.VarOrConstAttribute) {
+      super();
+      this.name = name;
+      this.attr = attr;
+    }
+
+    name: string;
+    attr: ast.VarOrConstAttribute;
   }
 
     export class ClassSymbol extends Symbol {
