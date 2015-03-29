@@ -3,11 +3,65 @@
 module eiffel.semantics {
   import sym = eiffel.symbols;
 
-  export function analyze(asts: ast.Class[]): AnalysisResult {
-    var analysisContext = new AnalysisContext();
-    asts.forEach(function (ast) {
-      ast.accept(new FeatureDiscovery(analysisContext), null);
+  var createClassSymbols = function (asts, analysisContext: AnalysisContext) {
+    asts.forEach(function (ast:eiffel.ast.Class) {
+      if (!(ast instanceof eiffel.ast.Class)) {
+        console.error("Root AST node is not instance of Class", ast);
+        throw new Error("Root AST node is not instance of Class");
+      }
+
+      var name = ast.name.name;
+      var classSymbol = new symbols.ClassSymbol(name, ast);
+
+      analysisContext.classSymbols[name] = classSymbol;
+      analysisContext.allClasses.push(classSymbol);
     });
+  };
+
+  var createFeatureSymbols = function (analysisContext: AnalysisContext) {
+    analysisContext.allClasses.forEach(function (classSymbol) {
+      classSymbol.ast.accept(new FeatureDiscovery(analysisContext, classSymbol), null);
+    });
+  };
+
+  var createRoutineParamSymbols = function (allRoutines) {
+    allRoutines.forEach(function (routine:symbols.RoutineSymbol) {
+      routine.ast.parameters.forEach(function (parameterList:eiffel.ast.VarDeclList) {
+        parameterList.varDecls.forEach(function (varDecl) {
+          var varName = varDecl.name.name;
+          var variableSymbol = new symbols.VariableSymbol(varName, varDecl);
+          routine.paramsInOrder.push(variableSymbol);
+          routine.localsAndParamsByName[varName] = variableSymbol;
+        });
+      });
+    });
+  };
+
+  var createRoutineLocalSymbols = function (analysisContext) {
+    analysisContext.allRoutines.forEach(function (routine:symbols.RoutineSymbol) {
+      routine.ast.locals.forEach(function (varDeclLists:eiffel.ast.VarDeclList[]) {
+        varDeclLists.forEach(function (parameterList) {
+          parameterList.varDecls.forEach(function (varDecl) {
+            var varName = varDecl.name.name;
+            var variableSymbol = new symbols.VariableSymbol(varName, varDecl);
+            routine.locals.push(variableSymbol);
+            routine.localsAndParamsByName[varName] = variableSymbol;
+          });
+        });
+      });
+    });
+  };
+
+  export function analyze(asts: ast.Class[]): AnalysisResult {
+    var allClassSymbols: symbols.ClassSymbol[] = [];
+
+    var analysisContext = new AnalysisContext();
+    createClassSymbols(asts, analysisContext);
+    createFeatureSymbols(analysisContext);
+    createRoutineParamSymbols(analysisContext.allRoutines);
+    createRoutineLocalSymbols(analysisContext);
+
+
     var newVar = {
         asts: asts,
         errors: analysisContext.errors,
@@ -19,6 +73,11 @@ module eiffel.semantics {
 
   class AnalysisContext {
     classSymbols: LookupTable<sym.ClassSymbol> = {};
+    allFunctions: symbols.FunctionSymbol[] = [];
+    allProcedures: symbols.ProcedureSymbol[] = [];
+    allRoutines: symbols.RoutineSymbol[] = [];
+    allClasses: symbols.ClassSymbol[] = [];
+
     errors: string[] = [];
   }
 
@@ -44,44 +103,45 @@ module eiffel.semantics {
     DuplicateClassName,
   }
 
-  class FeatureDiscovery extends SemanticVisitor<symbols.ClassSymbol, any> {
-    vClass(_class:eiffel.ast.Class, _:symbols.ClassSymbol):any {
-      var name = _class.name.name;
-      var classSymbol = new symbols.ClassSymbol(name, _class);
+  class FeatureDiscovery extends SemanticVisitor<any, any> {
 
-      this.classSymbols[name] = classSymbol;
-      return this.vChildren(_class, classSymbol);
+    constructor(analysisContext: AnalysisContext, classSymbol:symbols.ClassSymbol) {
+      super(analysisContext);
+      this.classSymbol = classSymbol;
     }
 
-    vFeature(feature:eiffel.ast.Feature, classSymbol:symbols.ClassSymbol):any {
-      return super.vFeature(feature, classSymbol);
+    classSymbol: symbols.ClassSymbol;
+
+    vClass(_class:eiffel.ast.Class, _:any):any {
+      return this.vChildren(_class, _);
     }
 
-
-    vAttr(attr:eiffel.ast.Attribute, classSymbol:symbols.ClassSymbol):any {
+    vAttr(attr:eiffel.ast.Attribute, _:any):any {
       var name = attr.name.name;
-      this.errorOnDuplicateFeature(classSymbol, name);
+      this.errorOnDuplicateFeature(this.classSymbol, name);
 
       var attributeSymbol = new symbols.AttributeSymbol(name, attr);
 
       attr.sym = attributeSymbol;
-      classSymbol.attributes[name] = attributeSymbol;
+      this.classSymbol.attributes[name] = attributeSymbol;
 
-      return super.vAttr(attr, classSymbol);
+      return super.vAttr(attr, this.classSymbol);
     }
 
-    vFunction(func:eiffel.ast.Function, classSymbol:symbols.ClassSymbol):any {
+    vFunction(func:eiffel.ast.Function, _:any):any {
       console.log(func);
       var functionName = func.name.name;
-      this.errorOnDuplicateFeature(classSymbol, functionName);
+      this.errorOnDuplicateFeature(this.classSymbol, functionName);
 
       var sym = new symbols.FunctionSymbol(functionName, func);
 
       func.sym = sym;
-      classSymbol.functions[functionName] = sym;
-      classSymbol.routines[functionName] = sym;
+      this.classSymbol.functions[functionName] = sym;
+      this.classSymbol.routines[functionName] = sym;
+      this.analysisContext.allFunctions.push(sym);
+      this.analysisContext.allRoutines.push(sym);
 
-      return super.vFunction(func, classSymbol);
+      return super.vFunction(func, this.classSymbol);
     }
 
     private errorOnDuplicateFeature(classSymbol, featureName) {
@@ -90,31 +150,33 @@ module eiffel.semantics {
       }
     }
 
-    vProcedure(procedure:eiffel.ast.Procedure, classSymbol:symbols.ClassSymbol):any {
+    vProcedure(procedure:eiffel.ast.Procedure, _:any):any {
       console.log(procedure);
       var procedureName = procedure.name.name;
-      this.errorOnDuplicateFeature(classSymbol, procedureName);
+      this.errorOnDuplicateFeature(this.classSymbol, procedureName);
 
-      var sym = new symbols.FunctionSymbol(procedureName, procedure);
+      var sym = new symbols.ProcedureSymbol(procedureName, procedure);
 
       procedure.sym = sym;
-      classSymbol.procedures[procedureName] = sym;
-      classSymbol.routines[procedureName] = sym;
+      this.classSymbol.procedures[procedureName] = sym;
+      this.classSymbol.routines[procedureName] = sym;
+      this.analysisContext.allProcedures.push(sym);
+      this.analysisContext.allRoutines.push(sym);
 
-      return super.vProcedure(procedure, classSymbol);
+      return super.vProcedure(procedure, this.classSymbol);
     }
 
-    vConstantAttribute(constantAttribute:eiffel.ast.ConstantAttribute, classSymbol:symbols.ClassSymbol):any {
+    vConstantAttribute(constantAttribute:eiffel.ast.ConstantAttribute, _:any):any {
       console.log(constantAttribute);
       var name = constantAttribute.name.name;
-      this.errorOnDuplicateFeature(classSymbol, name);
+      this.errorOnDuplicateFeature(this.classSymbol, name);
 
       var attributeSymbol = new symbols.AttributeSymbol(name, constantAttribute);
 
       constantAttribute.sym = attributeSymbol;
-      classSymbol.attributes[name] = attributeSymbol;
+      this.classSymbol.attributes[name] = attributeSymbol;
 
-      return super.vConstantAttribute(constantAttribute, classSymbol);
+      return super.vConstantAttribute(constantAttribute, this.classSymbol);
     }
   }
 
