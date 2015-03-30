@@ -325,7 +325,13 @@ module eiffel.ast {
   }
 
   export class AnchoredType extends AST implements VisitorAcceptor {
-    constructor(operand: Expression)
+    constructor(expression: Expression) {
+      super(this);
+      this.expression = expression;
+    }
+
+    expression: Expression;
+
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vAnchoredType(this, arg);
     }
