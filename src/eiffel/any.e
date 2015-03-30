@@ -1,22 +1,5 @@
-note
-  description: "[
-    Project-wide universal properties.
-    This class is an ancestor to all developer-written classes.
-    ANY may be customized for individual projects or teams.
-    ]"
-
-  library: "Free implementation of ELKS library"
-  status: "See notice at end of class."
-  legal: "See notice at end of class."
-  date: "$Date: 2013-01-25 11:49:00 -0800 (Fri, 25 Jan 2013) $"
-  revision: "$Revision: 92134 $"
-
 class
   ANY
-
-feature -- Customization
-
-feature -- Access
 
 feature -- Status report
 
@@ -127,141 +110,12 @@ feature -- Comparison
       symmetric: Result implies deep_equal (b, a)
     end
 
-feature -- Duplication
-
-  frozen twin: like Current
-      -- New object equal to `Current'
-      -- `twin' calls `copy'; to change copying/twinning semantics, redefine `copy'.
-    external
-      "built_in"
-    ensure
-      twin_not_void: Result /= Void
-      is_equal: Result ~ Current
-    end
-
-  copy (other: like Current)
-      -- Update current object using fields of object attached
-      -- to `other', so as to yield equal objects.
-    require
-      other_not_void: other /= Void
-      type_identity: same_type (other)
-    external
-      "built_in"
-    ensure
-      is_equal: Current ~ other
-    end
-
-  frozen standard_copy (other: like Current)
-      -- Copy every field of `other' onto corresponding field
-      -- of current object.
-    require
-      other_not_void: other /= Void
-      type_identity: same_type (other)
-    external
-      "built_in"
-    ensure
-      is_standard_equal: standard_is_equal (other)
-    end
-
-  frozen clone (other: detachable ANY): like other
-      -- Void if `other' is void; otherwise new object
-      -- equal to `other'
-      --
-      -- For non-void `other', `clone' calls `copy';
-      -- to change copying/cloning semantics, redefine `copy'.
-    obsolete
-      "Use `twin' instead."
-    do
-      if other /= Void then
-        Result := other.twin
-      end
-    ensure
-      equal: Result ~ other
-    end
-
-  frozen standard_clone (other: detachable ANY): like other
-      -- Void if `other' is void; otherwise new object
-      -- field-by-field identical to `other'.
-      -- Always uses default copying semantics.
-    obsolete
-      "Use `standard_twin' instead."
-    do
-      if other /= Void then
-        Result := other.standard_twin
-      end
-    ensure
-      equal: standard_equal (Result, other)
-    end
-
-  frozen standard_twin: like Current
-      -- New object field-by-field identical to `other'.
-      -- Always uses default copying semantics.
-    external
-      "built_in"
-    ensure
-      standard_twin_not_void: Result /= Void
-      equal: standard_equal (Result, Current)
-    end
-
-  frozen deep_twin: like Current
-      -- New object structure recursively duplicated from Current.
-    external
-      "built_in"
-    ensure
-      deep_twin_not_void: Result /= Void
-      deep_equal: deep_equal (Current, Result)
-    end
-
-  frozen deep_clone (other: detachable ANY): like other
-      -- Void if `other' is void: otherwise, new object structure
-      -- recursively duplicated from the one attached to `other'
-    obsolete
-      "Use `deep_twin' instead."
-    do
-      if other /= Void then
-        Result := other.deep_twin
-      end
-    ensure
-      deep_equal: deep_equal (other, Result)
-    end
-
-  frozen deep_copy (other: like Current)
-      -- Effect equivalent to that of:
-      --    `copy' (`other' . `deep_twin')
-    require
-      other_not_void: other /= Void
-    do
-      copy (other.deep_twin)
-    ensure
-      deep_equal: deep_equal (Current, other)
-    end
-
-feature {NONE} -- Retrieval
-
-  frozen internal_correct_mismatch
-      -- Called from runtime to perform a proper dynamic dispatch on `correct_mismatch'
-      -- from MISMATCH_CORRECTOR.
-    local
-      l_msg: STRING
-      l_exc: EXCEPTIONS
-    do
-      if attached {MISMATCH_CORRECTOR} Current as l_corrector then
-        l_corrector.correct_mismatch
-      else
-        create l_msg.make_from_string ("Mismatch: ")
-        create l_exc
-        l_msg.append (generating_type.name)
-        l_exc.raise_retrieval_exception (l_msg)
-      end
-    end
-
 feature -- Output
 
   io: STD_FILES
       -- Handle to standard file setup
-    once
-      create Result
-      Result.set_output_default
+    external
+      "built_in"
     ensure
       io_not_void: Result /= Void
     end
@@ -293,16 +147,6 @@ feature -- Output
       end
     end
 
-feature -- Platform
-
-  Operating_environment: OPERATING_ENVIRONMENT
-      -- Objects available from the operating system
-    once
-      create Result
-    ensure
-      operating_environment_not_void: Result /= Void
-    end
-
 feature {NONE} -- Initialization
 
   default_create
@@ -312,15 +156,10 @@ feature {NONE} -- Initialization
     end
 
 feature -- Basic operations
-
-
-
-  frozen do_nothing
+  frozen dlo_nothing
       -- Execute a null action.
     do
     end
-
-
 
 invariant
   reflexive_equality: standard_is_equal (Current)
