@@ -296,8 +296,11 @@ test("should return correct class name", function() {
 module("Analyzer");
 
 function analyze() {
+  console.time("Parsing")
   var parsed = Array.prototype.map.call(arguments, function (x, i) { return vees.parser.parse(x)});
-  return eiffel.semantics.analyze.apply(null, parsed);
+  var analyzed = eiffel.semantics.analyze.apply(null, parsed);
+  console.timeEnd("Parsing")
+  return analyzed;
 }
 test("should pass", function () {
   analyze("class CLASSNAME end");
