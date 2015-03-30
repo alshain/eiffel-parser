@@ -15,6 +15,8 @@ var reload      = browserSync.reload;
 var argv = require('yargs').argv;
 var spawn = require('child_process').spawn;
 
+// FIXME Remove absolute paths
+
 var paths = {
   "vees": [
     'src/_intro.js',
@@ -22,7 +24,7 @@ var paths = {
     'src/_outro.js',
   ],
   "builtin": [
-    'src/eiffel/**/*.js',
+    'src/eiffel/**/*.e',
   ],
   "typescript": [
     'src/ts/**/*.ts',
@@ -113,10 +115,9 @@ gulp.task("vees", ["cleanVees"], function() {
 });
 
 gulp.task("builtin", ["cleanBuiltin"], function() {
-  return gulp.src([
-      'src/eiffel/**/*.js',
-    ])
+  return gulp.src(paths["builtin"])
     .pipe(sourcemaps.init({loadMaps: true}))
+    .pipe(parseTest("__eiffel_builtin"))
     .pipe(concat("builtin.js"))
     .pipe(sourcemaps.write())
     .pipe(gulp.dest("dist"))
@@ -143,7 +144,7 @@ gulp.task('build', ["peg", "typescript", "collectTests", "vees", "builtin"], fun
 function parseTest(varName) {
   var firstTest = "var " + varName  + " = [];\n";
   return intercept(function(file) {
-    file.contents = new Buffer(firstTest + varName + ".push(" + JSON.stringify({filename: file.path, content:file.contents.toString()}) + ");");
+    file.contents = new Buffer(firstTest + varName + ".push(" + JSON.stringify({filename: file.relative, content:file.contents.toString()}) + ");");
     firstTest = "";
     return file;
   });
