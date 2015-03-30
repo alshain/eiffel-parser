@@ -251,7 +251,7 @@ Procedure
       h.frozen
     );
   }
-
+// FIXME: Synonyms for routines
 RoutineHeader
   = frozen:(FrozenToken W {return true} / { return false}) n:Identifier alias:Alias? p:(w "(" w ps:VarList? ")" {return ps;})?
   {
