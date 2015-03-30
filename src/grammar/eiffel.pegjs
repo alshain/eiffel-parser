@@ -479,6 +479,13 @@ FirstExpr
 FactorExpr
   = f:FirstExpr ops:(Index / Call)* { return buildIndexArgTree(f, ops)}
   / Literal
+  / AttachedExpression
+
+AttachedExpression
+  = start:pos AttachedToken w "{" t:Identifier "}" w ov:IdentifierAccess W AsToken W nv:Identifier end:pos
+  {
+    return new eiffel.ast.AttachedExpression()
+  }
 
 Index
   = w "[" w a:ArgList w "]"
@@ -672,12 +679,12 @@ IntegerLiteral
 
 StringLiteral "string"
   = start:pos '"' chars:DoubleStringCharacter* '"' end:pos {
-  return new eiffel.ast.StringLiteral(chars.join(""), start, end);
+    return new eiffel.ast.StringLiteral(chars.join(""), start, end);
   }
 
 CharLiteral "character"
-  = start:pos "'" char:SingleStringCharacter "'" end:pos {
-    return new eiffel.ast.StringLiteral(char, start, end);
+  = start:pos "'" chars:SingleStringCharacter* "'" end:pos {
+    return new eiffel.ast.StringLiteral(chars.join(""), start, end);
   }
 DoubleStringCharacter
   = !('"' / "%" / LineTerminator) SourceCharacter { return text(); }
@@ -770,6 +777,7 @@ Keyword
   / AndToken
   / AssignToken
   / AsToken
+  / AttachedToken
   / AttributeToken
   / CheckToken
   / ClassToken
@@ -833,6 +841,7 @@ AllToken = start:pos s:"all" !IllegalAfterKeyword end:pos { return { text: s, st
 AndToken = start:pos s:"and" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
 AssignToken = start:pos s:"assign" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
 AsToken = start:pos s:"as" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
+AttachedToken = start:pos s:"attached" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
 AttributeToken = start:pos s:"attribute" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
 CheckToken = start:pos s:"check" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
 ClassToken = start:pos s:"class" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }

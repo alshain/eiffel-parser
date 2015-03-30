@@ -1,5 +1,5 @@
 /// <reference path="visitor.ts" />
-
+declare var __eiffel_builtin;
 module eiffel.semantics {
   import sym = eiffel.symbols;
 
@@ -53,6 +53,10 @@ module eiffel.semantics {
   };
 
   export function analyze(...manyAsts: ast.Class[][]): AnalysisResult {
+    var builtinSources = __eiffel_builtin.map(function (x) {
+      return x.content;
+    });
+    Array.prototype.push.apply(manyAsts, builtinSources.map(function(source) { return eiffel.parser.parse(source)}));
     var asts: ast.Class[] = Array.prototype.concat.apply([], manyAsts);
     var analysisContext = new AnalysisContext();
     createClassSymbols(asts, analysisContext);
@@ -81,7 +85,6 @@ module eiffel.semantics {
         errors: analysisContext.errors,
         context: analysisContext,
       };
-    console.log(newVar);
     return newVar;
   }
 
@@ -139,7 +142,6 @@ module eiffel.semantics {
     }
 
     vFunction(func:eiffel.ast.Function, _:any):any {
-      console.log(func);
       var functionName = func.name.name;
       this.errorOnDuplicateFeature(this.classSymbol, functionName);
 
@@ -161,7 +163,6 @@ module eiffel.semantics {
     }
 
     vProcedure(procedure:eiffel.ast.Procedure, _:any):any {
-      console.log(procedure);
       var procedureName = procedure.name.name;
       this.errorOnDuplicateFeature(this.classSymbol, procedureName);
 
@@ -177,7 +178,6 @@ module eiffel.semantics {
     }
 
     vConstantAttribute(constantAttribute:eiffel.ast.ConstantAttribute, _:any):any {
-      console.log(constantAttribute);
       var name = constantAttribute.name.name;
       this.errorOnDuplicateFeature(this.classSymbol, name);
 

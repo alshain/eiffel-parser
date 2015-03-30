@@ -82,6 +82,10 @@ module eiffel.ast {
       return this.vCondition(postcondition, arg);
     }
 
+    vInvariantcondition(invariantcondition: Invariantcondition, arg:A):R {
+      return this.vCondition(invariantcondition, arg);
+    }
+
     vCondition(condition: Condition, arg:A):R {
       return this.vDefault(condition, arg);
     }
@@ -183,6 +187,10 @@ module eiffel.ast {
 
     vObsolete(obsolete: Obsolete, arg:A):R {
       return null;
+    }
+
+    vAttachedExpression(attachedExpression: AttachedExpression, arg:A):R {
+      return this.vExpression(attachedExpression, arg);
     }
   }
 }

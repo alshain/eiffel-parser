@@ -53,12 +53,14 @@ module eiffel.ast {
   export class Class extends AST implements VisitorAcceptor {
     constructor(
       name: Identifier,
+      expanded: boolean,
       note: any, parents: Parent[],
       creationClause: Identifier[],
       featureLists: FeatureList[]
     ) {
       super(this);
       this.name = name;
+      this.expanded = expanded;
       this.children.push(name);
 
       this.parents = parents;
@@ -74,6 +76,7 @@ module eiffel.ast {
     children:AST[];
 
     name:Identifier;
+    expanded: boolean;
     parents:Parent[];
     creationClause:Identifier[];
     featureLists:FeatureList[];
@@ -135,6 +138,7 @@ module eiffel.ast {
       this.postconditions = postconditions;
       this.frozen = frozen;
       this.external = external;
+      this.obsolete = obsolete;
 
       this.children.push(name);
       Array.prototype.push.apply(this.children, parameters);
@@ -144,7 +148,7 @@ module eiffel.ast {
       Array.prototype.push.apply(this.children, instructions);
       Array.prototype.push.apply(this.children, postconditions);
       this.children.push(external);
-
+      this.children.push(obsolete);
     }
 
     name:Identifier;
@@ -158,6 +162,7 @@ module eiffel.ast {
     alias: Alias;
     frozen: boolean;
     external: External;
+    obsolete: Obsolete;
 
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vRoutine(this, arg);
@@ -519,6 +524,13 @@ module eiffel.ast {
 
   }
 
+  export class Invariantcondition extends Condition implements VisitorAcceptor {
+    accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
+      return visitor.vInvariantcondition(this, arg);
+    }
+  }
+
+
   export class Assignment extends AST implements Instruction {
 
     constructor(left:eiffel.ast.Expression, right:eiffel.ast.Expression) {
@@ -717,6 +729,31 @@ module eiffel.ast {
 
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vIndexExpression(this, arg);
+    }
+  }
+
+  export class AttachedExpression extends AST implements Expression, VisitorAcceptor {
+    constructor(ofType: Identifier, outerVar: IdentifierAccess, newVar: Identifier, start, end) {
+      super(this);
+      this.ofType = ofType;
+      this.outerVar = outerVar;
+      this.newVar = newVar;
+
+      this.children.push(ofType, outerVar, newVar);
+      this.start = start;
+      this.end = end;
+    }
+    start: Pos;
+    end: Pos;
+
+    ofType: Identifier; outerVar:
+    IdentifierAccess;
+    newVar: Identifier;
+
+    sym:eiffel.ast.TypeInstance;
+
+    accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
+      return visitor.vAttachedExpression(this, arg);
     }
   }
 
