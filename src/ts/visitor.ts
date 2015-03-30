@@ -35,7 +35,9 @@ module eiffel.ast {
     vChildren(ast:AST, arg:A):R {
       let result = null;
       ast.children.forEach(function (t:AST) {
-        result = t._acceptor.accept(this, arg);
+        if (t != null) {
+          result = t._acceptor.accept(this, arg);
+        }
       }, this);
       return result;
     }
@@ -60,24 +62,12 @@ module eiffel.ast {
       return this.vChildren(ast, arg);
     }
 
-    vCreationClause(creationClause:CreationClause, arg:A) {
-      return this.vInstruction(creationClause, arg);
-    }
-
     vCreateInstruction(createInstruction:CreateInstruction, arg:A) {
       return this.vInstruction(createInstruction, arg);
     }
 
-    vIfElse(ifElse:IfElse, arg:A) {
-      return this.vInstruction(ifElse, arg);
-    }
-
     vAssignment(assignment:Assignment, arg:A) {
       return this.vInstruction(assignment, arg);
-    }
-
-    vForUntil(forUntil:ForUntilInstruction, arg:A) {
-      return this.vInstruction(forUntil, arg);
     }
 
     vExportChangeSet(exportChangeSet:ExportChangeSet, arg:A):R {
@@ -161,6 +151,38 @@ module eiffel.ast {
 
     vVarDeclEntry(varDeclEntry: VarDeclEntry, arg:A):R {
       return this.vDefault(varDeclEntry, arg);
+    }
+
+    vFromLoop(fromLoop: FromLoop, arg:A):R {
+      return this.vInstruction(fromLoop, arg);
+    }
+
+    vIfElse(ifElse: IfElse, arg:A):R {
+      return this.vInstruction(ifElse, arg);
+    }
+
+    vElseIf(elseIf: ElseIf, arg:A):R {
+      return this.vInstruction(elseIf, arg);
+    }
+
+    vExternal(external: External, arg:A):R {
+      return null;
+    }
+
+    vResultExpression(resultExpression: ResultExpression, arg:A):R {
+      return this.vDefault(resultExpression, arg);
+    }
+
+    vAnchoredType(anchoredType: AnchoredType, arg:A):R {
+      return this.vDefault(anchoredType, arg);
+    }
+
+    vIdentifierAccess(identifierAccess: IdentifierAccess, arg:A):R {
+      return this.vExpression(identifierAccess, arg);
+    }
+
+    vObsolete(obsolete: Obsolete, arg:A):R {
+      return null;
     }
   }
 }

@@ -52,14 +52,28 @@ module eiffel.semantics {
     });
   };
 
-  export function analyze(asts: ast.Class[]): AnalysisResult {
-    var allClassSymbols: symbols.ClassSymbol[] = [];
-
+  export function analyze(...manyAsts: ast.Class[][]): AnalysisResult {
+    var asts: ast.Class[] = Array.prototype.concat.apply([], manyAsts);
     var analysisContext = new AnalysisContext();
     createClassSymbols(asts, analysisContext);
     createFeatureSymbols(analysisContext);
     createRoutineParamSymbols(analysisContext.allRoutines);
     createRoutineLocalSymbols(analysisContext);
+    analysisContext.allClasses.forEach(function (classSymbol) {
+      classSymbol.ast.creationClause.forEach(function (identifier) {
+        var name: string = identifier.name;
+        if (classSymbol.procedures.hasOwnProperty(name)) {
+          classSymbol.creationProcedures[name] = classSymbol.procedures[name];
+        }
+        else if (classSymbol.functions.hasOwnProperty(name)) {
+            analysisContext.errors.push("Functions cannot be used as creation procedures " + name);
+        }
+        else {
+          analysisContext.errors.push("There is not procedure with name " + name);
+        }
+      })
+    });
+
 
 
     var newVar = {
@@ -112,10 +126,6 @@ module eiffel.semantics {
 
     classSymbol: symbols.ClassSymbol;
 
-    vClass(_class:eiffel.ast.Class, _:any):any {
-      return this.vChildren(_class, _);
-    }
-
     vAttr(attr:eiffel.ast.Attribute, _:any):any {
       var name = attr.name.name;
       this.errorOnDuplicateFeature(this.classSymbol, name);
@@ -125,7 +135,7 @@ module eiffel.semantics {
       attr.sym = attributeSymbol;
       this.classSymbol.attributes[name] = attributeSymbol;
 
-      return super.vAttr(attr, this.classSymbol);
+      //return super.vAttr(attr, this.classSymbol);
     }
 
     vFunction(func:eiffel.ast.Function, _:any):any {
@@ -141,7 +151,7 @@ module eiffel.semantics {
       this.analysisContext.allFunctions.push(sym);
       this.analysisContext.allRoutines.push(sym);
 
-      return super.vFunction(func, this.classSymbol);
+      //return super.vFunction(func, this.classSymbol);
     }
 
     private errorOnDuplicateFeature(classSymbol, featureName) {
@@ -163,7 +173,7 @@ module eiffel.semantics {
       this.analysisContext.allProcedures.push(sym);
       this.analysisContext.allRoutines.push(sym);
 
-      return super.vProcedure(procedure, this.classSymbol);
+      //return super.vProcedure(procedure, this.classSymbol);
     }
 
     vConstantAttribute(constantAttribute:eiffel.ast.ConstantAttribute, _:any):any {
@@ -176,11 +186,17 @@ module eiffel.semantics {
       constantAttribute.sym = attributeSymbol;
       this.classSymbol.attributes[name] = attributeSymbol;
 
-      return super.vConstantAttribute(constantAttribute, this.classSymbol);
+      //return super.vConstantAttribute(constantAttribute, this.classSymbol);
     }
   }
 
-  export interface AnalysisResult {
+  class TypeConnector extends SemanticVisitor<any, any> {
+
+
+  }
+
+
+    export interface AnalysisResult {
     asts: eiffel.ast.Class[];
     errors: any[];
     context: AnalysisContext;

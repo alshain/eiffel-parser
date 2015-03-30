@@ -71,6 +71,7 @@ module eiffel.symbols {
     procedures: LookupTable<ProcedureSymbol> = {};
     routines: LookupTable<RoutineSymbol> = {};
     attributes: LookupTable<AttributeSymbol> = {};
+    creationProcedures: LookupTable<ProcedureSymbol> = {};
 
 
     hasSymbol(name: string): boolean {
@@ -85,10 +86,7 @@ module eiffel.symbols {
 
     resolveSymbol(name: string): Symbol {
       if (this.routines.hasOwnProperty(name)) {
-        return this.functions[name];
-      }
-      if (this.procedures.hasOwnProperty(name)) {
-        return this.procedures[name];
+        return this.routines[name];
       }
       if (this.attributes.hasOwnProperty(name)) {
         return this.attributes[name];

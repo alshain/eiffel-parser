@@ -310,16 +310,16 @@ function analyzerHasClass(analyzed, className) {
   if (!hasClass) {
     console.log(analyzed.context.classSymbols);
   }
-  ok(hasClass, "doesn't have class className");
+  ok(hasClass, "doesn't have class " + className);
 }
 
 function classHasSymbol(analyzed, className, symbolName) {
-  var classSymbol = analyzed.classes[className];
+  var classSymbol = analyzed.context.classSymbols[className];
   var hasSymbol = classSymbol.hasSymbol(symbolName);
   var errorMessage = "Class " + className + " does not have symbol " + symbolName;
   if (!hasSymbol) {
     console.log(errorMessage);
-    console.log(analyzed.classes[className]);
+    console.log(analyzed.context.classSymbols[className]);
   }
   ok(hasSymbol, errorMessage);
 
@@ -330,7 +330,7 @@ function classHasSymbol(analyzed, className, symbolName) {
 
 test("should find symbol", function() {
   var analyzed = analyze("class CLASSNAME feature test: INTEGER end");
-  ok(null != analyzed.classes["CLASSNAME"]);
+  ok(null != analyzed.context.classSymbols["CLASSNAME"]);
   classHasSymbol(analyzed, "CLASSNAME", "test");
 });
 
@@ -359,7 +359,7 @@ test("Symbols exist", function() {
 
 test("Local variables exist", function () {
   var analyzed = analyze("class HASLOCALS feature abcd local var: INTEGER do end end");
-  var local = analyzed.context.classSymbols["HASLOCALS"].routines["abcd"].localsByName["var"];
+  var local = analyzed.context.classSymbols["HASLOCALS"].routines["abcd"].localsAndParamsByName["var"];
   equal(local.name, "var", "Local variable is not named var");
 });
 
@@ -396,7 +396,7 @@ test("Function return types resolve correctly", function () {
 test("Local variables type resolves correctly", function () {
   var analyzed = analyze("class HASLOCALS feature abcd local var: INTEGER do end end");
   console.log("LOCAL VARS", analyzed);
-  var local = analyzed.context.classSymbols["HASLOCALS"].routines["abcd"].localsByName["var"];
+  var local = analyzed.context.classSymbols["HASLOCALS"].routines["abcd"].localsAndParamsByName["var"];
   ok(local.type.baseSymbol === analyzed.context.classSymbols["INTEGER"], "Type was not resolved");
 
   equal(local.name, "var", "Local variable is not named var");
