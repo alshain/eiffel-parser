@@ -1,3 +1,4 @@
+// Fixme CONVERT syntax
 {
   function isReserved(name) {
     return /^(agent|alias|all|and|as|assign|attribute|check|class|convert|create|Current|debug|deferred|do|detachable|else|elseif|end|ensure|expanded|export|external|False|feature|from|frozen|if|implies|inherit|inspect|invariant|like|local|loop|not|note|obsolete|old|once|only|or|Precursor|redefine|rename|require|rescue|Result|retry|select|separate|then|True|TUPLE|undefine|until|variant|Void|when|xor)$/.test(name);
@@ -79,9 +80,10 @@
 }
 start = class*
 class
-  = w note:Note? ClassToken name:ClassName inherit:inherit? create:create? featureLists:FeatureList* W EndToken w
+  = w note:Note? expanded:(ExpandedToken W {return true} / {return false}) ClassToken name:ClassName inherit:inherit? create:create? convert:Convert? featureLists:FeatureList* Invariant? W EndToken w
     { return new eiffel.ast.Class(
         name,
+        expanded,
         optionalList(note),
         optionalList(inherit),
         (create == null) ? [] : create,
@@ -182,13 +184,16 @@ InhRedefine
   = W RedefineToken W l:IdentifierList { return l; }
 
 InhRename
-  = W RenameToken W l:IdentifierList { return l; }
+  = W RenameToken W l:RenameList { return l; }
+
+RenameList
+  = first:(Identifier W AsToken W Identifier) rest:("," w id:(Identifier W AsToken W Identifier) { return id})* {return buildList(first, rest, gId())}
 
 InhNewExports
   = W ExportToken es:ExportChangeset+ { return es; }
 
 ExportChangeset
-  = w "{" w cs:IdentifierList w "}" fs:FeatureSet w ";"
+  = w "{" w cs:IdentifierList w "}" w fs:FeatureSet
   {
     return {
       access: cs,
@@ -203,6 +208,16 @@ FeatureSet
 InhSelect
   = "unimplemented"
 
+Convert
+  = W ConvertToken W ConvertList
+
+ConvertList
+  = first:ConvertListEntry rest:("," w id:ConvertListEntry { return id})* {return buildList(first, rest, gId())}
+
+
+ConvertListEntry
+  = Identifier w ":" w "{" w IdentifierList w "}"
+  / Identifier w "(" w "{" w Identifier w "}" w ")"
 
 FeatureList
   = W FeatureToken access:(w acc:AccessSpecifier { return acc })? fs:Feature*
@@ -219,7 +234,7 @@ Feature
   / W a:Attribute {return a}
 
 Function
-  = start:pos h:RoutineHeader w ":" w rt:Type W b:RoutineBody end:pos
+  = start:pos h:RoutineHeader w ":" w rt:Type b:RoutineBody end:pos
   {
     return new eiffel.ast.Function(
       h.name,
@@ -231,12 +246,13 @@ Function
       b.instructionKind,
       b.instructions,
       b.postconditions,
-      h.frozen
+      h.frozen,
+      b.obsolete
     );
   }
 
 Procedure
-  = start: pos h:RoutineHeader w b:RoutineBody end:pos
+  = start: pos h:RoutineHeader b:RoutineBody end:pos
   {
     return new eiffel.ast.Procedure(
       h.name,
@@ -248,7 +264,8 @@ Procedure
       b.instructionKind,
       b.instructions,
       b.postconditions,
-      h.frozen
+      h.frozen,
+      b.obsolete
     );
   }
 // FIXME: Synonyms for routines
@@ -301,7 +318,7 @@ Constant
   }
 
 RoutineBody
-  = pre:Preconditions? l:Locals? instructionKind:(ObsoleteToken / ExternalToken / DoToken) instructions:InstructionSeq W post:Postconditions? w EndToken
+  = pre:Preconditions? l:Locals? o:Obsolete? W instructionKind:(ExternalToken / DoToken) instructions:InstructionSeq post:Postconditions? w EndToken
   {
     return {
       preconditions: optionalList(pre),
@@ -309,22 +326,24 @@ RoutineBody
       instructionKind: instructionKind,
       instructions: optionalList(instructions),
       post: optionalList(post),
+      obsolete: o,
     }
   }
 
-External
-  = start:pos ExternalToken W e:Expression end:pos W {return new eiffel.ast.External(e, start, end);}
-
 Obsolete
-  = start:pos ObsoleteToken W e:Expression end:pos W {return new eiffel.ast.Obsolete(e, start, end);}
-
+  = W start:pos ObsoleteToken W e:Expression end:pos
+  {
+    return new eiffel.ast.Obsolete(e, start, end);
+  }
 
 Preconditions
-  = RequireToken c:Precondition* W {return c;}
+  = W RequireToken c:Precondition* {return c;}
 
 Postconditions
-  = EnsureToken c:Postcondition* W {return c;}
+  = W EnsureToken c:Postcondition* {return c;}
 
+Invariant
+  = W InvariantToken c:Invariantcondition* {return c;}
 
 Precondition
   = l:LabelledCondition
@@ -338,6 +357,13 @@ Postcondition
     return new eiffel.ast.Postcondition(l.name, l.expression);
   }
 
+Invariantcondition
+  = l:LabelledCondition
+  {
+    return new eiffel.ast.Invariantcondition(l.name, l.expression);
+  }
+
+
 LabelledCondition
   = W l:ConditionLabel? e:Expression
   {
@@ -349,7 +375,7 @@ LabelledCondition
 
 ConditionLabel = i:Identifier w ":" w {return i;}
 
-Locals = LocalToken vs:VarLists W { return vs; }
+Locals = W LocalToken vs:VarLists { return vs; }
 VarLists = vs:(W v:VarList {return v;})+ {return vs;}
 
 InstructionSeq
@@ -482,6 +508,7 @@ IdentifierAccess
 IllegalAfterKeyword
   = Letter
   / DecimalDigit
+  / "_"
 
 Type
   = start:pos detachable:(DetachableToken W {return true} / {return false}) n:Identifier ts:(w "[" w g:TypeList w "]" {return g})? end:pos
