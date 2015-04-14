@@ -495,9 +495,9 @@ FirstExpr
     {
       return new eiffel.ast.ResultExpression(start, end);
     }
-  / IdentifierAccess a:Args
+  / i:IdentifierAccess a:Args
   {
-    return new eiffel.ast.UnqualifiedCallExpression(a);
+    return new eiffel.ast.UnqualifiedCallExpression(i, a);
   }
   / IdentifierAccess
   / StringLiteral
