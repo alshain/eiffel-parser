@@ -397,7 +397,7 @@ LabelledCondition
 
 ConditionLabel = i:Identifier w ":" w {return i;}
 
-Locals = W LocalToken vs:VarLists { return vs; }
+Locals = W LocalToken vs:VarLists { return new eiffel.ast.LocalsBlock(vs); }
 VarLists = vs:(W v:VarList {return v;})+ {return vs;}
 
 InstructionSeq
