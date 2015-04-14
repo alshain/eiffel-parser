@@ -518,7 +518,7 @@ Precursor
   = PrecursorToken w "{" w t:Identifier w "}" a:Args?
 
 AttachedExpression
-  = start:pos AttachedToken w "{" w t:Type w "}" w ov:Expression W AsToken W nv:Identifier end:pos
+  = start:pos AttachedToken t:(w "{" w t:Type w "}" {return t;})? w ov:Expression W AsToken W nv:Identifier end:pos
   {
     return new eiffel.ast.AttachedExpression(t, ov, nv, start, end);
   }
