@@ -80,7 +80,7 @@
 }
 start = class*
 class
-  = w note:Note? expanded:(ExpandedToken W {return true} / {return false}) ClassToken name:ClassName inherit:inherit? create:create? convert:Convert? featureLists:FeatureList* Invariant? W EndToken w
+  = w note:Note? expanded:(ExpandedToken W {return true} / {return false}) ClassToken name:ClassName inherit:inherit? create:create? convert:Convert? featureLists:FeatureList* Invariant? W (Note)? EndToken w
     { return new eiffel.ast.Class(
         name,
         expanded,
@@ -105,10 +105,7 @@ inherit = InheritanceClause+
 InheritanceClause
   = W InheritToken c:(w "{" w i:(Identifier?) w "}" {return i;} / { return null; })? ps:Parent+
   {
-    return _n("inheritance", {
-      conforming: c,
-      parents: ps,
-    });
+    return new eiffel.ast.ParentGroup(c, ps);
   }
 
 Parent
@@ -234,49 +231,51 @@ Feature
   / W a:Attribute {return a}
 
 Function
-  = start:pos h:RoutineHeader w ":" w rt:Type b:RoutineBody end:pos
+  = start:pos h:RoutineHeader w ":" w rt:Type Assigner? b:RoutineBody end:pos
   {
     return new eiffel.ast.Function(
-      h.name,
+      h.namesAndAliases,
       h.params,
-      h.alias,
       rt,
-      b.preconditions,
-      b.locals,
-      b.instructionKind,
-      b.instructions,
-      b.postconditions,
       h.frozen,
-      b.obsolete
+      b
     );
   }
+
+Assigner
+  = w AssignToken W Identifier
 
 Procedure
   = start: pos h:RoutineHeader b:RoutineBody end:pos
   {
     return new eiffel.ast.Procedure(
-      h.name,
+      h.namesAndAliases,
       h.params,
-      h.alias,
       null,
-      b.preconditions,
-      b.locals,
-      b.instructionKind,
-      b.instructions,
-      b.postconditions,
       h.frozen,
-      b.obsolete
+      b
     );
   }
 // FIXME: Synonyms for routines
 RoutineHeader
-  = frozen:(FrozenToken W {return true} / { return false}) n:Identifier alias:Alias? p:(w "(" w ps:VarList? ")" {return ps;})?
+  = frozen:(FrozenToken W {return true} / { return false}) namesAndAliases:RoutineNameAliasList p:(w "(" w ps:VarList? ")" {return ps;})?
+  {
+    return {
+      namesAndAliases: namesAndAliases,
+      frozen: frozen,
+      params: optionalList(p)
+    }
+  }
+
+RoutineNameAliasList
+  = first:RoutineNameAlias rest:(w "," w r:RoutineNameAlias {return r})* {return buildList(first, rest, gId())}
+
+RoutineNameAlias
+  = n:Identifier alias:Alias?
   {
     return {
       name: n,
       alias: alias,
-      frozen: frozen,
-      params: optionalList(p)
     }
   }
 
@@ -308,7 +307,7 @@ Attribute
   }
 
 Constant
-  = a:Attribute w "=" l:Literal
+  = a:Attribute w "=" w l:Literal
   {
     return new eiffel.ast.ConstantAttribute(
       a,
@@ -317,18 +316,40 @@ Constant
     );
   }
 
+EndIsNext
+  = w EndToken
+
 RoutineBody
-  = pre:Preconditions? l:Locals? o:Obsolete? W instructionKind:(ExternalToken / DoToken) instructions:InstructionSeq post:Postconditions? w EndToken
+  = !EndIsNext bs:RoutineBodyElement+ w EndToken
   {
-    return {
-      preconditions: optionalList(pre),
-      locals: optionalList(l),
-      instructionKind: instructionKind,
-      instructions: optionalList(instructions),
-      post: optionalList(post),
-      obsolete: o,
-    }
+    return _.flatten(bs);
   }
+
+RoutineBodyElement
+  = pre:Preconditions
+  / l:Locals
+  / o:Obsolete
+  / e:External
+  / d:DoBlock
+  / post:Postconditions
+
+External
+  = W ExternalToken instructions:InstructionSeq
+  {
+    return new eiffel.ast.External(instructions);
+  }
+
+DoBlock
+  = W DoToken instructions:InstructionSeq
+  {
+    return new eiffel.ast.DoBlock(instructions);
+  }
+
+OnceBlock
+= W OnceToken instructions:InstructionSeq
+{
+  return new eiffel.ast.OnceBlock(instructions);
+}
 
 Obsolete
   = W start:pos ObsoleteToken W e:Expression end:pos
@@ -337,10 +358,10 @@ Obsolete
   }
 
 Preconditions
-  = W RequireToken c:Precondition* {return c;}
+  = W RequireToken (w ElseToken)? c:Precondition* {return c;}
 
 Postconditions
-  = W EnsureToken c:Postcondition* {return c;}
+  = W EnsureToken (w ThenToken)? c:Postcondition* {return c;}
 
 Invariant
   = W InvariantToken c:Invariantcondition* {return c;}
@@ -386,9 +407,9 @@ pos
   =
   {
     return new eiffel.ast.Pos(
-      offset(),
-      line(),
-      column()
+      offset()
+      //line(),
+      //column()
     );
   }
 
@@ -448,7 +469,7 @@ ExponentExpr
   / UnaryExpr
 
 UnaryExpr
-  = start:pos o:("-" !("-") {return "-"} / "+" {return "+"} / "not" !IllegalAfterKeyword) w u:UnaryExpr end:pos
+  = start:pos o:("-" !("-") {return "-"} / "+" {return "+"} / "not" !IllegalAfterKeyword / "old" !IllegalAfterKeyword) w u:UnaryExpr end:pos
     {
       return new eiffel.ast.UnaryOp(
         o,
@@ -468,23 +489,37 @@ Current
 FirstExpr
   = "(" w e:Expression w ")" { return e}
   / Current
+  / TypeExpression
   / start:pos ResultToken end:pos
     {
       return new eiffel.ast.ResultExpression(start, end);
     }
-  / IdentifierAccess Args
+  / IdentifierAccess a:Args
+  {
+    return new eiffel.ast.UnqualifiedCallExpression(a);
+  }
   / IdentifierAccess
   / StringLiteral
 
+TypeExpression
+  = "{" i:Identifier "}"
+  {
+    return new eiffel.ast.TypeExpression(i);
+  }
+
 FactorExpr
   = f:FirstExpr ops:(Index / Call)* { return buildIndexArgTree(f, ops)}
+  / Precursor
   / Literal
   / AttachedExpression
 
+Precursor
+  = PrecursorToken w "{" w t:Identifier w "}" a:Args?
+
 AttachedExpression
-  = start:pos AttachedToken w "{" t:Identifier "}" w ov:IdentifierAccess W AsToken W nv:Identifier end:pos
+  = start:pos AttachedToken w "{" w t:Type w "}" w ov:Expression W AsToken W nv:Identifier end:pos
   {
-    return new eiffel.ast.AttachedExpression()
+    return new eiffel.ast.AttachedExpression(t, ov, nv, start, end);
   }
 
 Index
@@ -541,18 +576,30 @@ TypeList
   = f:Type w rest:("," w t:Type w {return t})* {return buildList(f, rest, gId())}
 
 LoopInstr
-  = FromToken fromSeq:InstructionSeq W UntilToken W until:Expression W LoopToken is:InstructionSeq W EndToken
+  = fromSeq:LoopFrom until:LoopUntil is:LoopInstructions v:LoopVariant? W EndToken
   {
     return new eiffel.ast.FromLoop(
       fromSeq,
       until,
-      is
+      is,
+      v
     );
   }
 
 AcrossInstr
   = IfInstr
 
+LoopFrom
+  = FromToken fromSeq:InstructionSeq { return fromSeq; }
+
+LoopUntil
+  = W UntilToken W until:Expression { return until; }
+
+LoopInstructions
+  = W LoopToken is:InstructionSeq {return is; }
+
+LoopVariant
+  = W VariantToken W v:Expression {return v;}
 
 IfInstr
   = IfToken W c:Expression W ThenToken is:InstructionSeq ei:ElseIf? e:Else? W EndToken
@@ -584,7 +631,7 @@ LeftHandSide
   = Expression
 
 CreateInstr
-  = CreateToken !(IllegalAfterKeyword) w t:ExplicitCreationType? n:Identifier m:CreationMethod?
+  = CreateToken !(IllegalAfterKeyword) w t:ExplicitCreationType? n:(Identifier / ResultToken) m:CreationCall?
   {
     return new eiffel.ast.CreateInstruction(
       n,
@@ -592,9 +639,6 @@ CreateInstr
       m ? optionalList(m.args) : []
     );
   }
-
-CreationMethod
-  = CreationCall
 
 CreationCall
   = "." n:Identifier as:Args?
@@ -677,6 +721,7 @@ IntegerLiteral
     return new eiffel.ast.IntLiteral(parseFloat(text()), start, end);
   }
 
+//TODO Verbatim strings
 StringLiteral "string"
   = start:pos '"' chars:DoubleStringCharacter* '"' end:pos {
     return new eiffel.ast.StringLiteral(chars.join(""), start, end);
