@@ -330,6 +330,7 @@ RoutineBodyElement
   / l:Locals
   / o:Obsolete
   / e:External
+  / OnceBlock
   / d:DoBlock
   / post:Postconditions
 
