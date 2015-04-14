@@ -1,4 +1,5 @@
 var gulp = require('gulp');
+module.exports = gulp;
 var watch = require('gulp-watch');
 var del = require('del');
 var sourcemaps = require('gulp-sourcemaps');
@@ -29,7 +30,9 @@ var paths = {
   "typescript": [
     'src/ts/**/*.ts',
   ],
-
+  "typescriptTests": [
+    'test/all.ts',
+  ],
   "peg": [
     "src/grammar/eiffel.pegjs",
   ]
@@ -46,6 +49,10 @@ gulp.task("cleanPeg", function(cb) {
 
 gulp.task("cleanTypescript", function(cb) {
   del(["dist/typescript.js"], cb);
+});
+
+gulp.task("cleanTypescriptTests", function(cb) {
+  del(["test/all.js"], cb);
 });
 
 gulp.task("cleanParser", function(cb) {
@@ -89,7 +96,7 @@ gulp.task("peg", ["cleanPeg"], function() {
 });
 
 gulp.task('typescript', ["cleanTypescript"], function() {
-   var tsResult = gulp.src('src/ts/**/*.ts')
+   var tsResult = gulp.src(['src/ts/**/*.ts', '!test'])
                       .pipe(sourcemaps.init()) // This means sourcemaps will be generated
                       .pipe(ts({
                         //sortOutput: true,
@@ -102,6 +109,21 @@ gulp.task('typescript', ["cleanTypescript"], function() {
                 .pipe(babel({blacklist: ["strict"]}))
                 .pipe(sourcemaps.write()) // Now the sourcemaps are added to the .js file
                 .pipe(gulp.dest('dist'))
+                .pipe(reload({stream: true}));
+});
+
+gulp.task('typescriptTests', ["cleanTypescriptTests"], function() {
+   var tsResult = gulp.src(['test/all.ts', '!test'])
+                      .pipe(sourcemaps.init()) // This means sourcemaps will be generated
+                      .pipe(ts({
+                        //sortOutput: true,
+                        target: "es6",
+                           // ...
+                      }));
+
+    return tsResult
+                .pipe(sourcemaps.write()) // Now the sourcemaps are added to the .js file
+                .pipe(gulp.dest('test'))
                 .pipe(reload({stream: true}));
 });
 
@@ -124,9 +146,9 @@ gulp.task("builtin", ["cleanBuiltin"], function() {
     .pipe(reload({stream: true}));
 });
 
-gulp.task("all", ["peg", "typescript", "collectTests", "vees", "builtin"]);
+gulp.task("all", ["peg", "typescript", "typescriptTests", "collectTests", "vees", "builtin"]);
 
-gulp.task('build', ["peg", "typescript", "collectTests", "vees", "builtin"], function() {
+gulp.task('build', ["peg", "typescript", "typescriptTests", "collectTests", "vees", "builtin"], function() {
   return gulp.src([
       'src/_intro.js',
       'dist/typescript.js',
