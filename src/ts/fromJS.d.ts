@@ -1,5 +1,5 @@
 declare module eiffel.parser {
-  function parse(input:string): [eiffel.ast.Class];
+  function parse(input:string, options?:any): [eiffel.ast.Class];
 
   interface SyntaxError {
     line:number;
@@ -23,3 +23,6 @@ interface BuiltinSource {
 interface Console {
   table: (any) => any;
 }
+
+declare var vees;
+declare var okTests;
