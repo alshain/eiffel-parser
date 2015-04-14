@@ -1,4 +1,5 @@
 /// <reference path="visitor.ts" />
+/// <reference path="../../typings/tsd.d.ts" />
 
 module eiffel.ast {
 
@@ -36,10 +37,8 @@ module eiffel.ast {
   }
 
   export class Pos {
-    constructor(offset, line, column) {
+    constructor(offset) {
       this.offset = offset;
-      this.line = line;
-      this.column = column;
     }
 
     // Zero based index respective to start of input
@@ -71,6 +70,8 @@ module eiffel.ast {
 
       this.featureLists = featureLists;
       Array.prototype.push.apply(this.children, featureLists);
+
+      this.dictionary = new Map<any, eiffel.ast.AST[]>();
     }
 
     children:AST[];
@@ -80,6 +81,12 @@ module eiffel.ast {
     parents:Parent[];
     creationClause:Identifier[];
     featureLists:FeatureList[];
+
+    dictionary: Map<any, eiffel.ast.AST[]>;
+
+    byType<T extends AST>(prototype: {new(): T;}): T[] {
+      return <T[]> this.dictionary.get(prototype);
+    }
 
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vClass(this, arg);
@@ -125,44 +132,36 @@ module eiffel.ast {
     name: Identifier;
   }
 
-  export class Routine extends AST implements Feature {
-    constructor(name: Identifier, parameters: VarDeclList[], alias: Alias, rt: Type, preconditions: Precondition[], locals: VarDeclList[][], instructionKind: Token, instructions: Instruction[], postconditions: Postcondition[], frozen: boolean, external: External, obsolete: Obsolete) {
-      super(this);
-      this.name = name;
-      this.parameters = parameters;
-      this.alias = alias;
-      this.preconditions = preconditions;
-      this.locals = locals;
-      this.instructionKind = instructionKind;
-      this.instructions = instructions;
-      this.postconditions = postconditions;
-      this.frozen = frozen;
-      this.external = external;
-      this.obsolete = obsolete;
+  interface NameAlias {
+    name: Identifier;
+    alias: Alias;
+  }
 
-      this.children.push(name);
+  export class Routine extends AST implements Feature {
+    constructor(namesAndAlias: NameAlias[], parameters: VarDeclList[], rt: Type, frozen: boolean, bodyElements: AST[]) {
+      super(this);
+      this.name = namesAndAlias[0].name;
+      this.names = _.pluck(namesAndAlias, "name");
+      this.parameters = parameters;
+      this.aliases = namesAndAlias.map(function (nameAndAlias) {
+          return nameAndAlias.alias
+        }
+      );
+
+      this.frozen = frozen;
+
+      Array.prototype.push.apply(this.children, this.names);
       Array.prototype.push.apply(this.children, parameters);
-      this.children.push(alias);
-      Array.prototype.push.apply(this.children, preconditions);
-      Array.prototype.push.apply(this.children, locals);
-      Array.prototype.push.apply(this.children, instructions);
-      Array.prototype.push.apply(this.children, postconditions);
-      this.children.push(external);
-      this.children.push(obsolete);
+      Array.prototype.push.apply(this.children, this.aliases);
+      Array.prototype.push.apply(this.children, bodyElements);
     }
 
-    name:Identifier;
-    instructionKind: Token
-    instructions:eiffel.ast.Instruction[];
-    preconditions:Precondition[];
-    locals: VarDeclList[][];
-    postconditions:Postcondition[];
+    name: Identifier;
+    names: Identifier[];
     parameters:VarDeclList[];
     sym: eiffel.symbols.RoutineSymbol;
-    alias: Alias;
+    aliases: Alias[];
     frozen: boolean;
-    external: External;
-    obsolete: Obsolete;
 
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vRoutine(this, arg);
@@ -170,12 +169,12 @@ module eiffel.ast {
   }
 
   export class External extends AST implements VisitorAcceptor {
-    constructor(expression: Expression, start: Pos, end: Pos) {
+    constructor(expressions: Expression[], start: Pos, end: Pos) {
       super(this);
-      this.expression = expression;
+      this.expressions = expressions;
     }
 
-    expression: Expression;
+    expressions: Expression[];
 
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vExternal(this, arg);
@@ -263,6 +262,15 @@ module eiffel.ast {
     }
   }
 
+  export class TypeExpression extends AST implements Expression {
+
+    sym:eiffel.ast.TypeInstance;
+
+    accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
+      return visitor.vTypeExpression(this, arg);
+    }
+  }
+
   export class Function extends Routine {
     sym: symbols.FunctionSymbol;
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
@@ -273,6 +281,32 @@ module eiffel.ast {
   export class Procedure extends Routine {
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vProcedure(this, arg);
+    }
+  }
+
+  export class RoutineInstructions extends AST implements VisitorAcceptor {
+
+    constructor(instructions:eiffel.ast.Expression[]) {
+      super(this);
+      this.instructions = instructions;
+    }
+
+    instructions: Expression[];
+
+    accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
+        return visitor.vRoutineInstructions(this, arg);
+      }
+  }
+
+  export class DoBlock extends RoutineInstructions {
+    accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
+      return visitor.vDoBlock(this, arg);
+    }
+  }
+
+  export class OnceBlock extends RoutineInstructions {
+    accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
+      return visitor.vOnceBlock(this, arg);
     }
   }
 
@@ -377,6 +411,22 @@ module eiffel.ast {
 
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vConstantAttribute(this, arg);
+    }
+  }
+
+  export class ParentGroup extends AST implements VisitorAcceptor {
+    constructor(conforming: eiffel.ast.Identifier[], parents: eiffel.ast.Parent[]) {
+      super(this);
+
+      this.conforming = conforming;
+      this.parents = parents;
+    }
+
+    conforming: Identifier[];
+    parents: Parent[];
+
+    accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
+      return visitor.vParentGroup(this, arg);
     }
   }
 
@@ -713,6 +763,26 @@ module eiffel.ast {
     }
   }
 
+  export class UnqualifiedCallExpression extends AST implements Expression, VisitorAcceptor {
+    constructor(identifier: eiffel.ast.IdentifierAccess, parameters:eiffel.ast.Expression[]) {
+      super(this);
+      this.identifier = identifier;
+      this.parameters = parameters;
+
+      Array.prototype.push.apply(this.children, parameters);
+    }
+
+    sym:eiffel.ast.TypeInstance;
+
+    operand: Expression;
+    identifier: IdentifierAccess;
+    parameters: Expression[];
+
+    accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
+      return visitor.vUnqualifiedCallExpression(this, arg);
+    }
+  }
+
   export class IndexExpression extends AST implements Expression, VisitorAcceptor {
     constructor(operand: eiffel.ast.Expression, argument: eiffel.ast.Expression) {
       super(this);
@@ -733,21 +803,21 @@ module eiffel.ast {
   }
 
   export class AttachedExpression extends AST implements Expression, VisitorAcceptor {
-    constructor(ofType: Identifier, outerVar: IdentifierAccess, newVar: Identifier, start, end) {
+    constructor(ofType: Type, expr: Expression, newVar: Identifier, start, end) {
       super(this);
       this.ofType = ofType;
-      this.outerVar = outerVar;
+      this.expr = expr;
       this.newVar = newVar;
 
-      this.children.push(ofType, outerVar, newVar);
+      this.children.push(ofType, expr, newVar);
       this.start = start;
       this.end = end;
     }
     start: Pos;
     end: Pos;
 
-    ofType: Identifier; outerVar:
-    IdentifierAccess;
+    ofType: Type;
+    expr: Expression;
     newVar: Identifier;
 
     sym:eiffel.ast.TypeInstance;
@@ -758,20 +828,23 @@ module eiffel.ast {
   }
 
   export class FromLoop extends AST implements Instruction {
-    constructor(initializerBlock: Instruction[], until: Expression, loopBlock: Instruction[]) {
+    constructor(initializerBlock: Instruction[], until: Expression, loopBlock: Instruction[], variant: Expression) {
       super(this);
       this.initializerBlock = initializerBlock;
       this.until = until;
       this.loopBlock = loopBlock;
+      this.variant = variant;
 
       Array.prototype.push.apply(this.children, initializerBlock);
       this.children.push(until);
       Array.prototype.push.apply(this.children, loopBlock);
+      this.children.push(variant);
     }
 
     initializerBlock:eiffel.ast.Instruction[];
     until:eiffel.ast.Expression;
     loopBlock:eiffel.ast.Instruction[];
+    variant: eiffel.ast.Expression;
 
     sym: eiffel.ast.TypeInstance;
 

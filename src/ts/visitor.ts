@@ -192,5 +192,29 @@ module eiffel.ast {
     vAttachedExpression(attachedExpression: AttachedExpression, arg:A):R {
       return this.vExpression(attachedExpression, arg);
     }
+
+    vTypeExpression(typeExpression: TypeExpression, arg:A):R {
+      return this.vExpression(typeExpression, arg);
+    }
+
+    vParentGroup(parentGroup: ParentGroup, arg:A):R {
+      return this.vDefault(parentGroup, arg);
+    }
+
+    vRoutineInstructions(routineInstructions: RoutineInstructions, arg:A):R {
+      return this.vDefault(routineInstructions, arg);
+    }
+
+    vOnceBlock(onceBlock: OnceBlock, arg:A):R {
+      return this.vRoutineInstructions(onceBlock, arg);
+    }
+
+    vDoBlock(doBlock: DoBlock, arg:A):R {
+      return this.vRoutineInstructions(doBlock, arg);
+    }
+
+    vUnqualifiedCallExpression(unqualifiedCallExpression: UnqualifiedCallExpression, arg:A):R {
+      return this.vExpression(unqualifiedCallExpression, arg);
+    }
   }
 }
