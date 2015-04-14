@@ -216,5 +216,9 @@ module eiffel.ast {
     vUnqualifiedCallExpression(unqualifiedCallExpression: UnqualifiedCallExpression, arg:A):R {
       return this.vExpression(unqualifiedCallExpression, arg);
     }
+
+    vLocalsBlock(localsBlock: LocalsBlock, arg:A):R {
+      return this.vDefault(localsBlock, arg);
+    }
   }
 }

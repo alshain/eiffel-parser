@@ -168,6 +168,23 @@ module eiffel.ast {
     }
   }
 
+  export class LocalsBlock extends AST implements VisitorAcceptor {
+    constructor(linesOfVarDeclLists: VarDeclList[][]) {
+      super(this);
+      this.linesOfVarDeclLists = linesOfVarDeclLists;
+      this.varDeclLists = _.flatten(linesOfVarDeclLists);
+      Array.prototype.push.apply(this.children, this.varDeclLists);
+    }
+
+    varDeclLists: VarDeclList[];
+    linesOfVarDeclLists: VarDeclList[][];
+
+    accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
+      return visitor.vLocalsBlock(this, arg);
+    }
+  }
+
+
   export class External extends AST implements VisitorAcceptor {
     constructor(expressions: Expression[], start: Pos, end: Pos) {
       super(this);
