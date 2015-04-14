@@ -1,5 +1,6 @@
 /// <reference path="visitor.ts" />
-declare var __eiffel_builtin;
+/// <reference path="fromJS.d.ts" />
+
 module eiffel.semantics {
   import sym = eiffel.symbols;
 
@@ -39,9 +40,13 @@ module eiffel.semantics {
 
   var createRoutineLocalSymbols = function (analysisContext) {
     analysisContext.allRoutines.forEach(function (routine:symbols.RoutineSymbol) {
-      routine.ast.locals.forEach(function (varDeclLists:eiffel.ast.VarDeclList[]) {
-        varDeclLists.forEach(function (parameterList) {
-          parameterList.varDecls.forEach(function (varDecl) {
+      var localsBlocks: eiffel.ast.LocalsBlock[] = <eiffel.ast.LocalsBlock[]> routine.ast.children.filter(function (child) {
+        return child instanceof eiffel.ast.LocalsBlock;
+      });
+
+      localsBlocks.forEach(function (localBlock:eiffel.ast.LocalsBlock) {
+        localBlock.varDeclLists.forEach(function (varsDecl) {
+          varsDecl.varDecls.forEach(function (varDecl) {
             var varName = varDecl.name.name;
             var variableSymbol = new symbols.VariableSymbol(varName, varDecl);
             routine.locals.push(variableSymbol);
@@ -52,17 +57,66 @@ module eiffel.semantics {
     });
   };
 
-  export function analyze(...manyAsts: ast.Class[][]): AnalysisResult {
-    var builtinSources = __eiffel_builtin.map(function (x) {
-      return x.content;
+  var parseError = function parseError(builtinSource, e) {
+    console.group("Parse Error: " + builtinSource.filename);
+    console.log("Found", e.found);
+    console.groupCollapsed("Expected");
+    console.table(e.expected);
+    console.groupEnd();
+    console.group("Context");
+    var lines = builtinSource.content.split(/\r?\n/);
+
+    var context =
+      lines[e.line - 4]
+      + lines[e.line - 3] + "\n"
+      + lines[e.line - 2] + "\n"
+      + lines[e.line - 1] + "\n"
+      + Array(e.column).join("-") + "^ -- Line: " + e.line + " Column: " + e.column + "\n"
+      + lines[e.line + 0]
+      + lines[e.line + 1]
+      + lines[e.line + 2]
+      + lines[e.line + 3];
+    console.log(context);
+    console.groupEnd();
+    console.groupCollapsed("Source");
+    console.log(builtinSource.content);
+    console.groupEnd();
+    console.log(e);
+    console.groupEnd();
+  };
+
+  var initAstDictionary = function initAstDictionary(analysisContext) {
+    analysisContext.allClasses.forEach(function (classSymbol) {
+      classSymbol.ast.accept(new AstToDictionaryByPrototype(analysisContext), analysisContext.astDictionary);
     });
-    Array.prototype.push.apply(manyAsts, builtinSources.map(function(source) { return eiffel.parser.parse(source)}));
+  };
+
+  var initAstDictionaryByClass = function initAstDictionaryByClass(analysisContext) {
+    analysisContext.allClasses.forEach(function (classSymbol) {
+      classSymbol.ast.accept(new AstToDictionaryByPrototype(analysisContext), classSymbol.ast.dictionary);
+    });
+  };
+
+  export function analyze(...manyAsts: ast.Class[][]): AnalysisResult {
+    var parse = function parse(builtinSource: BuiltinSource) {
+      try {
+        return eiffel.parser.parse(builtinSource.content)
+      }
+      catch (e) {
+        parseError(builtinSource, e);
+        throw e;
+      }
+    };
+    Array.prototype.push.apply(manyAsts, __eiffel_builtin.map(parse));
     var asts: ast.Class[] = Array.prototype.concat.apply([], manyAsts);
     var analysisContext = new AnalysisContext();
     createClassSymbols(asts, analysisContext);
+    initAstDictionary(analysisContext);
+    initAstDictionaryByClass(analysisContext);
     createFeatureSymbols(analysisContext);
     createRoutineParamSymbols(analysisContext.allRoutines);
     createRoutineLocalSymbols(analysisContext);
+
     analysisContext.allClasses.forEach(function (classSymbol) {
       classSymbol.ast.creationClause.forEach(function (identifier) {
         var name: string = identifier.name;
@@ -94,6 +148,17 @@ module eiffel.semantics {
     allProcedures: symbols.ProcedureSymbol[] = [];
     allRoutines: symbols.RoutineSymbol[] = [];
     allClasses: symbols.ClassSymbol[] = [];
+    astDictionary: Map<any, eiffel.ast.AST[]> = new Map<any, eiffel.ast.AST[]>();
+
+    allWithPrototype(prototype) {
+      if (this.astDictionary.has(prototype)) {
+        return this.astDictionary.get(prototype);
+      }
+      else {
+        console.error("Prototype is not a key", prototype, this.astDictionary);
+        throw new Error("Prototype is not a key" + prototype);
+    }
+  }
 
     errors: string[] = [];
   }
@@ -187,6 +252,20 @@ module eiffel.semantics {
       this.classSymbol.attributes[name] = attributeSymbol;
 
       //return super.vConstantAttribute(constantAttribute, this.classSymbol);
+    }
+  }
+
+
+  class AstToDictionaryByPrototype extends SemanticVisitor<any, any> {
+    vDefault(ast:eiffel.ast.AST, arg:any):any {
+      var prototype = Object.getPrototypeOf(ast);
+      if (arg.has(prototype)) {
+        arg.get(prototype).push(ast);
+      }
+    else {
+        arg.set(prototype, [ast]);
+      }
+      return super.vDefault(ast, arg);
     }
   }
 
