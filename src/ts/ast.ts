@@ -35,6 +35,22 @@ module eiffel.ast {
     start:Pos;
     end:Pos;
   }
+  export class Token extends AST implements VisitorAcceptor {
+    constructor(text:string, start: eiffel.ast.Pos, end: eiffel.ast.Pos) {
+      super(this);
+      this.text = text;
+      this.start = start;
+      this.end = end;
+    }
+
+    text: string;
+    start: Pos;
+    end: Pos;
+
+    accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
+      return visitor.vToken(this, arg);
+    }
+  }
 
   export class Pos {
     constructor(offset) {
@@ -93,6 +109,23 @@ module eiffel.ast {
     }
   }
 
+  export class TypeConstraint extends AST implements VisitorAcceptor {
+    constructor(rt:eiffel.ast.Type, rename:eiffel.ast.Rename) {
+      super(this);
+      this.rt = rt;
+      this.rename = rename;
+
+      this.children.push(rt, rename);
+    }
+
+    rt: Type;
+    rename: Rename;
+
+    accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
+      return visitor.vTypeConstraint(this, arg);
+    }
+  }
+
   export class FeatureList extends AST implements VisitorAcceptor {
     constructor(exports: Identifier[], features: Feature[]) {
       super(this);
@@ -129,7 +162,7 @@ module eiffel.ast {
   }
 
   export interface Feature extends AST, VisitorAcceptor {
-    name: Identifier;
+    frozenNamesAndAliases: FrozenNameAlias[];
   }
 
   interface NameAlias {
@@ -137,31 +170,26 @@ module eiffel.ast {
     alias: Alias;
   }
 
+  interface FrozenNameAlias extends NameAlias {
+    frozen: boolean;
+  }
+
   export class Routine extends AST implements Feature {
-    constructor(namesAndAlias: NameAlias[], parameters: VarDeclList[], rt: Type, frozen: boolean, bodyElements: AST[]) {
+    constructor(frozenNamesAndAliases: FrozenNameAlias[], parameters: VarDeclList[], rt: Type, bodyElements: AST[]) {
       super(this);
-      this.name = namesAndAlias[0].name;
-      this.names = _.pluck(namesAndAlias, "name");
+      this.frozenNamesAndAliases = frozenNamesAndAliases;
       this.parameters = parameters;
-      this.aliases = namesAndAlias.map(function (nameAndAlias) {
-          return nameAndAlias.alias
-        }
-      );
 
-      this.frozen = frozen;
-
-      Array.prototype.push.apply(this.children, this.names);
+      Array.prototype.push.apply(this.children, _.pluck(frozenNamesAndAliases, "name"));
       Array.prototype.push.apply(this.children, parameters);
       Array.prototype.push.apply(this.children, this.aliases);
       Array.prototype.push.apply(this.children, bodyElements);
     }
 
-    name: Identifier;
-    names: Identifier[];
+    frozenNamesAndAliases: FrozenNameAlias[];
     parameters:VarDeclList[];
     sym: eiffel.symbols.RoutineSymbol;
     aliases: Alias[];
-    frozen: boolean;
 
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vRoutine(this, arg);
@@ -233,12 +261,6 @@ module eiffel.ast {
     }
   }
 
-  export interface Token {
-    text: string;
-    start: Pos;
-    end: Pos;
-  }
-
   export class VarDeclEntry extends AST implements VisitorAcceptor {
 
     constructor(name:eiffel.ast.Identifier) {
@@ -279,8 +301,33 @@ module eiffel.ast {
     }
   }
 
-  export class TypeExpression extends AST implements Expression {
+  export class TupleExpression extends AST implements Expression {
+    constructor(expressions: eiffel.ast.Expression[], start: Pos, end: Pos) {
+      super(this);
+      this.expressions = expressions;
+      this.start = start;
+      this.end = end;
 
+      Array.prototype.push.apply(this.children, expressions);
+    }
+
+    expressions: Expression[];
+    sym:eiffel.ast.TypeInstance;
+    start: Pos;
+    end: Pos;
+
+    accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
+      return visitor.vTupleExpression(this, arg);
+    }
+  }
+
+  export class TypeExpression extends AST implements Expression {
+    constructor(rt: eiffel.ast.Type) {
+      super(this);
+      this.rt = rt;
+    }
+
+    rt: Type;
     sym:eiffel.ast.TypeInstance;
 
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
@@ -395,14 +442,15 @@ module eiffel.ast {
 
 
   export class VarOrConstAttribute extends AST implements Feature {
-    constructor(name: Identifier, rawType: Type) {
+    constructor(frozenNamesAndAliases: FrozenNameAlias[], rawType: Type) {
       super(this);
-      this.name = name;
+      this.frozenNamesAndAliases = frozenNamesAndAliases;
       this.rawType = rawType;
-      this.children.push(name, rawType);
+      Array.prototype.push.apply(this.children, _.pluck(frozenNamesAndAliases, "name"));
+      this.children.push(rawType);
     }
 
-    name:Identifier;
+    frozenNamesAndAliases: FrozenNameAlias[];
     rawType:eiffel.ast.Type;
     sym: eiffel.symbols.AttributeSymbol;
 
@@ -418,8 +466,8 @@ module eiffel.ast {
   }
 
   export class ConstantAttribute extends VarOrConstAttribute {
-    constructor(name: eiffel.ast.Identifier, rawType: eiffel.ast.Type, value: eiffel.ast.Literal<any>) {
-      super(name, rawType);
+    constructor(frozenNamesAndAliases: FrozenNameAlias[], rawType: eiffel.ast.Type, value: eiffel.ast.Literal<any>) {
+      super(frozenNamesAndAliases, rawType);
       this.value = value;
       this.children.push(value);
     }
@@ -448,18 +496,124 @@ module eiffel.ast {
   }
 
   export class Parent extends AST implements VisitorAcceptor {
-    constructor() {
+    constructor(rt: Type, adaptions) {
       super(this);
     }
 
     name:Identifier;
-    undefine:Identifier[];
-    redefeine:Identifier[];
-    rename:Identifier[];
-    newexport:Identifier[] | All;
+    undefine:Undefines[];
+    redefine:Redefines[];
+    rename:Renames[];
+    newexport:NewExports[] | All;
 
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vParent(this, arg);
+    }
+  }
+
+  export class Rename extends AST implements VisitorAcceptor {
+    constructor(oldName:eiffel.ast.Identifier, newName: NameAlias) {
+      super(this);
+      this.oldName = oldName;
+      this.newName = newName;
+    }
+
+    oldName: Identifier;
+    newName: NameAlias;
+
+    accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
+      return visitor.vRename(this, arg);
+    }
+  }
+
+  export class Renames extends AST implements VisitorAcceptor {
+    constructor(t: Token, renames:eiffel.ast.Rename[]) {
+      super(this);
+      this.token = t;
+      this.renames = renames;
+    }
+
+    renames: Rename[];
+    token: eiffel.ast.Token;
+
+    accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
+      return visitor.vRenames(this, arg);
+    }
+  }
+
+  export class Redefines extends AST implements VisitorAcceptor {
+    constructor(t: Token, identifiers:eiffel.ast.Identifier[]) {
+      super(this);
+      this.token = t;
+      this.identifiers = identifiers;
+    }
+
+    identifiers: Identifier[];
+    token: eiffel.ast.Token;
+
+    accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
+      return visitor.vRedefines(this, arg);
+    }
+  }
+
+  export class Selects extends AST implements VisitorAcceptor {
+    constructor(t: Token, identifiers:eiffel.ast.Identifier[]) {
+      super(this);
+      this.token = t;
+      this.identifiers = identifiers;
+    }
+
+    identifiers: Identifier[];
+    token: eiffel.ast.Token;
+
+    accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
+      return visitor.vSelects(this, arg);
+    }
+  }
+
+  export class ExportChangeset extends AST implements VisitorAcceptor {
+    constructor(access:eiffel.ast.Identifier[], featureSet:eiffel.ast.Identifier[]) {
+      super(this);
+      this.access = access;
+      this.featureSet = featureSet;
+    }
+
+    access: Identifier[];
+    featureSet: Identifier[];
+
+    accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
+      return visitor.vExportChangeset(this, arg);
+    }
+  }
+
+  export class NewExports extends AST implements VisitorAcceptor {
+    constructor(t: Token, exportChangeset: eiffel.ast.ExportChangeset[]) {
+      super(this);
+      this.token = t;
+      this.exportChangeset = exportChangeset;
+    }
+
+    exportChangeset: eiffel.ast.ExportChangeset[];
+    token: eiffel.ast.Token;
+
+    accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
+      return visitor.vNewExports(this, arg);
+    }
+  }
+
+  export class Undefines extends AST implements VisitorAcceptor {
+
+    constructor(t: Token, identifiers:eiffel.ast.Identifier[]) {
+      super(this);
+      this.token = t;
+      this.identifiers = identifiers;
+    }
+
+    identifiers: Identifier[];
+    token: eiffel.ast.Token;
+
+    accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
+      return visitor.vUndefines(this, arg);
     }
   }
 
@@ -535,21 +689,17 @@ module eiffel.ast {
     }
   }
 
-  export class All {
-
-  }
-
-  export class ExportChangeSet extends AST implements VisitorAcceptor {
-    constructor() {
+  export class All extends AST implements VisitorAcceptor {
+    constructor(allToken: eiffel.ast.Token) {
       super(this);
+      this.allToken = allToken;
     }
+
+    allToken: Token;
 
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
-      return visitor.vExportChangeSet(this, arg);
+      return visitor.vAll(this, arg);
     }
-
-    access:Identifier[];
-    features:Identifier[];
   }
 
   export class TypeInstance {
