@@ -3,14 +3,27 @@ module eiffel.symbols {
 
       constructor(name: string) {
         this.name = name;
+        this.lowerCaseName = name.toLowerCase();
       }
 
       name: string;
+      lowerCaseName: string;
     }
 
-    export class RoutineSymbol extends Symbol {
-      constructor(name: string, ast:ast.Routine) {
-        super(name);
+  export class FeatureSymbol extends Symbol {
+    constructor(name:string, alias:string, isFrozen:boolean) {
+      super(name);
+      this.alias = alias;
+      this.isFrozen = isFrozen;
+    }
+
+    alias: string;
+    isFrozen: boolean;
+  }
+
+    export class RoutineSymbol extends FeatureSymbol {
+      constructor(name: string, alias: string, frozen: boolean, ast:ast.Routine) {
+        super(name, alias, frozen);
         this.ast = ast;
       }
 
@@ -21,8 +34,8 @@ module eiffel.symbols {
     }
 
     export class FunctionSymbol extends RoutineSymbol {
-      constructor(name: string, ast:ast.Function) {
-        super(name, ast);
+      constructor(name: string, alias: string, frozen: boolean, ast:ast.Function) {
+        super(name, alias, frozen, ast);
         this.ast = ast;
       }
 
@@ -32,18 +45,18 @@ module eiffel.symbols {
     export class ProcedureSymbol extends RoutineSymbol {
 
 
-      constructor(name:string, ast:ast.Procedure) {
-        super(name, ast);
+      constructor(name:string, alias: string, frozen: boolean, ast:ast.Procedure) {
+        super(name, alias, frozen, ast);
         this.ast = ast;
       }
 
       ast: ast.Procedure;
     }
 
-  export class AttributeSymbol extends Symbol {
+  export class AttributeSymbol extends FeatureSymbol {
 
-    constructor(name: string, attr:ast.VarOrConstAttribute) {
-      super(name);
+    constructor(name: string, alias: string, frozen: boolean, attr:ast.VarOrConstAttribute) {
+      super(name, alias, frozen);
       this.ast = attr;
     }
 
@@ -73,23 +86,30 @@ module eiffel.symbols {
     attributes: LookupTable<AttributeSymbol> = {};
     creationProcedures: LookupTable<ProcedureSymbol> = {};
 
+    isEffective: boolean;
+    isExpanded: boolean;
+    isFrozen: boolean;
+    isDeferred: boolean;
+
 
     hasSymbol(name: string): boolean {
-      if (this.routines.hasOwnProperty(name)) {
+      var lcName = name.toLowerCase();
+      if (this.routines.hasOwnProperty(lcName)) {
         return true;
       }
-      if (this.attributes.hasOwnProperty(name)) {
+      if (this.attributes.hasOwnProperty(lcName)) {
         return true;
       }
       return false;
     }
 
     resolveSymbol(name: string): Symbol {
-      if (this.routines.hasOwnProperty(name)) {
-        return this.routines[name];
+      var lcName = name.toLowerCase();
+      if (this.routines.hasOwnProperty(lcName)) {
+        return this.routines[lcName];
       }
-      if (this.attributes.hasOwnProperty(name)) {
-        return this.attributes[name];
+      if (this.attributes.hasOwnProperty(lcName)) {
+        return this.attributes[lcName];
       }
       throw new Error("Symbol " + name + " does not exist in class " + this.name + ".");
     }
