@@ -345,8 +345,10 @@ function classHasSymbol(analyzed, className, symbolName) {
   ok(hasSymbol, errorMessage);
 
   var symbol = classSymbol.resolveSymbol(symbolName);
-  var actualName = symbol.name;
-  equal(actualName, symbolName, "Symbol has wrong name");
+  var actualName = symbol.lowerCaseName;
+  equal(actualName.toLowerCase(), symbolName.toLowerCase(), "Symbol has wrong name");
+  var actualLowerCaseName = symbol.lowerCaseName;
+  equal(actualLowerCaseName, symbolName.toLowerCase(), "Symbol has wrong name");
 }
 
 test("should find symbol", function() {
