@@ -213,7 +213,10 @@ FeatureSet
   / AllToken
 
 InhSelect
-  = "unimplemented"
+  = W t:SelectToken W l:IdentifierList
+  {
+    return new eiffel.ast.Selects(t, l);
+  }
 
 Convert
   = W ConvertToken W ConvertList
