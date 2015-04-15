@@ -70,8 +70,8 @@ module eiffel.ast {
       return this.vInstruction(assignment, arg);
     }
 
-    vExportChangeSet(exportChangeSet:ExportChangeSet, arg:A):R {
-      return this.vDefault(exportChangeSet, arg);
+    vExportChangeset(exportChangeset:ExportChangeset, arg:A):R {
+      return this.vDefault(exportChangeset, arg);
     }
 
     vPrecondition(precondition:Precondition, arg:A):R {
@@ -219,6 +219,46 @@ module eiffel.ast {
 
     vLocalsBlock(localsBlock: LocalsBlock, arg:A):R {
       return this.vDefault(localsBlock, arg);
+    }
+
+    vTypeConstraint(typeConstraint: TypeConstraint, arg:A):R {
+      return this.vDefault(typeConstraint, arg);
+    }
+
+    vRename(rename: Rename, arg:A):R {
+      return this.vDefault(rename, arg);
+    }
+
+    vToken(token: Token, arg:A):R {
+      return this.vDefault(token, arg);
+    }
+
+    vRedefines(redefines: Redefines, arg:A):R {
+      return this.vDefault(redefines, arg);
+    }
+
+    vUndefines(undefines: Undefines, arg:A):R {
+      return this.vDefault(undefines, arg);
+    }
+
+    vRenames(renames: Renames, arg:A):R {
+      return this.vDefault(renames, arg);
+    }
+
+    vSelects(selects: Selects, arg:A):R {
+      return this.vDefault(selects, arg);
+    }
+
+    vNewExports(newExports: NewExports, arg:A):R {
+      return this.vDefault(newExports, arg);
+    }
+
+    vTupleExpression(tupleExpression: TupleExpression, arg:A):R {
+      return this.vExpression(tupleExpression, arg);
+    }
+
+    vAll(all: All, arg:A):R {
+      return this.vDefault(all, arg);
     }
   }
 }
