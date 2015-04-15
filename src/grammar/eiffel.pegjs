@@ -1,7 +1,8 @@
 // Fixme CONVERT syntax
 {
   function isReserved(name) {
-    return /^(agent|alias|all|and|as|assign|attribute|check|class|convert|create|Current|debug|deferred|do|detachable|else|elseif|end|ensure|expanded|export|external|False|feature|from|frozen|if|implies|inherit|inspect|invariant|like|local|loop|not|note|obsolete|old|once|only|or|Precursor|redefine|rename|require|rescue|Result|retry|select|separate|then|True|TUPLE|undefine|until|variant|Void|when|xor)$/.test(name);
+    // TODO reinsert TUPLE
+    return /^(agent|alias|all|and|as|assign|attribute|check|class|convert|create|Current|debug|deferred|do|detachable|else|elseif|end|ensure|expanded|export|external|False|feature|from|frozen|if|implies|inherit|inspect|invariant|like|local|loop|not|note|obsolete|old|once|only|or|Precursor|redefine|rename|require|rescue|Result|retry|select|separate|then|True|undefine|until|variant|Void|when|xor)$/.test(name);
   }
 
   function Node(nodeType, data) {
@@ -80,7 +81,7 @@
 }
 start = class*
 class
-  = w note:Note? expanded:(ExpandedToken W {return true} / {return false}) ClassToken name:ClassName inherit:inherit? create:create? convert:Convert? featureLists:FeatureList* Invariant? W (Note)? EndToken w
+  = w note:Note? expanded:(ExpandedToken W {return true} / {return false}) ClassToken name:ClassName generic:GenericParams? inherit:inherit? create:create? convert:Convert? featureLists:FeatureList* Invariant? W (Note)? EndToken w
     { return new eiffel.ast.Class(
         name,
         expanded,
@@ -90,6 +91,39 @@ class
         featureLists
       );
     }
+GenericParams
+  = w "[" w GenericParamList w "]"
+
+GenericParamList
+  = first:GenericParameter rest:(w "," w GenericParameter)* {return buildList(first, rest, gId()); }
+
+GenericParameter
+  = Identifier GenericConstraint?
+
+GenericConstraint
+  = w "->" ConstrainingTypes ConstraintCreators?
+
+ConstrainingTypes
+  = SingleConstraint
+  / MultipleConstraint
+
+SingleConstraint
+  = t:Type r:Rename?
+  {
+    return new eiffel.ast.TypeConstraint(t, r);
+  }
+
+ConstraintCreators
+  = W CreateToken is:IdentifierList W EndToken
+  {
+    return is;
+  }
+
+MultipleConstraint
+  = w "{" w cs:SingleConstraintList w "}" {return cs}
+
+SingleConstraintList
+  = first:SingleConstraint rest:(w "," SingleConstraint)* {return buildList(first, rest, gId()); }
 
 Note = NoteToken p:NotePair+ W {return p;}
 NotePair = W i:Identifier w ":" w v:NoteValue {return {key: i, value: v.value};}
@@ -123,71 +157,47 @@ Parent
 /** FIXME: No backtracking, END of inheritance only mandatory if at least one rule fits */
 
 Adaptions
-  = undefine:InhUndefine redefine:InhRedefine? rename:InhRename? newexport:InhNewExports? select:InhSelect? W EndToken
-  {
-    return {
-      undefine: undefine,
-      redefine: redefine,
-      rename: rename,
-      newexport: newexport,
-      select: select,
-    };
-  }
-  / redefine:InhRedefine rename:InhRename? newexport:InhNewExports? select:InhSelect? W EndToken
-  {
-    return {
-      undefine: [],
-      redefine: redefine,
-      rename: rename,
-      newexport: newexport,
-      select: select,
-    };
-  }
-  / rename:InhRename newexport:InhNewExports? select:InhSelect? W EndToken
-  {
-    return {
-      undefine: [],
-      redefine: [],
-      rename: rename,
-      newexport: newexport,
-      select: select,
-    };
-  }
-  / newexport:InhNewExports select:InhSelect? W EndToken
-  {
-    return {
-      undefine: [],
-      redefine: [],
-      rename: [],
-      newexport: newexport,
-      select: select,
-    };
-  }
-  / select:InhSelect W EndToken
-  {
-    return {
-      undefine: [],
-      redefine: [],
-      rename: [],
-      newexport: [],
-      select: select,
-    };
-  }
+  = Adaption+ W EndToken
+
+Adaption
+  = InhUndefine
+  / InhRedefine
+  / InhRename
+  / InhSelect
+  / InhNewExports
 
 InhUndefine
-  = W UndefineToken W l:IdentifierList { return l; }
+  = W t:UndefineToken W l:IdentifierList
+  {
+    return new eiffel.ast.Undefines(t, l);
+  }
 
 InhRedefine
-  = W RedefineToken W l:IdentifierList { return l; }
+  = W t:RedefineToken W l:IdentifierList
+  {
+    return new eiffel.ast.Redefines(t, l);
+  }
 
 InhRename
-  = W RenameToken W l:RenameList { return l; }
+  = W t:RenameToken W l:RenameList
+  {
+    return new eiffel.ast.Renames(t, l);
+  }
 
 RenameList
-  = first:(Identifier W AsToken W Identifier) rest:("," w id:(Identifier W AsToken W Identifier) { return id})* {return buildList(first, rest, gId())}
+  = first:Rename rest:("," w id:Rename { return id})* {return buildList(first, rest, gId())}
+
+Rename
+  = oldName:Identifier W AsToken W newName:ExtendedFeatureName
+  {
+    return new eiffel.ast.Rename(oldName, newName);
+  }
 
 InhNewExports
-  = W ExportToken es:ExportChangeset+ { return es; }
+  = W t:ExportToken es:ExportChangeset+
+  {
+    return new eiffel.ast.NewExports(t, es);
+  }
 
 ExportChangeset
   = w "{" w cs:IdentifierList w "}" w fs:FeatureSet
@@ -208,13 +218,17 @@ InhSelect
 Convert
   = W ConvertToken W ConvertList
 
+
 ConvertList
   = first:ConvertListEntry rest:("," w id:ConvertListEntry { return id})* {return buildList(first, rest, gId())}
 
 
 ConvertListEntry
-  = Identifier w ":" w "{" w IdentifierList w "}"
-  / Identifier w "(" w "{" w Identifier w "}" w ")"
+  = ConversionProcedure
+  / ConversionQuery
+
+ConversionProcedure = Identifier w "(" w "{" w TypeList w "}" w ")"
+ConversionQuery = Identifier w ":" w "{" TypeList w "}"
 
 FeatureList
   = W FeatureToken access:(w acc:AccessSpecifier { return acc })? fs:Feature*
@@ -230,6 +244,31 @@ Feature
   / W p:Procedure {return p}
   / W a:Attribute {return a}
 
+NewFeatureList
+  = first:NewFeatureName rest:(w "," w r:NewFeatureName {return r;})* {return buildList(first, rest, gId())}
+
+NewFeatureName
+  = f:(fi:FrozenToken w {return fi; })? na:ExtendedFeatureName
+  {
+    return {
+      frozen: f,
+      name: na.name,
+      alias: na.alias
+    }
+  }
+
+ExtendedFeatureName
+  = n:FeatureName a:Alias?
+  {
+    return {
+      name: n,
+      alias: a,
+    }
+  }
+
+FeatureName
+  = Identifier
+
 Function
   = start:pos h:RoutineHeader w ":" w rt:Type Assigner? b:RoutineBody end:pos
   {
@@ -237,7 +276,6 @@ Function
       h.namesAndAliases,
       h.params,
       rt,
-      h.frozen,
       b
     );
   }
@@ -252,17 +290,15 @@ Procedure
       h.namesAndAliases,
       h.params,
       null,
-      h.frozen,
       b
     );
   }
 // FIXME: Synonyms for routines
 RoutineHeader
-  = frozen:(FrozenToken W {return true} / { return false}) namesAndAliases:RoutineNameAliasList p:(w "(" w ps:VarList? ")" {return ps;})?
+  = n:NewFeatureList p:(w "(" w ps:VarList? ")" {return ps;})?
   {
     return {
-      namesAndAliases: namesAndAliases,
-      frozen: frozen,
+      namesAndAliases: n,
       params: optionalList(p)
     }
   }
@@ -298,7 +334,7 @@ Vars
   }
 
 Attribute
-  =  n:Identifier  w ":" w t:Type
+  =  n:NewFeatureList  w ":" w t:Type
   {
     return new eiffel.ast.Attribute(
       n,
@@ -307,11 +343,11 @@ Attribute
   }
 
 Constant
-  = a:Attribute w "=" w l:Literal
+  = n:NewFeatureList  w ":" w t:Type w "=" w l:Literal
   {
     return new eiffel.ast.ConstantAttribute(
-      a,
-      a.attributeType,
+      n,
+      t,
       l
     );
   }
@@ -491,6 +527,7 @@ FirstExpr
   = "(" w e:Expression w ")" { return e}
   / Current
   / TypeExpression
+  / TupleExpression
   / start:pos ResultToken end:pos
     {
       return new eiffel.ast.ResultExpression(start, end);
@@ -502,8 +539,14 @@ FirstExpr
   / IdentifierAccess
   / StringLiteral
 
+TupleExpression
+  = start:pos "[" w es:ExpressionList w "]" end:pos
+  {
+    return new eiffel.ast.TupleExpression(es, start, end);
+  }
+
 TypeExpression
-  = "{" i:Identifier "}"
+  = "{" i:Type "}"
   {
     return new eiffel.ast.TypeExpression(i);
   }
@@ -654,6 +697,9 @@ Args
   = w "(" w r:ArgList? ")" {return optionalList(r)}
 
 ArgList
+  = ExpressionList
+
+ExpressionList
   = first:Expression w rest:("," w r:Expression w {return r})* { return buildList(first, rest, gId())}
 
 ExplicitCreationType
@@ -871,7 +917,7 @@ Keyword
   / SeparateToken
   / ThenToken
   / TrueToken
-  / TUPLEToken
+  // TUPLEToken
   / UndefineToken
   / UntilToken
   / VariantToken
@@ -881,64 +927,65 @@ Keyword
 
 /* Tokens */
 
-AgentToken = start:pos s:"agent" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
-AliasToken = start:pos s:"alias" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
-AllToken = start:pos s:"all" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
-AndToken = start:pos s:"and" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
-AssignToken = start:pos s:"assign" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
-AsToken = start:pos s:"as" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
-AttachedToken = start:pos s:"attached" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
-AttributeToken = start:pos s:"attribute" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
-CheckToken = start:pos s:"check" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
-ClassToken = start:pos s:"class" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
-ConvertToken = start:pos s:"convert" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
-CreateToken = start:pos s:"create" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
-CurrentToken = start:pos s:"Current" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
-DebugToken = start:pos s:"debug" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
-DeferredToken = start:pos s:"deferred" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
-DoToken = start:pos s:"do" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
-DetachableToken = start:pos s:"detachable" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
-ElseToken = start:pos s:"else" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
-ElseifToken = start:pos s:"elseif" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
-EndToken = start:pos s:"end" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
-EnsureToken = start:pos s:"ensure" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
-ExpandedToken = start:pos s:"expanded" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
-ExportToken = start:pos s:"export" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
-ExternalToken = start:pos s:"external" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
-FalseToken = start:pos s:"False" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
-FeatureToken = start:pos s:"feature" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
-FromToken = start:pos s:"from" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
-FrozenToken = start:pos s:"frozen" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
-IfToken = start:pos s:"if" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
-ImpliesToken = start:pos s:"implies" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
-InheritToken = start:pos s:"inherit" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
-InspectToken = start:pos s:"inspect" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
-InvariantToken = start:pos s:"invariant" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
-LikeToken = start:pos s:"like" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
-LocalToken = start:pos s:"local" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
-LoopToken = start:pos s:"loop" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
-NotToken = start:pos s:"not" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
-NoteToken = start:pos s:"note" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
-ObsoleteToken = start:pos s:"obsolete" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
-OldToken = start:pos s:"old" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
-OnceToken = start:pos s:"once" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
-OnlyToken = start:pos s:"only" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
-OrToken = start:pos s:"or" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
-PrecursorToken = start:pos s:"Precursor" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
-RedefineToken = start:pos s:"redefine" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
-RenameToken = start:pos s:"rename" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
-RequireToken = start:pos s:"require" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
-RescueToken = start:pos s:"rescue" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
-ResultToken = start:pos s:"Result" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
-RetryToken = start:pos s:"retry" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
-SelectToken = start:pos s:"select" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
-SeparateToken = start:pos s:"separate" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
-ThenToken = start:pos s:"then" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
-TrueToken = start:pos s:"True" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
-TUPLEToken = start:pos s:"TUPLE" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
-UndefineToken = start:pos s:"undefine" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
-UntilToken = start:pos s:"until" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
-VariantToken = start:pos s:"variant" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
-VoidToken = start:pos s:"Void" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
-WhenToken = start:pos s:"when" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
-XorToken = start:pos s:"xor" !IllegalAfterKeyword end:pos { return { text: s, start: start, end:end }; }
+AgentToken = start:pos s:"agent" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
+AliasToken = start:pos s:"alias" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
+AllToken = start:pos s:"all" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
+AndToken = start:pos s:"and" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
+AssignToken = start:pos s:"assign" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
+AsToken = start:pos s:"as" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
+AttachedToken = start:pos s:"attached" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
+AttributeToken = start:pos s:"attribute" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
+CheckToken = start:pos s:"check" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
+ClassToken = start:pos s:"class" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
+ConvertToken = start:pos s:"convert" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
+CreateToken = start:pos s:"create" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
+CurrentToken = start:pos s:"Current" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
+DebugToken = start:pos s:"debug" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
+DeferredToken = start:pos s:"deferred" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
+DoToken = start:pos s:"do" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
+DetachableToken = start:pos s:"detachable" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
+ElseToken = start:pos s:"else" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
+ElseifToken = start:pos s:"elseif" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
+EndToken = start:pos s:"end" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
+EnsureToken = start:pos s:"ensure" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
+ExpandedToken = start:pos s:"expanded" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
+ExportToken = start:pos s:"export" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
+ExternalToken = start:pos s:"external" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
+FalseToken = start:pos s:"False" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
+FeatureToken = start:pos s:"feature" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
+FromToken = start:pos s:"from" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
+FrozenToken = start:pos s:"frozen" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
+IfToken = start:pos s:"if" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
+ImpliesToken = start:pos s:"implies" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
+InheritToken = start:pos s:"inherit" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
+InspectToken = start:pos s:"inspect" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
+InvariantToken = start:pos s:"invariant" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
+LikeToken = start:pos s:"like" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
+LocalToken = start:pos s:"local" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
+LoopToken = start:pos s:"loop" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
+NotToken = start:pos s:"not" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
+NoteToken = start:pos s:"note" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
+ObsoleteToken = start:pos s:"obsolete" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
+OldToken = start:pos s:"old" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
+OnceToken = start:pos s:"once" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
+OnlyToken = start:pos s:"only" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
+OrToken = start:pos s:"or" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
+PrecursorToken = start:pos s:"Precursor" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
+RedefineToken = start:pos s:"redefine" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
+RenameToken = start:pos s:"rename" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
+RequireToken = start:pos s:"require" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
+RescueToken = start:pos s:"rescue" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
+ResultToken = start:pos s:"Result" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
+RetryToken = start:pos s:"retry" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
+SelectToken = start:pos s:"select" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
+SeparateToken = start:pos s:"separate" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
+ThenToken = start:pos s:"then" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
+TrueToken = start:pos s:"True" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
+TUPLEToken = start:pos s:"TUPLE" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
+UndefineToken = start:pos s:"undefine" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
+UntilToken = start:pos s:"until" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
+VariantToken = start:pos s:"variant" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
+VoidToken = start:pos s:"Void" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
+WhenToken = start:pos s:"when" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
+XorToken = start:pos s:"xor" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
+
