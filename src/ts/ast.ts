@@ -68,8 +68,9 @@ module eiffel.ast {
   export class Class extends AST implements VisitorAcceptor {
     constructor(
       name: Identifier,
-      expanded: boolean,
+      expanded: Token,
       note: any, parents: Parent[],
+      generics: FormalGenericParameter[],
       creationClause: Identifier[],
       featureLists: FeatureList[]
     ) {
@@ -78,6 +79,7 @@ module eiffel.ast {
       this.expanded = expanded;
       this.children.push(name);
 
+      this.genericParameters = generics;
       this.parents = parents;
       Array.prototype.push.apply(this.children, parents);
 
@@ -93,7 +95,8 @@ module eiffel.ast {
     children:AST[];
 
     name:Identifier;
-    expanded: boolean;
+    expanded: Token;
+    genericParameters: FormalGenericParameter[];
     parents:Parent[];
     creationClause:Identifier[];
     featureLists:FeatureList[];
@@ -107,6 +110,12 @@ module eiffel.ast {
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vClass(this, arg);
     }
+  }
+
+  interface FormalGenericParameter {
+    name: Identifier;
+    constraints: TypeConstraint[];
+    creators: Identifier[];
   }
 
   export class TypeConstraint extends AST implements VisitorAcceptor {
