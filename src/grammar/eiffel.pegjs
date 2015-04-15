@@ -81,27 +81,44 @@
 }
 start = class*
 class
-  = w note:Note? expanded:(ExpandedToken W {return true} / {return false}) ClassToken name:ClassName generic:GenericParams? inherit:inherit? create:create? convert:Convert? featureLists:FeatureList* Invariant? W (Note)? EndToken w
+  = w note:Note? expanded:(e:ExpandedToken W {return e})? ClassToken name:ClassName generics:GenericParams? inherit:inherit? create:create? convert:Convert? featureLists:FeatureList* Invariant? W (Note)? EndToken w
     { return new eiffel.ast.Class(
         name,
         expanded,
         optionalList(note),
         optionalList(inherit),
+        generics,
         (create == null) ? [] : create,
         featureLists
       );
     }
 GenericParams
-  = w "[" w GenericParamList w "]"
+  = w "[" w gs:GenericParamList w "]"
+  {
+    return gs;
+  }
 
 GenericParamList
   = first:GenericParameter rest:(w "," w GenericParameter)* {return buildList(first, rest, gId()); }
 
 GenericParameter
-  = Identifier GenericConstraint?
+  = i:Identifier cs:GenericConstraint?
+  {
+    return {
+      name: i,
+      constraints: (cs == null) ? [] : cs.cons,
+      creators: (cs == null) ? [] : cs.creators,
+    }
+  }
 
 GenericConstraint
-  = w "->" ConstrainingTypes ConstraintCreators?
+  = w "->" cons:ConstrainingTypes crs:ConstraintCreators?
+  {
+    return {
+      cons: cons,
+      creators: crs,
+    }
+  }
 
 ConstrainingTypes
   = SingleConstraint
@@ -116,6 +133,7 @@ SingleConstraint
 ConstraintCreators
   = W CreateToken is:IdentifierList W EndToken
   {
+    console.warn("Constraint Creators: Not implemented");
     return is;
   }
 
