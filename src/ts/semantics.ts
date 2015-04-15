@@ -127,7 +127,7 @@ module eiffel.semantics {
             analysisContext.errors.push("Functions cannot be used as creation procedures " + name);
         }
         else {
-          analysisContext.errors.push("There is not procedure with name " + name);
+          analysisContext.errors.push("There is not a procedure with name " + name);
         }
       })
     });
@@ -195,28 +195,42 @@ module eiffel.semantics {
     classSymbol: symbols.ClassSymbol;
 
     vAttr(attr:eiffel.ast.Attribute, _:any):any {
-      var name = attr.name.name;
-      this.errorOnDuplicateFeature(this.classSymbol, name);
+      attr.frozenNamesAndAliases.map(function (fna) {
+        var name = fna.name.name;
+        var lcName = name.toLowerCase();
+        this.errorOnDuplicateFeature(this.classSymbol, lcName);
 
-      var attributeSymbol = new symbols.AttributeSymbol(name, attr);
+        var alias: string = null;
+        if (fna.alias != null) {
+          alias = fna.alias.name.value;
+        }
+        var attributeSymbol = new symbols.AttributeSymbol(name, alias, fna.frozen, attr);
 
-      attr.sym = attributeSymbol;
-      this.classSymbol.attributes[name] = attributeSymbol;
+        attr.sym = attributeSymbol;
+        this.classSymbol.attributes[lcName] = attributeSymbol;
+      }, this);
 
       //return super.vAttr(attr, this.classSymbol);
     }
 
     vFunction(func:eiffel.ast.Function, _:any):any {
-      var functionName = func.name.name;
-      this.errorOnDuplicateFeature(this.classSymbol, functionName);
+      func.frozenNamesAndAliases.map(function (fna) {
+        var functionName = fna.name.name;
+        var lcFunctionName = functionName.toLowerCase();
+        this.errorOnDuplicateFeature(this.classSymbol, lcFunctionName);
 
-      var sym = new symbols.FunctionSymbol(functionName, func);
+        var alias: string = null;
+        if (fna.alias != null) {
+          alias = fna.alias.name.value;
+        }
+        var sym = new symbols.FunctionSymbol(lcFunctionName, alias, fna.frozen, func);
 
-      func.sym = sym;
-      this.classSymbol.functions[functionName] = sym;
-      this.classSymbol.routines[functionName] = sym;
-      this.analysisContext.allFunctions.push(sym);
-      this.analysisContext.allRoutines.push(sym);
+        func.sym = sym;
+        this.classSymbol.functions[lcFunctionName] = sym;
+        this.classSymbol.routines[lcFunctionName] = sym;
+        this.analysisContext.allFunctions.push(sym);
+        this.analysisContext.allRoutines.push(sym);
+      }, this);
 
       //return super.vFunction(func, this.classSymbol);
     }
@@ -228,29 +242,43 @@ module eiffel.semantics {
     }
 
     vProcedure(procedure:eiffel.ast.Procedure, _:any):any {
-      var procedureName = procedure.name.name;
-      this.errorOnDuplicateFeature(this.classSymbol, procedureName);
+      procedure.frozenNamesAndAliases.map(function (fna) {
 
-      var sym = new symbols.ProcedureSymbol(procedureName, procedure);
+        var procedureName = fna.name.name;
+        var lcProcedureName = procedureName.toLowerCase();
+        this.errorOnDuplicateFeature(this.classSymbol, lcProcedureName);
 
-      procedure.sym = sym;
-      this.classSymbol.procedures[procedureName] = sym;
-      this.classSymbol.routines[procedureName] = sym;
-      this.analysisContext.allProcedures.push(sym);
-      this.analysisContext.allRoutines.push(sym);
+        var alias: string = null;
+        if (fna.alias != null) {
+          alias = fna.alias.name.value;
+        }
+        var sym = new symbols.ProcedureSymbol(procedureName, alias, fna.frozen, procedure);
 
+        procedure.sym = sym;
+        this.classSymbol.procedures[lcProcedureName] = sym;
+        this.classSymbol.routines[lcProcedureName] = sym;
+        this.analysisContext.allProcedures.push(sym);
+        this.analysisContext.allRoutines.push(sym);
+      }, this);
       //return super.vProcedure(procedure, this.classSymbol);
     }
 
     vConstantAttribute(constantAttribute:eiffel.ast.ConstantAttribute, _:any):any {
-      var name = constantAttribute.name.name;
-      this.errorOnDuplicateFeature(this.classSymbol, name);
+      constantAttribute.frozenNamesAndAliases.map(function (fna) {
 
-      var attributeSymbol = new symbols.AttributeSymbol(name, constantAttribute);
+        var name = fna.name.name;
+        var lcName = name.toLowerCase();
+        this.errorOnDuplicateFeature(this.classSymbol, lcName);
 
-      constantAttribute.sym = attributeSymbol;
-      this.classSymbol.attributes[name] = attributeSymbol;
+        var alias: string = null;
+        if (fna.alias != null) {
+          alias = fna.alias.name.value;
+        }
+        var attributeSymbol = new symbols.AttributeSymbol(name, alias, fna.frozen, constantAttribute);
 
+        constantAttribute.sym = attributeSymbol;
+        this.classSymbol.attributes[lcName] = attributeSymbol;
+      }, this);
       //return super.vConstantAttribute(constantAttribute, this.classSymbol);
     }
   }
