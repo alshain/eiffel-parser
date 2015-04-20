@@ -118,7 +118,10 @@ module eiffel.semantics {
         return;
       }
       else if (inheritanceChecked.has(oneClass)) {
-
+        /**
+         * Already done, do nothing
+         */
+        return;
       }
       else {
         inheritanceBeingChecked.add(oneClass);
