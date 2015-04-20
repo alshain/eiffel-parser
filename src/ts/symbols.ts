@@ -133,4 +133,22 @@ module eiffel.symbols {
       throw new Error("Symbol " + name + " does not exist in class " + this.name + ".");
     }
   }
+
+  export class TypeInstance {
+
+    constructor(baseType:eiffel.symbols.ClassSymbol, typeParameters:eiffel.symbols.TypeInstance[]) {
+      this.baseType = baseType;
+      this.typeParameters = typeParameters;
+    }
+
+    baseType: ClassSymbol;
+    typeParameters: TypeInstance[];
+
+    /**
+     * Performs generic substitution of a formal generic parameter with its corresponding type instance
+     *
+     * Returns type if it isn't a generic parameter
+     */
+    substitute()
+  }
 }
