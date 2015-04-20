@@ -173,7 +173,9 @@ module eiffel.semantics {
   var initGenericParamSyms = function (analysisContext) {
     analysisContext.allClasses.map(function (oneClass) {
       oneClass.ast.genericParameters.forEach(function (genericParameter) {
-        genericParameter.sym = new eiffel.symbols.ClassSymbol(genericParameter.name.name, null);
+        var name = genericParameter.name.name;
+        genericParameter.sym = new eiffel.symbols.ClassSymbol(name, null);
+        oneClass.genericParametersByName.set(name.toLowerCase(), genericParameter.sym);
       });
     });
   };
