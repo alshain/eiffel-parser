@@ -98,7 +98,7 @@ module eiffel.semantics {
   };
 
   var requireValidClassForAnalysis = function requireClassForAnalysis(name: string, analysisContext: AnalysisContext, success: (symbol: eiffel.symbols.ClassSymbol, context: AnalysisContext) => any, failure: (context: AnalysisContext) => any): any {
-    if (analysisContext.classSymbols.has(name)) {
+    if (analysisContext.hasClass(name)) {
       return success(analysisContext.classWithName(name), analysisContext);
     }
     else {
