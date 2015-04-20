@@ -201,7 +201,7 @@ module eiffel.semantics {
             analysisContext.errors.uncategorized("Functions cannot be used as creation procedures " + name);
         }
         else {
-          analysisContext.errors.uncategorized("There is not a procedure with name " + name);
+          analysisContext.errors.uncategorized("There is no procedure with name " + name);
         }
       })
     });
