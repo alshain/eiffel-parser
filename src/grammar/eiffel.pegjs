@@ -87,7 +87,7 @@ class
         expanded,
         optionalList(note),
         optionalList(inherit),
-        generics,
+        optionalList(generics),
         (create == null) ? [] : create,
         featureLists
       );
