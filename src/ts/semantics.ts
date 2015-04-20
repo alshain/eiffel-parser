@@ -97,6 +97,16 @@ module eiffel.semantics {
     });
   };
 
+  var requireValidClassForAnalysis = function requireClassForAnalysis(name: string, analysisContext: AnalysisContext, success: (symbol: eiffel.symbols.ClassSymbol, context: AnalysisContext) => any, failure: (context: AnalysisContext) => any): any {
+    if (analysisContext.classSymbols.hasOwnProperty(name)) {
+      return success(analysisContext.classWithName(name), analysisContext);
+    }
+    else {
+      failure(analysisContext);
+      return false;
+    }
+  }
+
   export function analyze(...manyAsts: ast.Class[][]): AnalysisResult {
     var parse = function parse(builtinSource: BuiltinSource) {
       try {
@@ -117,6 +127,42 @@ module eiffel.semantics {
     createRoutineParamSymbols(analysisContext.allRoutines);
     createRoutineLocalSymbols(analysisContext);
 
+    var inheritanceBeingChecked: Set<eiffel.symbols.ClassSymbol> = new Set();
+    var inheritanceChecked: Set<eiffel.symbols.ClassSymbol> = new Set();
+    var hasValidHierarchy = function hasValidHierarchy(oneClass: eiffel.symbols.ClassSymbol) {
+      if (inheritanceBeingChecked.has(oneClass)) {
+        throw new Error("Cycle detected for: " + oneClass.name);
+      }
+      else if (inheritanceChecked.has(oneClass)) {
+        return true;
+      }
+      else {
+        inheritanceBeingChecked.add(oneClass);
+        oneClass.ast.parentGroups.forEach(function (parentGroup:eiffel.ast.ParentGroup) {
+          parentGroup.parents.forEach(function (parent:eiffel.ast.Parent) {
+            var parentName = parent.rawType.name.name;
+            requireValidClassForAnalysis(parentName, analysisContext,
+              hasValidHierarchy,
+              function failure(ac: AnalysisContext) {
+                analysisContext.errors.unknownClass(parent.rawType.name);
+              }
+            )
+          })
+        });
+        inheritanceBeingChecked.delete(oneClass);
+        inheritanceChecked.add(oneClass);
+      }
+    }
+
+    analysisContext.allClasses.map(hasValidHierarchy);
+
+
+    analysisContext.allClasses.map(function (oneClass) {
+      oneClass.ast.genericParameters.forEach(function (genericParameter) {
+        new eiffel.symbols.ClassSymbol(genericParameter.name.name, null);
+      });
+    });
+
     analysisContext.allClasses.forEach(function (classSymbol) {
       classSymbol.ast.creationClause.forEach(function (identifier) {
         var name: string = identifier.name;
@@ -124,10 +170,10 @@ module eiffel.semantics {
           classSymbol.creationProcedures[name] = classSymbol.procedures[name];
         }
         else if (classSymbol.functions.hasOwnProperty(name)) {
-            analysisContext.errors.push("Functions cannot be used as creation procedures " + name);
+            analysisContext.errors.uncategorized("Functions cannot be used as creation procedures " + name);
         }
         else {
-          analysisContext.errors.push("There is not a procedure with name " + name);
+          analysisContext.errors.uncategorized("There is not a procedure with name " + name);
         }
       })
     });
@@ -157,10 +203,43 @@ module eiffel.semantics {
       else {
         console.error("Prototype is not a key", prototype, this.astDictionary);
         throw new Error("Prototype is not a key" + prototype);
+      }
     }
+
+    classWithName(name: string): eiffel.symbols.ClassSymbol {
+      if (this.classSymbols.hasOwnProperty(name)) {
+        return this.classSymbols[name];
+      }
+      else {
+        throw new Error("There is no class with name: " + name);
+      }
+    }
+
+
+
+    errors: ErrorContext = new ErrorContext();
   }
 
+  class ErrorContext {
     errors: string[] = [];
+
+    add(kind: SemanticErrorKind, message: string, ast?: eiffel.ast.AST) {
+      var entireMessage = SemanticErrorKind[kind] + ": " + message;
+      console.error(entireMessage, ast);
+      this.errors.push(entireMessage);
+    }
+
+    unknownClass(identifier: eiffel.ast.Identifier) {
+      this.add(SemanticErrorKind.UnknownClass, identifier.name, identifier);
+    }
+
+    duplicateFeature(identifier: eiffel.ast.Identifier) {
+      this.add(SemanticErrorKind.DuplicateFeatureName, identifier.name, identifier);
+    }
+
+    uncategorized(message: string): void {
+      this.errors.push(message);
+    }
   }
 
   class SemanticVisitor<A, R> extends ast.Visitor<A, R> {
@@ -173,16 +252,14 @@ module eiffel.semantics {
       this.analysisContext = analysisContext;
       this.classSymbols = analysisContext.classSymbols;
     }
-
-    error(message: string, kind: SemanticErrorKind) {
-      this.analysisContext.errors.push(SemanticErrorKind[kind] + message);
-    }
   }
 
-  enum SemanticErrorKind {
+  export enum SemanticErrorKind {
     DuplicateFeatureName,
     DuplicateParameterName,
     DuplicateClassName,
+    UnknownClass,
+    InheritanceCycle,
   }
 
   class FeatureDiscovery extends SemanticVisitor<any, any> {
@@ -198,7 +275,7 @@ module eiffel.semantics {
       attr.frozenNamesAndAliases.map(function (fna) {
         var name = fna.name.name;
         var lcName = name.toLowerCase();
-        this.errorOnDuplicateFeature(this.classSymbol, lcName);
+        this.errorOnDuplicateFeature(this.classSymbol, lcName, fna.name);
 
         var alias: string = null;
         if (fna.alias != null) {
@@ -217,7 +294,7 @@ module eiffel.semantics {
       func.frozenNamesAndAliases.map(function (fna) {
         var functionName = fna.name.name;
         var lcFunctionName = functionName.toLowerCase();
-        this.errorOnDuplicateFeature(this.classSymbol, lcFunctionName);
+        this.errorOnDuplicateFeature(this.classSymbol, lcFunctionName, fna.name);
 
         var alias: string = null;
         if (fna.alias != null) {
@@ -235,9 +312,9 @@ module eiffel.semantics {
       //return super.vFunction(func, this.classSymbol);
     }
 
-    private errorOnDuplicateFeature(classSymbol, featureName) {
+    private errorOnDuplicateFeature(classSymbol, featureName, identifier) {
       if (classSymbol.hasSymbol(featureName)) {
-        this.error("Feature with name " + featureName + " already exists", SemanticErrorKind.DuplicateFeatureName);
+        this.analysisContext.errors.duplicateFeature(identifier);
       }
     }
 
@@ -246,7 +323,7 @@ module eiffel.semantics {
 
         var procedureName = fna.name.name;
         var lcProcedureName = procedureName.toLowerCase();
-        this.errorOnDuplicateFeature(this.classSymbol, lcProcedureName);
+        this.errorOnDuplicateFeature(this.classSymbol, lcProcedureName, fna.name);
 
         var alias: string = null;
         if (fna.alias != null) {
@@ -268,7 +345,7 @@ module eiffel.semantics {
 
         var name = fna.name.name;
         var lcName = name.toLowerCase();
-        this.errorOnDuplicateFeature(this.classSymbol, lcName);
+        this.errorOnDuplicateFeature(this.classSymbol, lcName, fna.name);
 
         var alias: string = null;
         if (fna.alias != null) {
@@ -297,7 +374,8 @@ module eiffel.semantics {
     }
   }
 
-  class TypeConnector extends SemanticVisitor<any, any> {
+
+  class FeatureTypeConnector extends SemanticVisitor<any, any> {
 
 
   }
@@ -305,7 +383,7 @@ module eiffel.semantics {
 
     export interface AnalysisResult {
     asts: eiffel.ast.Class[];
-    errors: any[];
+    errors: ErrorContext;
     context: AnalysisContext;
   }
 }
