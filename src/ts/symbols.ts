@@ -21,37 +21,37 @@ module eiffel.symbols {
     isFrozen: boolean;
   }
 
-    export class RoutineSymbol extends FeatureSymbol {
-      constructor(name: string, alias: string, frozen: boolean, ast:ast.Routine) {
-        super(name, alias, frozen);
-        this.ast = ast;
-      }
-
-      locals: VariableSymbol[] = [];
-      localsAndParamsByName: LookupTable<VariableSymbol> = new Map<string, VariableSymbol>();
-      paramsInOrder: VariableSymbol[] = [];
-      ast: ast.Routine;
+  export class RoutineSymbol extends FeatureSymbol {
+    constructor(name: string, alias: string, frozen: boolean, ast:ast.Routine) {
+      super(name, alias, frozen);
+      this.ast = ast;
     }
 
-    export class FunctionSymbol extends RoutineSymbol {
-      constructor(name: string, alias: string, frozen: boolean, ast:ast.Function) {
-        super(name, alias, frozen, ast);
-        this.ast = ast;
-      }
+    locals: VariableSymbol[] = [];
+    localsAndParamsByName: LookupTable<VariableSymbol> = new Map<string, VariableSymbol>();
+    paramsInOrder: VariableSymbol[] = [];
+    ast: ast.Routine;
+  }
 
-      ast: ast.Function;
+  export class FunctionSymbol extends RoutineSymbol {
+    constructor(name: string, alias: string, frozen: boolean, ast:ast.Function) {
+      super(name, alias, frozen, ast);
+      this.ast = ast;
     }
 
-    export class ProcedureSymbol extends RoutineSymbol {
+    ast: ast.Function;
+  }
+
+  export class ProcedureSymbol extends RoutineSymbol {
 
 
-      constructor(name:string, alias: string, frozen: boolean, ast:ast.Procedure) {
-        super(name, alias, frozen, ast);
-        this.ast = ast;
-      }
-
-      ast: ast.Procedure;
+    constructor(name:string, alias: string, frozen: boolean, ast:ast.Procedure) {
+      super(name, alias, frozen, ast);
+      this.ast = ast;
     }
+
+    ast: ast.Procedure;
+  }
 
   export class AttributeSymbol extends FeatureSymbol {
 
