@@ -292,15 +292,8 @@ astTests.forEach(function(n_s_t_e) {
 
   test(name, function() {
     var actual = vees.parser.parse(expression, {startRule: start});
-    var comparisonSucceeded = compareAst(expected, actual);
-    if (comparisonSucceeded) {
-        okAst("");
-    }
-    else {
-      console.log("Actual", actual);
-      console.log("Expected", expected);
-      okAst(false);
-    }
+    okAst(compareAst(expected, actual));
+
   });
 });
 
@@ -314,10 +307,10 @@ test("should return correct class name", function() {
 QUnit.module("Analyzer");
 
 function analyze(...sources: string[]) {
-  console.time("Parsing")
+  console.time("Parsing");
   var parsed = Array.prototype.map.call(sources, function (x, i) { return vees.parser.parse(x)});
   var analyzed = eiffel.semantics.analyze.apply(null, parsed);
-  console.timeEnd("Parsing")
+  console.timeEnd("Parsing");
   return analyzed;
 }
 test("should pass", function () {
