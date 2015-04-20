@@ -195,7 +195,7 @@ module eiffel.semantics {
       classSymbol.ast.creationClause.forEach(function (identifier) {
         var name: string = identifier.name;
         if (classSymbol.procedures.hasOwnProperty(name)) {
-          classSymbol.creationProcedures.set(name, classSymbol.procedures[name]);
+          classSymbol.creationProcedures.set(name, classSymbol.procedures.get(name));
         }
         else if (classSymbol.functions.hasOwnProperty(name)) {
             analysisContext.errors.uncategorized("Functions cannot be used as creation procedures " + name);
