@@ -14,7 +14,7 @@ module eiffel.semantics {
       var name = ast.name.name;
       var classSymbol = new symbols.ClassSymbol(name, ast);
 
-      analysisContext.classSymbols[name] = classSymbol;
+      analysisContext.classSymbols.set(classSymbol.lowerCaseName, classSymbol);
       analysisContext.allClasses.push(classSymbol);
     });
   };
@@ -32,7 +32,7 @@ module eiffel.semantics {
           var varName = varDecl.name.name;
           var variableSymbol = new symbols.VariableSymbol(varName, varDecl);
           routine.paramsInOrder.push(variableSymbol);
-          routine.localsAndParamsByName[varName] = variableSymbol;
+          routine.localsAndParamsByName.set(varName, variableSymbol);
         });
       });
     });
@@ -50,7 +50,7 @@ module eiffel.semantics {
             var varName = varDecl.name.name;
             var variableSymbol = new symbols.VariableSymbol(varName, varDecl);
             routine.locals.push(variableSymbol);
-            routine.localsAndParamsByName[varName] = variableSymbol;
+            routine.localsAndParamsByName.set(varName, variableSymbol);
           });
         });
       });
@@ -127,14 +127,17 @@ module eiffel.semantics {
     createRoutineParamSymbols(analysisContext.allRoutines);
     createRoutineLocalSymbols(analysisContext);
 
-    var inheritanceBeingChecked: Set<eiffel.symbols.ClassSymbol> = new Set();
-    var inheritanceChecked: Set<eiffel.symbols.ClassSymbol> = new Set();
-    var hasValidHierarchy = function hasValidHierarchy(oneClass: eiffel.symbols.ClassSymbol) {
+    var inheritanceBeingChecked: Set<eiffel.symbols.ClassSymbol> = new Set<eiffel.symbols.ClassSymbol>();
+    var inheritanceChecked: Set<eiffel.symbols.ClassSymbol> = new Set<eiffel.symbols.ClassSymbol>();
+    var inheritanceCycles: eiffel.symbols.ClassSymbol[][] = [];
+    var hasValidHierarchy = function hasValidHierarchy(oneClass: eiffel.symbols.ClassSymbol, descendants: eiffel.symbols.ClassSymbol[]) {
       if (inheritanceBeingChecked.has(oneClass)) {
-        throw new Error("Cycle detected for: " + oneClass.name);
+        oneClass.hasCyclicInheritance = true;
+        inheritanceCycles.push(descendants.slice(0));
+        return;
       }
       else if (inheritanceChecked.has(oneClass)) {
-        return true;
+
       }
       else {
         inheritanceBeingChecked.add(oneClass);
@@ -142,19 +145,44 @@ module eiffel.semantics {
           parentGroup.parents.forEach(function (parent:eiffel.ast.Parent) {
             var parentName = parent.rawType.name.name;
             requireValidClassForAnalysis(parentName, analysisContext,
-              hasValidHierarchy,
-              function failure(ac: AnalysisContext) {
+              function (parentSymbol: eiffel.symbols.ClassSymbol) {
+                if (parentSymbol.hasCyclicInheritance) {
+                  /**
+                   * This implies that hasValidHierarchy() has already been called on parentSymbol
+                   * Implying that all the cycles it participates in have already been identified
+                   * Thus, this `oneClass` cannot be inside any such cycle.
+                   *
+                   */
+                  oneClass.inheritsFromCyclicInheritance = true;
+
+                }
+                else {
+                  descendants.push(oneClass);
+                  hasValidHierarchy(parentSymbol, descendants);
+                  descendants.pop();
+                  oneClass.hasCyclicInheritance = parentSymbol.hasCyclicInheritance;
+                  oneClass.inheritsFromCyclicInheritance = parentSymbol.inheritsFromCyclicInheritance;
+                }
+              },
+              function failure(ac:AnalysisContext) {
                 analysisContext.errors.unknownClass(parent.rawType.name);
               }
-            )
+            );
           })
         });
         inheritanceBeingChecked.delete(oneClass);
         inheritanceChecked.add(oneClass);
       }
-    }
+    };
 
-    analysisContext.allClasses.map(hasValidHierarchy);
+    analysisContext.allClasses.forEach(function (oneClass: eiffel.symbols.ClassSymbol) {
+      hasValidHierarchy(oneClass, []);
+    });
+
+    if (inheritanceCycles.length > 0) {
+      analysisContext.errors.uncategorized("Cyclic inheritance detected");
+      console.error("Cycles:", inheritanceCycles);
+    };
 
 
     analysisContext.allClasses.map(function (oneClass) {
@@ -167,7 +195,7 @@ module eiffel.semantics {
       classSymbol.ast.creationClause.forEach(function (identifier) {
         var name: string = identifier.name;
         if (classSymbol.procedures.hasOwnProperty(name)) {
-          classSymbol.creationProcedures[name] = classSymbol.procedures[name];
+          classSymbol.creationProcedures.set(name, classSymbol.procedures[name]);
         }
         else if (classSymbol.functions.hasOwnProperty(name)) {
             analysisContext.errors.uncategorized("Functions cannot be used as creation procedures " + name);
@@ -189,7 +217,7 @@ module eiffel.semantics {
   }
 
   class AnalysisContext {
-    classSymbols: LookupTable<sym.ClassSymbol> = {};
+    classSymbols: LookupTable<sym.ClassSymbol> = new Map<string, sym.ClassSymbol>();
     allFunctions: symbols.FunctionSymbol[] = [];
     allProcedures: symbols.ProcedureSymbol[] = [];
     allRoutines: symbols.RoutineSymbol[] = [];
@@ -207,15 +235,19 @@ module eiffel.semantics {
     }
 
     classWithName(name: string): eiffel.symbols.ClassSymbol {
-      if (this.classSymbols.hasOwnProperty(name)) {
-        return this.classSymbols[name];
+      var lowerCaseName = name.toLowerCase();
+      if (this.classSymbols.has(lowerCaseName)) {
+        return this.classSymbols.get(lowerCaseName);
       }
       else {
         throw new Error("There is no class with name: " + name);
       }
     }
 
-
+    hasClass(name: string): boolean {
+      var lowerCaseName = name.toLowerCase();
+      return this.classSymbols.has(lowerCaseName);
+    }
 
     errors: ErrorContext = new ErrorContext();
   }
@@ -284,7 +316,7 @@ module eiffel.semantics {
         var attributeSymbol = new symbols.AttributeSymbol(name, alias, fna.frozen, attr);
 
         attr.sym = attributeSymbol;
-        this.classSymbol.attributes[lcName] = attributeSymbol;
+        this.classSymbol.attributes.set(lcName, attributeSymbol);
       }, this);
 
       //return super.vAttr(attr, this.classSymbol);
@@ -303,8 +335,8 @@ module eiffel.semantics {
         var sym = new symbols.FunctionSymbol(lcFunctionName, alias, fna.frozen, func);
 
         func.sym = sym;
-        this.classSymbol.functions[lcFunctionName] = sym;
-        this.classSymbol.routines[lcFunctionName] = sym;
+        this.classSymbol.functions.set(lcFunctionName, sym);
+        this.classSymbol.routines.set(lcFunctionName, sym);
         this.analysisContext.allFunctions.push(sym);
         this.analysisContext.allRoutines.push(sym);
       }, this);
@@ -332,8 +364,8 @@ module eiffel.semantics {
         var sym = new symbols.ProcedureSymbol(procedureName, alias, fna.frozen, procedure);
 
         procedure.sym = sym;
-        this.classSymbol.procedures[lcProcedureName] = sym;
-        this.classSymbol.routines[lcProcedureName] = sym;
+        this.classSymbol.procedures.set(lcProcedureName, sym);
+        this.classSymbol.routines.set(lcProcedureName, sym);
         this.analysisContext.allProcedures.push(sym);
         this.analysisContext.allRoutines.push(sym);
       }, this);
@@ -354,7 +386,7 @@ module eiffel.semantics {
         var attributeSymbol = new symbols.AttributeSymbol(name, alias, fna.frozen, constantAttribute);
 
         constantAttribute.sym = attributeSymbol;
-        this.classSymbol.attributes[lcName] = attributeSymbol;
+        this.classSymbol.attributes.set(lcName, attributeSymbol);
       }, this);
       //return super.vConstantAttribute(constantAttribute, this.classSymbol);
     }

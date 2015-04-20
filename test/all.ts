@@ -311,6 +311,19 @@ function analyze(...sources: string[]) {
   var parsed = Array.prototype.map.call(sources, function (x, i) { return vees.parser.parse(x)});
   var analyzed = eiffel.semantics.analyze.apply(null, parsed);
   console.timeEnd("Parsing");
+  if (analyzed.errors.errors.length > 0) {
+    console.group("Analysis Failure");
+
+      console.groupCollapsed("Sources");
+        console.error(sources);
+      console.groupEnd();
+
+      console.group("Errors");
+        analyzed.errors.errors.forEach((error) => {console.log(error)});
+      console.groupEnd();
+
+    console.groupEnd();
+  }
   return analyzed;
 }
 test("should pass", function () {
@@ -320,7 +333,7 @@ test("should pass", function () {
 
 
 function analyzerHasClass(analyzed, className) {
-  var hasClass = analyzed.context.classSymbols.hasOwnProperty(className);
+  var hasClass = analyzed.context.hasClass(className);
   if (!hasClass) {
     console.log(analyzed.context.classSymbols);
   }
@@ -328,12 +341,13 @@ function analyzerHasClass(analyzed, className) {
 }
 
 function classHasSymbol(analyzed, className, symbolName) {
-  var classSymbol = analyzed.context.classSymbols[className];
+  var classSymbol = analyzed.context.classWithName(className);
   var hasSymbol = classSymbol.hasSymbol(symbolName);
   var errorMessage = "Class " + className + " does not have symbol " + symbolName;
   if (!hasSymbol) {
-    console.log(errorMessage);
-    console.log(analyzed.context.classSymbols[className]);
+    console.error(errorMessage);
+    console.log(analyzed);
+    console.log(analyzed.context.classWithName(className));
   }
   ok(hasSymbol, errorMessage);
 
@@ -346,7 +360,6 @@ function classHasSymbol(analyzed, className, symbolName) {
 
 test("should find symbol", function() {
   var analyzed = analyze("class CLASSNAME feature test: INTEGER end");
-  ok(null != analyzed.context.classSymbols["CLASSNAME"]);
   classHasSymbol(analyzed, "CLASSNAME", "test");
 });
 
@@ -375,16 +388,16 @@ test("Symbols exist", function() {
 
 test("Local variables exist", function () {
   var analyzed = analyze("class HASLOCALS feature abcd local var: INTEGER do end end");
-  var local = analyzed.context.classSymbols["HASLOCALS"].routines["abcd"].localsAndParamsByName["var"];
+  var local = analyzed.context.classWithName("HASLOCALS").routines["abcd"].localsAndParamsByName["var"];
   equal(local.name, "var", "Local variable is not named var");
 });
 
 
 test("Symbols resolve correctly in attributes", function () {
   var analyzed = analyze("class A feature a: A end", "class B feature a: A end class C feature b: B end");
-  var aSym = analyzed.context.classSymbols["A"];
-  var bSym = analyzed.context.classSymbols["B"];
-  var cSym = analyzed.context.classSymbols["C"];
+  var aSym = analyzed.context.classWithName("A");
+  var bSym = analyzed.context.classWithName("B");
+  var cSym = analyzed.context.classWithName("C");
   ok(aSym.resolveSymbol("a").type.baseSymbol === aSym, "Type was not resolved");
   ok(bSym.resolveSymbol("a").type.baseSymbol === aSym, "Type was not resolved");
   ok(cSym.resolveSymbol("b").type.baseSymbol === bSym, "Type was not resolved");
@@ -394,7 +407,7 @@ test("Symbols resolve correctly in attributes", function () {
 test("Alias registers correctly", function () {
   var analyzed = analyze('class A feature b  alias "and then" (other: A): A do end end');
 
-  ok(analyzed.context.classSymbols["A"].resolveSymbol("b") === analyzed.context.classSymbols["A"].aliases["and then"], "Alias was not registered");
+  ok(analyzed.context.classWithName("A").resolveSymbol("b") === analyzed.context.classWithName("A").aliases["and then"], "Alias was not registered");
   try{
     var analyzed = analyze('class A feature b  alias "and then" (other: A; other3: A): A do end end');
     ok(false, "Did not throw");
@@ -406,14 +419,15 @@ test("Alias registers correctly", function () {
 
 test("Function return types resolve correctly", function () {
   var analyzed = analyze("class A feature b: A do end end");
-  ok(analyzed.context.classSymbols["A"].resolveSymbol("b").type.baseSymbol === analyzed.context.classSymbols["A"], "Type was not resolved");
+  ok(analyzed.context.classWithName("A").resolveSymbol("b").type.baseSymbol === analyzed.context.classWithName("A"), "Type was not resolved");
 });
 
 test("Local variables type resolves correctly", function () {
   var analyzed = analyze("class HASLOCALS feature abcd local var: INTEGER do end end");
   console.log("LOCAL VARS", analyzed);
-  var local = analyzed.context.classSymbols["HASLOCALS"].routines["abcd"].localsAndParamsByName["var"];
-  ok(local.type.baseSymbol === analyzed.context.classSymbols["INTEGER"], "Type was not resolved");
+  var local = analyzed.context.classWithName("HASLOCALS").routines["abcd"].localsAndParamsByName["var"];
+  ok(local.type.baseSymbol === analyzed.context.classWithName("INTEGER"), "Type was not resolved");
 
   equal(local.name, "var", "Local variable is not named var");
+  var m = new Map<number, number>([])
 });

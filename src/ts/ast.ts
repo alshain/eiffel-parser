@@ -69,7 +69,7 @@ module eiffel.ast {
     constructor(
       name: Identifier,
       expanded: Token,
-      note: any, parents: Parent[],
+      note: any, parentGroups: ParentGroup[],
       generics: FormalGenericParameter[],
       creationClause: Identifier[],
       featureLists: FeatureList[]
@@ -80,8 +80,8 @@ module eiffel.ast {
       this.children.push(name);
 
       this.genericParameters = generics;
-      this.parents = parents;
-      Array.prototype.push.apply(this.children, parents);
+      this.parentGroups = parentGroups;
+      Array.prototype.push.apply(this.children, parentGroups);
 
       this.creationClause = creationClause;
       Array.prototype.push.apply(this.children, creationClause);
@@ -97,7 +97,7 @@ module eiffel.ast {
     name:Identifier;
     expanded: Token;
     genericParameters: FormalGenericParameter[];
-    parents:Parent[];
+    parentGroups:ParentGroup[];
     creationClause:Identifier[];
     featureLists:FeatureList[];
 
@@ -504,16 +504,18 @@ module eiffel.ast {
     }
   }
 
+  type Adaption = Undefines | Redefines | Renames | Selects | NewExports;
+
   export class Parent extends AST implements VisitorAcceptor {
-    constructor(rt: Type, adaptions) {
+    constructor(rt: Type, adaptions: Adaption[]) {
       super(this);
+      this.rawType = rt;
+      this.adaptions = adaptions;
     }
 
+    rawType: Type;
     name:Identifier;
-    undefine:Undefines[];
-    redefine:Redefines[];
-    rename:Renames[];
-    newexport:NewExports[] | All;
+    adaptions: Adaption[];
 
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vParent(this, arg);
@@ -885,37 +887,38 @@ module eiffel.ast {
     Implies,
   }
 
-  var stringToUnaryOp:LookupTable<UnaryOperator> = {
-    "-": UnaryOperator.Minus,
-    "+": UnaryOperator.Plus,
-    "not": UnaryOperator.Not,
-    "old": UnaryOperator.Old,
-  };
+  var stringToUnaryOp:LookupTable<UnaryOperator> = new Map<string, UnaryOperator>([
+    [<any>"-", UnaryOperator.Minus],
+    [<any>"+", UnaryOperator.Plus],
+    [<any>"not", UnaryOperator.Not],
+    [<any>"old", UnaryOperator.Old],
+  ]);
 
-  var stringToBinaryOp:LookupTable<BinaryOperator> = {
-    "-": BinaryOperator.Minus,
-    "+": BinaryOperator.Plus,
-    "*": BinaryOperator.Multiplication,
-    "/": BinaryOperator.Division,
-    "//": BinaryOperator.IntegerDivision,
-    "\\\\": BinaryOperator.Modulo,
-    "^": BinaryOperator.Exponential,
-    "..": BinaryOperator.DotDot,
-    "=": BinaryOperator.Identical,
-    "/=": BinaryOperator.NotIdentical,
-    "~": BinaryOperator.IsEqual,
-    "/~": BinaryOperator.NotIsEqual,
-    "<": BinaryOperator.LessThan,
-    ">": BinaryOperator.GreaterThan,
-    "<=": BinaryOperator.LessOrEqual,
-    ">=": BinaryOperator.GreaterOrEqual,
-    "and": BinaryOperator.And,
-    "and then": BinaryOperator.AndThen,
-    "or": BinaryOperator.Or,
-    "or else": BinaryOperator.OrElse,
-    "xor": BinaryOperator.Xor,
-    "implies": BinaryOperator.Implies,
-  };
+
+  var stringToBinaryOp:LookupTable<BinaryOperator> = new Map<string, BinaryOperator>([
+    ["-", BinaryOperator.Minus],
+    ["+", BinaryOperator.Plus],
+    ["*", BinaryOperator.Multiplication],
+    ["/", BinaryOperator.Division],
+    ["//", BinaryOperator.IntegerDivision],
+    ["\\\\", BinaryOperator.Modulo],
+    ["^", BinaryOperator.Exponential],
+    ["..", BinaryOperator.DotDot],
+    ["=", BinaryOperator.Identical],
+    ["/=", BinaryOperator.NotIdentical],
+    ["~", BinaryOperator.IsEqual],
+    ["/~", BinaryOperator.NotIsEqual],
+    ["<", BinaryOperator.LessThan],
+    [">", BinaryOperator.GreaterThan],
+    ["<=", BinaryOperator.LessOrEqual],
+    [">=", BinaryOperator.GreaterOrEqual],
+    ["and", BinaryOperator.And],
+    ["and then", BinaryOperator.AndThen],
+    ["or", BinaryOperator.Or],
+    ["or else", BinaryOperator.OrElse],
+    ["xor", BinaryOperator.Xor],
+    ["implies", BinaryOperator.Implies],
+  ]);
 
   export class CallExpression extends AST implements Expression, VisitorAcceptor {
     constructor(operand:eiffel.ast.Expression, name:eiffel.ast.Identifier, parameters:eiffel.ast.Expression[]) {

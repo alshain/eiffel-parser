@@ -82,7 +82,8 @@
 start = class*
 class
   = w note:Note? expanded:(e:ExpandedToken W {return e})? ClassToken name:ClassName generics:GenericParams? inherit:inherit? create:create? convert:Convert? featureLists:FeatureList* Invariant? W (Note)? EndToken w
-    { return new eiffel.ast.Class(
+    { console.log(featureLists);
+      return new eiffel.ast.Class(
         name,
         expanded,
         optionalList(note),
@@ -161,16 +162,12 @@ InheritanceClause
   }
 
 Parent
-  = w t:Type a:Adaptions?
+  = w t:Type adaptions:Adaptions?
   {
-    return _n("parent", {
-      type: t,
-      undefine: (a === null) ? null : a.undefine,
-      redefine: (a === null) ? null : a.redefine,
-      rename: (a === null) ? null : a.rename,
-      newexport: (a === null) ? null : a.newexport,
-      select: (a === null) ? null : a.select,
-    });
+    return new eiffel.ast.Parent(
+      t,
+      adaptions
+    );
   }
 /** FIXME: No backtracking, END of inheritance only mandatory if at least one rule fits */
 

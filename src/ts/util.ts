@@ -1,6 +1,5 @@
 module eiffel {
 
-  export interface LookupTable<V> {
-    [name: string]: V
-  }
+  export interface LookupTable<V> extends Map<string, V> {};
+
 }

@@ -28,7 +28,7 @@ module eiffel.symbols {
       }
 
       locals: VariableSymbol[] = [];
-      localsAndParamsByName: LookupTable<VariableSymbol> = {};
+      localsAndParamsByName: LookupTable<VariableSymbol> = new Map<string, VariableSymbol>();
       paramsInOrder: VariableSymbol[] = [];
       ast: ast.Routine;
     }
@@ -80,24 +80,28 @@ module eiffel.symbols {
     }
 
     ast: ast.Class;
-    functions: LookupTable<FunctionSymbol> = {};
-    procedures: LookupTable<ProcedureSymbol> = {};
-    routines: LookupTable<RoutineSymbol> = {};
-    attributes: LookupTable<AttributeSymbol> = {};
-    creationProcedures: LookupTable<ProcedureSymbol> = {};
+    functions: LookupTable<FunctionSymbol> = new Map<string, FunctionSymbol>();
+    procedures: LookupTable<ProcedureSymbol> = new Map<string, ProcedureSymbol>();
+    routines: LookupTable<RoutineSymbol> = new Map<string, RoutineSymbol>();
+    attributes: LookupTable<AttributeSymbol> = new Map<string, AttributeSymbol>();
+    creationProcedures: LookupTable<ProcedureSymbol> = new Map<string, ProcedureSymbol>();
+    hasCyclicInheritance: boolean = false;
+    inheritsFromCyclicInheritance: boolean = false;
 
     isEffective: boolean;
     isExpanded: boolean;
     isFrozen: boolean;
     isDeferred: boolean;
 
+    genericParametersByName: LookupTable<ClassSymbol>;
+
 
     hasSymbol(name: string): boolean {
       var lcName = name.toLowerCase();
-      if (this.routines.hasOwnProperty(lcName)) {
+      if (this.routines.has(lcName)) {
         return true;
       }
-      if (this.attributes.hasOwnProperty(lcName)) {
+      if (this.attributes.has(lcName)) {
         return true;
       }
       return false;
@@ -105,11 +109,11 @@ module eiffel.symbols {
 
     resolveSymbol(name: string): Symbol {
       var lcName = name.toLowerCase();
-      if (this.routines.hasOwnProperty(lcName)) {
-        return this.routines[lcName];
+      if (this.routines.has(lcName)) {
+        return this.routines.get(lcName);
       }
-      if (this.attributes.hasOwnProperty(lcName)) {
-        return this.attributes[lcName];
+      if (this.attributes.has(lcName)) {
+        return this.attributes.get(lcName);
       }
       throw new Error("Symbol " + name + " does not exist in class " + this.name + ".");
     }
