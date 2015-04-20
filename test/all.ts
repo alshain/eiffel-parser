@@ -429,5 +429,4 @@ test("Local variables type resolves correctly", function () {
   ok(local.type.baseSymbol === analyzed.context.classWithName("INTEGER"), "Type was not resolved");
 
   equal(local.name, "var", "Local variable is not named var");
-  var m = new Map<number, number>([])
 });
