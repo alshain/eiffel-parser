@@ -192,6 +192,7 @@ module eiffel.semantics {
     var asts: ast.Class[] = Array.prototype.concat.apply([], manyAsts);
     var analysisContext = new AnalysisContext();
     createClassSymbols(asts, analysisContext);
+    initGenericParamSyms(analysisContext);
     initAstDictionary(analysisContext);
     initAstDictionaryByClass(analysisContext);
     createFeatureSymbols(analysisContext);
@@ -202,7 +203,6 @@ module eiffel.semantics {
 
 
 
-    initGenericParamSyms(analysisContext);
 
     analysisContext.allClasses.forEach(function (classSymbol) {
       classSymbol.ast.creationClause.forEach(function (identifier) {
