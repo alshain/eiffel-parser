@@ -4,7 +4,7 @@
 module eiffel.semantics {
   import sym = eiffel.symbols;
 
-  var createClassSymbols = function (asts, analysisContext: AnalysisContext) {
+  var createClassSymbols = function (asts, analysisContext:AnalysisContext) {
     asts.forEach(function (ast:eiffel.ast.Class) {
       if (!(ast instanceof eiffel.ast.Class)) {
         console.error("Root AST node is not instance of Class", ast);
@@ -19,7 +19,7 @@ module eiffel.semantics {
     });
   };
 
-  var createFeatureSymbols = function (analysisContext: AnalysisContext) {
+  var createFeatureSymbols = function (analysisContext:AnalysisContext) {
     analysisContext.allClasses.forEach(function (classSymbol) {
       classSymbol.ast.accept(new FeatureDiscovery(analysisContext, classSymbol), null);
     });
@@ -40,7 +40,7 @@ module eiffel.semantics {
 
   var createRoutineLocalSymbols = function (analysisContext) {
     analysisContext.allRoutines.forEach(function (routine:symbols.RoutineSymbol) {
-      var localsBlocks: eiffel.ast.LocalsBlock[] = <eiffel.ast.LocalsBlock[]> routine.ast.children.filter(function (child) {
+      var localsBlocks:eiffel.ast.LocalsBlock[] = <eiffel.ast.LocalsBlock[]> routine.ast.children.filter(function (child) {
         return child instanceof eiffel.ast.LocalsBlock;
       });
 
@@ -97,7 +97,7 @@ module eiffel.semantics {
     });
   };
 
-  var requireValidClassForAnalysis = function requireClassForAnalysis(name: string, analysisContext: AnalysisContext, success: (symbol: eiffel.symbols.ClassSymbol, context: AnalysisContext) => any, failure: (context: AnalysisContext) => any): any {
+  var requireValidClassForAnalysis = function requireClassForAnalysis(name:string, analysisContext:AnalysisContext, success:(symbol:eiffel.symbols.ClassSymbol, context:AnalysisContext) => any, failure:(context:AnalysisContext) => any):any {
     if (analysisContext.hasClass(name)) {
       return success(analysisContext.classWithName(name), analysisContext);
     }
@@ -107,30 +107,11 @@ module eiffel.semantics {
     }
   }
 
-  export function analyze(...manyAsts: ast.Class[][]): AnalysisResult {
-    var parse = function parse(builtinSource: BuiltinSource) {
-      try {
-        return eiffel.parser.parse(builtinSource.content)
-      }
-      catch (e) {
-        parseError(builtinSource, e);
-        throw e;
-      }
-    };
-    Array.prototype.push.apply(manyAsts, __eiffel_builtin.map(parse));
-    var asts: ast.Class[] = Array.prototype.concat.apply([], manyAsts);
-    var analysisContext = new AnalysisContext();
-    createClassSymbols(asts, analysisContext);
-    initAstDictionary(analysisContext);
-    initAstDictionaryByClass(analysisContext);
-    createFeatureSymbols(analysisContext);
-    createRoutineParamSymbols(analysisContext.allRoutines);
-    createRoutineLocalSymbols(analysisContext);
-
-    var inheritanceBeingChecked: Set<eiffel.symbols.ClassSymbol> = new Set<eiffel.symbols.ClassSymbol>();
-    var inheritanceChecked: Set<eiffel.symbols.ClassSymbol> = new Set<eiffel.symbols.ClassSymbol>();
-    var inheritanceCycles: eiffel.symbols.ClassSymbol[][] = [];
-    var hasValidHierarchy = function hasValidHierarchy(oneClass: eiffel.symbols.ClassSymbol, descendants: eiffel.symbols.ClassSymbol[]) {
+  var checkCyclicInheritance = function (analysisContext) {
+    var inheritanceBeingChecked:Set<eiffel.symbols.ClassSymbol> = new Set<eiffel.symbols.ClassSymbol>();
+    var inheritanceChecked:Set<eiffel.symbols.ClassSymbol> = new Set<eiffel.symbols.ClassSymbol>();
+    var inheritanceCycles:eiffel.symbols.ClassSymbol[][] = [];
+    var hasValidHierarchy = function hasValidHierarchy(oneClass:eiffel.symbols.ClassSymbol, descendants:eiffel.symbols.ClassSymbol[]) {
       if (inheritanceBeingChecked.has(oneClass)) {
         oneClass.hasCyclicInheritance = true;
         inheritanceCycles.push(descendants.slice(0));
@@ -145,7 +126,7 @@ module eiffel.semantics {
           parentGroup.parents.forEach(function (parent:eiffel.ast.Parent) {
             var parentName = parent.rawType.name.name;
             requireValidClassForAnalysis(parentName, analysisContext,
-              function (parentSymbol: eiffel.symbols.ClassSymbol) {
+              function (parentSymbol:eiffel.symbols.ClassSymbol) {
                 if (parentSymbol.hasCyclicInheritance) {
                   /**
                    * This implies that hasValidHierarchy() has already been called on parentSymbol
@@ -175,21 +156,50 @@ module eiffel.semantics {
       }
     };
 
-    analysisContext.allClasses.forEach(function (oneClass: eiffel.symbols.ClassSymbol) {
+    analysisContext.allClasses.forEach(function (oneClass:eiffel.symbols.ClassSymbol) {
       hasValidHierarchy(oneClass, []);
     });
 
     if (inheritanceCycles.length > 0) {
       analysisContext.errors.uncategorized("Cyclic inheritance detected");
       console.error("Cycles:", inheritanceCycles);
-    };
+    }
+  };
 
 
+  var initGenericParamSyms = function (analysisContext) {
     analysisContext.allClasses.map(function (oneClass) {
       oneClass.ast.genericParameters.forEach(function (genericParameter) {
         genericParameter.sym = new eiffel.symbols.ClassSymbol(genericParameter.name.name, null);
       });
     });
+  };
+
+  export function analyze(...manyAsts: ast.Class[][]): AnalysisResult {
+    var parse = function parse(builtinSource: BuiltinSource) {
+      try {
+        return eiffel.parser.parse(builtinSource.content)
+      }
+      catch (e) {
+        parseError(builtinSource, e);
+        throw e;
+      }
+    };
+    Array.prototype.push.apply(manyAsts, __eiffel_builtin.map(parse));
+    var asts: ast.Class[] = Array.prototype.concat.apply([], manyAsts);
+    var analysisContext = new AnalysisContext();
+    createClassSymbols(asts, analysisContext);
+    initAstDictionary(analysisContext);
+    initAstDictionaryByClass(analysisContext);
+    createFeatureSymbols(analysisContext);
+    createRoutineParamSymbols(analysisContext.allRoutines);
+    createRoutineLocalSymbols(analysisContext);
+    checkCyclicInheritance(analysisContext);
+
+
+
+
+    initGenericParamSyms(analysisContext);
 
     analysisContext.allClasses.forEach(function (classSymbol) {
       classSymbol.ast.creationClause.forEach(function (identifier) {
@@ -209,10 +219,10 @@ module eiffel.semantics {
 
 
     var newVar = {
-        asts: asts,
-        errors: analysisContext.errors,
-        context: analysisContext,
-      };
+      asts: asts,
+      errors: analysisContext.errors,
+      context: analysisContext,
+    };
     return newVar;
   }
 
