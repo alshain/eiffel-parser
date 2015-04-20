@@ -57,6 +57,39 @@ module eiffel.semantics {
     });
   };
 
+  var makeTypeInstanceIn = function makeTypeInstanceIn(sourceClass: sym.ClassSymbol, rawType: eiffel.ast.Type, analysisContext: AnalysisContext) {
+    var resolveType = function resolveType(identifier: eiffel.ast.Identifier) {
+      var  name = identifier.name;
+      if (sourceClass.hasGenericParameterWithName(name)) {
+        return sourceClass.genericParameterWithName(name);
+      }
+      else if (analysisContext.hasClass(name)){
+        return analysisContext.classWithName(name);
+      }
+      else {
+        analysisContext.errors.unknownClass(identifier);
+        return null;
+      }
+    };
+    var baseType = resolveType(rawType.name);
+    var typeParamInstances = rawType.parameters.map(function (rawTypeParameter) {
+      return makeTypeInstanceIn(sourceClass, rawTypeParameter, analysisContext);
+    });
+
+    return new eiffel.symbols.TypeInstance(baseType, typeParamInstances);
+  };
+
+  var initParentTypeInstances = function initTypeInstances(analysisContext: AnalysisContext): void {
+    analysisContext.allClasses.forEach(function (oneClass) {
+      oneClass.ast.parentGroups.forEach(function (parentGroup) {
+        parentGroup.parents.forEach(function (parent ) {
+          parent.parentType = makeTypeInstanceIn(oneClass, parent.rawType, analysisContext);
+        })
+      })
+    });
+
+  }
+
   var parseError = function parseError(builtinSource, e) {
     console.group("Parse Error: " + builtinSource.filename);
     console.log("Found", e.found);
@@ -201,10 +234,7 @@ module eiffel.semantics {
     createRoutineParamSymbols(analysisContext.allRoutines);
     createRoutineLocalSymbols(analysisContext);
     checkCyclicInheritance(analysisContext);
-
-
-
-
+    initParentTypeInstances(analysisContext);
 
     analysisContext.allClasses.forEach(function (classSymbol) {
       classSymbol.ast.creationClause.forEach(function (identifier) {
@@ -238,6 +268,7 @@ module eiffel.semantics {
     allRoutines: symbols.RoutineSymbol[] = [];
     allClasses: symbols.ClassSymbol[] = [];
     astDictionary: Map<any, eiffel.ast.AST[]> = new Map<any, eiffel.ast.AST[]>();
+    typeInstances: sym.TypeInstance[] = [];
 
     allWithPrototype(prototype) {
       if (this.astDictionary.has(prototype)) {
