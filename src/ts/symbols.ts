@@ -93,6 +93,7 @@ module eiffel.symbols {
     isFrozen: boolean;
     isDeferred: boolean;
 
+    genericParametersInOrder: ClassSymbol[] = [];
     genericParametersByName: LookupTable<ClassSymbol> = new Map<string, ClassSymbol>();
 
     genericParameterWithName(name: string) {
@@ -149,6 +150,23 @@ module eiffel.symbols {
      *
      * Returns type if it isn't a generic parameter
      */
-    substitute()
+    substitute(typeInstance: TypeInstance): TypeInstance {
+      var substSymbol = function(symbol: ClassSymbol): ClassSymbol {
+
+
+        if (this.baseType.hasGenericParameterWithName(symbol.name)) {
+          var typeParamIndex = this.baseType.genericParametersInOrder.indexOf(symbol);
+          return this.typeParameters[typeParamIndex];
+        }
+        else {
+          return symbol;
+        }
+      };
+
+      var substBaseSymbol = substSymbol(typeInstance.baseType);
+      var substTypeParams = typeInstance.typeParameters.map(this.substitute, this);
+
+      return new TypeInstance(substBaseSymbol, substTypeParams);
+    }
   }
 }
