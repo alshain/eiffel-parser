@@ -98,7 +98,7 @@ module eiffel.semantics {
   };
 
   var requireValidClassForAnalysis = function requireClassForAnalysis(name: string, analysisContext: AnalysisContext, success: (symbol: eiffel.symbols.ClassSymbol, context: AnalysisContext) => any, failure: (context: AnalysisContext) => any): any {
-    if (analysisContext.classSymbols.hasOwnProperty(name)) {
+    if (analysisContext.classSymbols.has(name)) {
       return success(analysisContext.classWithName(name), analysisContext);
     }
     else {
@@ -194,10 +194,10 @@ module eiffel.semantics {
     analysisContext.allClasses.forEach(function (classSymbol) {
       classSymbol.ast.creationClause.forEach(function (identifier) {
         var name: string = identifier.name;
-        if (classSymbol.procedures.hasOwnProperty(name)) {
+        if (classSymbol.procedures.has(name)) {
           classSymbol.creationProcedures.set(name, classSymbol.procedures.get(name));
         }
-        else if (classSymbol.functions.hasOwnProperty(name)) {
+        else if (classSymbol.functions.has(name)) {
             analysisContext.errors.uncategorized("Functions cannot be used as creation procedures " + name);
         }
         else {
