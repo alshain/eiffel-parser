@@ -2,6 +2,8 @@
 /// <reference path="../../typings/tsd.d.ts" />
 
 module eiffel.ast {
+  import sym = eiffel.symbols;
+  import TypeInstance = sym.TypeInstance;
 
   export interface VisitorAcceptor extends AST {
     children: AST[];
@@ -164,7 +166,7 @@ module eiffel.ast {
     start: Pos;
     end: Pos;
 
-    sym:eiffel.ast.TypeInstance;
+    sym: TypeInstance;
 
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vIdentifierAccess(this, arg);
@@ -322,7 +324,7 @@ module eiffel.ast {
     }
 
     expressions: Expression[];
-    sym:eiffel.ast.TypeInstance;
+    sym: TypeInstance;
     start: Pos;
     end: Pos;
 
@@ -338,7 +340,7 @@ module eiffel.ast {
     }
 
     rt: Type;
-    sym:eiffel.ast.TypeInstance;
+    sym: TypeInstance;
 
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vTypeExpression(this, arg);
@@ -515,6 +517,7 @@ module eiffel.ast {
     }
 
     rawType: Type;
+    parentType: TypeInstance;
     name:Identifier;
     adaptions: Adaption[];
 
@@ -712,10 +715,6 @@ module eiffel.ast {
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vAll(this, arg);
     }
-  }
-
-  export class TypeInstance {
-
   }
 
   export interface Instruction extends Expression, VisitorAcceptor {
@@ -932,7 +931,7 @@ module eiffel.ast {
       Array.prototype.push.apply(this.children, parameters);
     }
 
-    sym:eiffel.ast.TypeInstance;
+    sym: TypeInstance;
 
     operand: Expression;
     name: Identifier;
@@ -952,7 +951,7 @@ module eiffel.ast {
       Array.prototype.push.apply(this.children, parameters);
     }
 
-    sym:eiffel.ast.TypeInstance;
+    sym: TypeInstance;
 
     operand: Expression;
     identifier: IdentifierAccess;
@@ -975,7 +974,7 @@ module eiffel.ast {
     operand: Expression;
     argument: Expression;
 
-    sym:eiffel.ast.TypeInstance;
+    sym: TypeInstance;
 
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vIndexExpression(this, arg);
@@ -1000,7 +999,7 @@ module eiffel.ast {
     expr: Expression;
     newVar: Identifier;
 
-    sym:eiffel.ast.TypeInstance;
+    sym: TypeInstance;
 
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vAttachedExpression(this, arg);
@@ -1026,7 +1025,7 @@ module eiffel.ast {
     loopBlock:eiffel.ast.Instruction[];
     variant: eiffel.ast.Expression;
 
-    sym: eiffel.ast.TypeInstance;
+    sym: TypeInstance;
 
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vFromLoop(this, arg);
@@ -1051,7 +1050,7 @@ module eiffel.ast {
     thenBlock:eiffel.ast.Instruction[];
     elseIfs:eiffel.ast.ElseIf[];
     elseBlock:eiffel.ast.Instruction[];
-    sym: eiffel.ast.TypeInstance;
+    sym: TypeInstance;
 
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vIfElse(this, arg);
@@ -1071,7 +1070,7 @@ module eiffel.ast {
     condition:eiffel.ast.Expression;
     thenBlock:eiffel.ast.Instruction[];
 
-    sym: eiffel.ast.TypeInstance;
+    sym: TypeInstance;
 
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vElseIf(this, arg);
