@@ -88,7 +88,7 @@ module eiffel.semantics {
       })
     });
 
-  }
+  };
 
   var parseError = function parseError(builtinSource, e) {
     console.group("Parse Error: " + builtinSource.filename);
