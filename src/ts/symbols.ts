@@ -93,7 +93,22 @@ module eiffel.symbols {
     isFrozen: boolean;
     isDeferred: boolean;
 
-    genericParametersByName: LookupTable<ClassSymbol>;
+    genericParametersByName: LookupTable<ClassSymbol> = new Map<string, ClassSymbol>();
+
+    genericParameterWithName(name: string) {
+      var lcName = name.toLowerCase();
+      if (this.hasGenericParameterWithName(name)) {
+        return this.genericParametersByName.get(lcName);
+      }
+      else {
+        throw new Error("No Generic Parameter by name " + name + " in class " + this.name);
+      }
+    }
+
+    hasGenericParameterWithName(name: string) {
+      return this.genericParametersByName.has(name.toLowerCase());
+    }
+
 
 
     hasSymbol(name: string): boolean {
