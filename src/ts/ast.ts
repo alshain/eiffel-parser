@@ -116,6 +116,7 @@ module eiffel.ast {
     name: Identifier;
     constraints: TypeConstraint[];
     creators: Identifier[];
+    sym: eiffel.symbols.ClassSymbol;
   }
 
   export class TypeConstraint extends AST implements VisitorAcceptor {
