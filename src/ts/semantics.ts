@@ -139,15 +139,16 @@ module eiffel.semantics {
       return false;
     }
   }
-
+  type DescendantChain = eiffel.symbols.ClassSymbol[];
   var checkCyclicInheritance = function (analysisContext) {
     var inheritanceBeingChecked:Set<eiffel.symbols.ClassSymbol> = new Set<eiffel.symbols.ClassSymbol>();
     var inheritanceChecked:Set<eiffel.symbols.ClassSymbol> = new Set<eiffel.symbols.ClassSymbol>();
     var inheritanceCycles:eiffel.symbols.ClassSymbol[][] = [];
-    var hasValidHierarchy = function hasValidHierarchy(oneClass:eiffel.symbols.ClassSymbol, descendants:eiffel.symbols.ClassSymbol[]) {
+    var hasValidHierarchy = function hasValidHierarchy(oneClass:eiffel.symbols.ClassSymbol, descendants: DescendantChain) {
       if (inheritanceBeingChecked.has(oneClass)) {
         oneClass.hasCyclicInheritance = true;
-        inheritanceCycles.push(descendants.slice(0));
+        analysisContext.errors.inheritanceCycle(descendants.slice(descendants.indexOf(oneClass)));
+        inheritanceCycles.push(descendants.slice());
         return;
       }
       else if (inheritanceChecked.has(oneClass)) {
@@ -171,7 +172,6 @@ module eiffel.semantics {
                    *
                    */
                   oneClass.inheritsFromCyclicInheritance = true;
-
                 }
                 else {
                   descendants.push(oneClass);
@@ -207,8 +207,17 @@ module eiffel.semantics {
     analysisContext.allClasses.map(function (oneClass) {
       oneClass.ast.genericParameters.forEach(function (genericParameter) {
         var name = genericParameter.name.name;
-        genericParameter.sym = new eiffel.symbols.ClassSymbol(name, null);
-        oneClass.genericParametersByName.set(name.toLowerCase(), genericParameter.sym);
+
+        var genericParamSym = new eiffel.symbols.ClassSymbol(name, null);
+
+        genericParameter.sym = genericParamSym;
+        oneClass.genericParametersInOrder.push(genericParamSym);
+        if (oneClass.hasGenericParameterWithName(name)) {
+          analysisContext.errors.duplicateGenericParameter(genericParameter.name);
+        }
+        else {
+          oneClass.genericParametersByName.set(name.toLowerCase(), genericParamSym);
+        }
       });
     });
   };
@@ -315,9 +324,27 @@ module eiffel.semantics {
       this.add(SemanticErrorKind.DuplicateFeatureName, identifier.name, identifier);
     }
 
+    duplicateGenericParameter(identifier: eiffel.ast.Identifier) {
+      this.add(SemanticErrorKind.DuplicateGenericParameter, identifier.name, identifier);
+    }
+
+    inheritanceCycle(descendants: DescendantChain) {
+      /**
+       * We want to have the first element as last one too, to make clear that it's a cycle
+       */
+      descendants.push(descendants[0]);
+      /**
+       * Also add second element (might also be first element because of push() above^
+       */
+      descendants.push(descendants[1]);
+      this.add(SemanticErrorKind.InheritanceCycle, "... -> " + _.pluck(descendants, "name").join(" -> ") + " -> ...");
+    }
+
     uncategorized(message: string): void {
       this.errors.push(message);
     }
+
+
   }
 
   class SemanticVisitor<A, R> extends ast.Visitor<A, R> {
@@ -338,6 +365,7 @@ module eiffel.semantics {
     DuplicateClassName,
     UnknownClass,
     InheritanceCycle,
+    DuplicateGenericParameter,
   }
 
   class FeatureDiscovery extends SemanticVisitor<any, any> {
