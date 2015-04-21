@@ -135,6 +135,12 @@ module eiffel.symbols {
     }
   }
 
+  export class FinalFeature {
+    name: string;
+    originalName: string;
+    source: TypeInstance;
+  }
+
   export class TypeInstance {
 
     constructor(baseType:eiffel.symbols.ClassSymbol, typeParameters:eiffel.symbols.TypeInstance[]) {
