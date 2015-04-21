@@ -244,14 +244,15 @@ module eiffel.semantics {
     createRoutineLocalSymbols(analysisContext);
     checkCyclicInheritance(analysisContext);
     initParentTypeInstances(analysisContext);
+    handDownFeatures(analysisContext);
 
     analysisContext.allClasses.forEach(function (classSymbol) {
       classSymbol.ast.creationClause.forEach(function (identifier) {
         var name: string = identifier.name;
-        if (classSymbol.procedures.has(name)) {
-          classSymbol.creationProcedures.set(name, classSymbol.procedures.get(name));
+        if (classSymbol.declaredProcedures.has(name)) {
+          classSymbol.creationProcedures.set(name, classSymbol.declaredProcedures.get(name));
         }
-        else if (classSymbol.functions.has(name)) {
+        else if (classSymbol.declaredFunctions.has(name)) {
             analysisContext.errors.uncategorized("Functions cannot be used as creation procedures " + name);
         }
         else {
@@ -390,7 +391,7 @@ module eiffel.semantics {
         var attributeSymbol = new symbols.AttributeSymbol(name, alias, fna.frozen, attr);
 
         attr.sym = attributeSymbol;
-        this.classSymbol.attributes.set(lcName, attributeSymbol);
+        this.classSymbol.declaredAttributes.set(lcName, attributeSymbol);
       }, this);
 
       //return super.vAttr(attr, this.classSymbol);
@@ -409,8 +410,8 @@ module eiffel.semantics {
         var sym = new symbols.FunctionSymbol(lcFunctionName, alias, fna.frozen, func);
 
         func.sym = sym;
-        this.classSymbol.functions.set(lcFunctionName, sym);
-        this.classSymbol.routines.set(lcFunctionName, sym);
+        this.classSymbol.declaredFunctions.set(lcFunctionName, sym);
+        this.classSymbol.declaredRoutines.set(lcFunctionName, sym);
         this.analysisContext.allFunctions.push(sym);
         this.analysisContext.allRoutines.push(sym);
       }, this);
@@ -438,8 +439,8 @@ module eiffel.semantics {
         var sym = new symbols.ProcedureSymbol(procedureName, alias, fna.frozen, procedure);
 
         procedure.sym = sym;
-        this.classSymbol.procedures.set(lcProcedureName, sym);
-        this.classSymbol.routines.set(lcProcedureName, sym);
+        this.classSymbol.declaredProcedures.set(lcProcedureName, sym);
+        this.classSymbol.declaredRoutines.set(lcProcedureName, sym);
         this.analysisContext.allProcedures.push(sym);
         this.analysisContext.allRoutines.push(sym);
       }, this);
@@ -460,7 +461,7 @@ module eiffel.semantics {
         var attributeSymbol = new symbols.AttributeSymbol(name, alias, fna.frozen, constantAttribute);
 
         constantAttribute.sym = attributeSymbol;
-        this.classSymbol.attributes.set(lcName, attributeSymbol);
+        this.classSymbol.declaredAttributes.set(lcName, attributeSymbol);
       }, this);
       //return super.vConstantAttribute(constantAttribute, this.classSymbol);
     }

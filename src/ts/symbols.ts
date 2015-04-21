@@ -80,10 +80,10 @@ module eiffel.symbols {
     }
 
     ast: ast.Class;
-    functions: LookupTable<FunctionSymbol> = new Map<string, FunctionSymbol>();
-    procedures: LookupTable<ProcedureSymbol> = new Map<string, ProcedureSymbol>();
-    routines: LookupTable<RoutineSymbol> = new Map<string, RoutineSymbol>();
-    attributes: LookupTable<AttributeSymbol> = new Map<string, AttributeSymbol>();
+    declaredFunctions: LookupTable<FunctionSymbol> = new Map<string, FunctionSymbol>();
+    declaredProcedures: LookupTable<ProcedureSymbol> = new Map<string, ProcedureSymbol>();
+    declaredRoutines: LookupTable<RoutineSymbol> = new Map<string, RoutineSymbol>();
+    declaredAttributes: LookupTable<AttributeSymbol> = new Map<string, AttributeSymbol>();
     creationProcedures: LookupTable<ProcedureSymbol> = new Map<string, ProcedureSymbol>();
     hasCyclicInheritance: boolean = false;
     inheritsFromCyclicInheritance: boolean = false;
@@ -114,10 +114,10 @@ module eiffel.symbols {
 
     hasSymbol(name: string): boolean {
       var lcName = name.toLowerCase();
-      if (this.routines.has(lcName)) {
+      if (this.declaredRoutines.has(lcName)) {
         return true;
       }
-      if (this.attributes.has(lcName)) {
+      if (this.declaredAttributes.has(lcName)) {
         return true;
       }
       return false;
@@ -125,11 +125,11 @@ module eiffel.symbols {
 
     resolveSymbol(name: string): Symbol {
       var lcName = name.toLowerCase();
-      if (this.routines.has(lcName)) {
-        return this.routines.get(lcName);
+      if (this.declaredRoutines.has(lcName)) {
+        return this.declaredRoutines.get(lcName);
       }
-      if (this.attributes.has(lcName)) {
-        return this.attributes.get(lcName);
+      if (this.declaredAttributes.has(lcName)) {
+        return this.declaredAttributes.get(lcName);
       }
       throw new Error("Symbol " + name + " does not exist in class " + this.name + ".");
     }

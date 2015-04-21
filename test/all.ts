@@ -388,7 +388,7 @@ test("Symbols exist", function() {
 
 test("Local variables exist", function () {
   var analyzed = analyze("class HASLOCALS feature abcd local var: INTEGER do end end");
-  var local = analyzed.context.classWithName("HASLOCALS").routines["abcd"].localsAndParamsByName["var"];
+  var local = analyzed.context.classWithName("HASLOCALS").declaredRoutines["abcd"].localsAndParamsByName["var"];
   equal(local.name, "var", "Local variable is not named var");
 });
 
@@ -425,7 +425,7 @@ test("Function return types resolve correctly", function () {
 test("Local variables type resolves correctly", function () {
   var analyzed = analyze("class HASLOCALS feature abcd local var: INTEGER do end end");
   console.log("LOCAL VARS", analyzed);
-  var local = analyzed.context.classWithName("HASLOCALS").routines["abcd"].localsAndParamsByName["var"];
+  var local = analyzed.context.classWithName("HASLOCALS").declaredRoutines["abcd"].localsAndParamsByName["var"];
   ok(local.type.baseSymbol === analyzed.context.classWithName("INTEGER"), "Type was not resolved");
 
   equal(local.name, "var", "Local variable is not named var");
