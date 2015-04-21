@@ -222,6 +222,28 @@ module eiffel.semantics {
     });
   };
 
+  var handDownFeatures = function handDownFeatures(analysisContext: AnalysisContext) {
+    var seen: Set<eiffel.symbols.ClassSymbol> = new Set<sym.ClassSymbol>();
+    var process = function process(oneClass: sym.ClassSymbol, descendants: DescendantChain) {
+      if (seen.has(oneClass)) {
+        /**
+         * Already finalized features, don't do anything
+         */
+        return;
+
+      }
+      else {
+        oneClass.ast.parentGroups.forEach(function (parentGroup:eiffel.ast.ParentGroup) {
+          parentGroup.parents.forEach(function (parent:eiffel.ast.Parent) {
+            if (parent.parentType !== null) {
+
+            }
+          })
+        });
+      }
+    }
+  };
+
   export function analyze(...manyAsts: ast.Class[][]): AnalysisResult {
     var parse = function parse(builtinSource: BuiltinSource) {
       try {
