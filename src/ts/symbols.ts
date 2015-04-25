@@ -85,6 +85,9 @@ module eiffel.symbols {
     declaredRoutines: LookupTable<RoutineSymbol> = new Map<string, RoutineSymbol>();
     declaredAttributes: LookupTable<AttributeSymbol> = new Map<string, AttributeSymbol>();
     creationProcedures: LookupTable<ProcedureSymbol> = new Map<string, ProcedureSymbol>();
+    possibleFinalFeatures: LookupTable<FeatureSymbol>
+    finalFeatures: LookupTable<FeatureSymbol> = new Map<string, FeatureSymbol>();
+
     hasCyclicInheritance: boolean = false;
     inheritsFromCyclicInheritance: boolean = false;
 
