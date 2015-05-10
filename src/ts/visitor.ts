@@ -106,8 +106,16 @@ module eiffel.ast {
       return this.vDefault(currentExpression, arg);
     }
 
+    vCreateExpression(createExpression: CreateExpression, arg:A):R {
+      return this.vExpression(createExpression, arg);
+    }
+
     vIntLiteral(intLiteral: IntLiteral, arg:A):R {
       return this.vLiteral(intLiteral, arg);
+    }
+
+    vRealLiteral(realLiteral: RealLiteral, arg:A):R {
+      return this.vLiteral(realLiteral, arg);
     }
 
     vStringLiteral(stringLiteral: StringLiteral, arg:A):R {
@@ -169,6 +177,10 @@ module eiffel.ast {
       return this.vInstruction(elseIf, arg);
     }
 
+    vCheckInstruction(checkInstruction: CheckInstruction, arg:A):R {
+      return this.vInstruction(checkInstruction, arg);
+    }
+
     vExternal(external: External, arg:A):R {
       return null;
     }
@@ -211,6 +223,10 @@ module eiffel.ast {
 
     vDoBlock(doBlock: DoBlock, arg:A):R {
       return this.vRoutineInstructions(doBlock, arg);
+    }
+
+    vDeferredBlock(deferredBlock: DeferredBlock, arg:A):R {
+      return this.vRoutineInstructions(deferredBlock, arg);
     }
 
     vUnqualifiedCallExpression(unqualifiedCallExpression: UnqualifiedCallExpression, arg:A):R {
@@ -260,5 +276,7 @@ module eiffel.ast {
     vAll(all: All, arg:A):R {
       return this.vDefault(all, arg);
     }
+
+
   }
 }

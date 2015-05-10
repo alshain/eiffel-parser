@@ -31,7 +31,7 @@ var paths = {
     'src/ts/**/*.ts',
   ],
   "typescriptTests": [
-    'test/all.ts',
+    'test/**/*.ts',
   ],
   "peg": [
     "src/grammar/eiffel.pegjs",
@@ -113,7 +113,7 @@ gulp.task('typescript', ["cleanTypescript"], function() {
 });
 
 gulp.task('typescriptTests', ["cleanTypescriptTests"], function() {
-   var tsResult = gulp.src(['test/all.ts', '!test'])
+   var tsResult = gulp.src(paths["typescriptTests"])
                       .pipe(sourcemaps.init()) // This means sourcemaps will be generated
                       .pipe(ts({
                         //sortOutput: true,
@@ -122,6 +122,7 @@ gulp.task('typescriptTests', ["cleanTypescriptTests"], function() {
                       }));
 
     return tsResult
+                .pipe(concat('all.js'))
                 .pipe(sourcemaps.write()) // Now the sourcemaps are added to the .js file
                 .pipe(gulp.dest('test'))
                 .pipe(reload({stream: true}));

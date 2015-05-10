@@ -1,4 +1,6 @@
 module eiffel.symbols {
+  import LookupTable = eiffel.util.LookupTable;
+
     export class Symbol {
 
       constructor(name: string) {
@@ -11,20 +13,25 @@ module eiffel.symbols {
     }
 
   export class FeatureSymbol extends Symbol {
-    constructor(name:string, alias:string, isFrozen:boolean) {
+    constructor(name:string, alias:string, isFrozen:boolean, ast: eiffel.ast.Feature) {
       super(name);
       this.alias = alias;
       this.isFrozen = isFrozen;
+      this.ast = ast;
+      this.isCommand = this.ast.rawType == null;
     }
 
+    typeInstance: TypeInstance;
+
+    ast: eiffel.ast.Feature;
     alias: string;
     isFrozen: boolean;
+    isCommand: boolean;
   }
 
   export class RoutineSymbol extends FeatureSymbol {
     constructor(name: string, alias: string, frozen: boolean, ast:ast.Routine) {
-      super(name, alias, frozen);
-      this.ast = ast;
+      super(name, alias, frozen, ast);
     }
 
     locals: VariableSymbol[] = [];
@@ -36,7 +43,6 @@ module eiffel.symbols {
   export class FunctionSymbol extends RoutineSymbol {
     constructor(name: string, alias: string, frozen: boolean, ast:ast.Function) {
       super(name, alias, frozen, ast);
-      this.ast = ast;
     }
 
     ast: ast.Function;
@@ -47,7 +53,6 @@ module eiffel.symbols {
 
     constructor(name:string, alias: string, frozen: boolean, ast:ast.Procedure) {
       super(name, alias, frozen, ast);
-      this.ast = ast;
     }
 
     ast: ast.Procedure;
@@ -56,8 +61,7 @@ module eiffel.symbols {
   export class AttributeSymbol extends FeatureSymbol {
 
     constructor(name: string, alias: string, frozen: boolean, attr:ast.VarOrConstAttribute) {
-      super(name, alias, frozen);
-      this.ast = attr;
+      super(name, alias, frozen, attr);
     }
 
     ast: ast.VarOrConstAttribute;
@@ -80,12 +84,14 @@ module eiffel.symbols {
     }
 
     ast: ast.Class;
+    declaredFeatures: LookupTable<FeatureSymbol> = new Map<string, FeatureSymbol>();
     declaredFunctions: LookupTable<FunctionSymbol> = new Map<string, FunctionSymbol>();
     declaredProcedures: LookupTable<ProcedureSymbol> = new Map<string, ProcedureSymbol>();
     declaredRoutines: LookupTable<RoutineSymbol> = new Map<string, RoutineSymbol>();
     declaredAttributes: LookupTable<AttributeSymbol> = new Map<string, AttributeSymbol>();
     creationProcedures: LookupTable<ProcedureSymbol> = new Map<string, ProcedureSymbol>();
-    possibleFinalFeatures: LookupTable<FeatureSymbol>
+    inheritedFeatures: FeatureSymbol[] = [];
+    possibleFinalFeatures: LookupTable<FeatureSymbol>;
     finalFeatures: LookupTable<FeatureSymbol> = new Map<string, FeatureSymbol>();
 
     hasCyclicInheritance: boolean = false;
@@ -126,7 +132,7 @@ module eiffel.symbols {
       return false;
     }
 
-    resolveSymbol(name: string): Symbol {
+    resolveSymbol(name: string): FeatureSymbol {
       var lcName = name.toLowerCase();
       if (this.declaredRoutines.has(lcName)) {
         return this.declaredRoutines.get(lcName);
@@ -146,13 +152,16 @@ module eiffel.symbols {
 
   export class TypeInstance {
 
-    constructor(baseType:eiffel.symbols.ClassSymbol, typeParameters:eiffel.symbols.TypeInstance[]) {
+
+    constructor(baseType: ClassSymbol, typeParameters: TypeInstance[], sourceClass: ClassSymbol) {
       this.baseType = baseType;
       this.typeParameters = typeParameters;
+      this.sourceClass = sourceClass;
     }
 
     baseType: ClassSymbol;
     typeParameters: TypeInstance[];
+    sourceClass: ClassSymbol;
 
     /**
      * Performs generic substitution of a formal generic parameter with its corresponding type instance
@@ -175,7 +184,49 @@ module eiffel.symbols {
       var substBaseSymbol = substSymbol(typeInstance.baseType);
       var substTypeParams = typeInstance.typeParameters.map(this.substitute, this);
 
-      return new TypeInstance(substBaseSymbol, substTypeParams);
+      return new TypeInstance(substBaseSymbol, substTypeParams, this.sourceClass);
+    }
+
+    equals(other: TypeInstance) {
+      if (this.baseType != other.baseType) {
+        return false;
+      }
+
+      else {
+        if (this.typeParameters.length != other.typeParameters.length) {
+          throw new Error("Invalid State: both should have same amount of type parameters");
+        }
+
+        var isDifferent = false;
+        this.typeParameters.forEach(function (typeParam, i) {
+          if (typeParam.equals(other.typeParameters[i])) {
+            isDifferent = true;
+          }
+        });
+
+        return isDifferent;
+      }
+    }
+
+    differentGenericDerivationThan(other: TypeInstance) {
+      if (this.baseType != other.baseType) {
+        return false;
+      }
+
+      else {
+        if (this.typeParameters.length != other.typeParameters.length) {
+          throw new Error("Invalid State: both should have same amount of type parameters");
+        }
+
+        var isDifferent = false;
+        this.typeParameters.forEach(function (typeParam, i) {
+          if (!typeParam.equals(other.typeParameters[i])) {
+            isDifferent = true;
+          }
+        });
+
+        return isDifferent;
+      }
     }
   }
 }

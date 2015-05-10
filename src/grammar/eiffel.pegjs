@@ -1,8 +1,136 @@
 // Fixme CONVERT syntax
 {
+  function allSubsequences(s) {
+    var i;
+    var j;
+    var results = [];
+    for(i = 0; i < s.length; i++) {
+      for (j = i + 1; j <= s.length; j++) {
+        results.push(s.substring(i, j));
+      }
+    }
+    return results;
+  }
+
   function isReserved(name) {
     // TODO reinsert TUPLE
     return /^(agent|alias|all|and|as|assign|attribute|check|class|convert|create|Current|debug|deferred|do|detachable|else|elseif|end|ensure|expanded|export|external|False|feature|from|frozen|if|implies|inherit|inspect|invariant|like|local|loop|not|note|obsolete|old|once|only|or|Precursor|redefine|rename|require|rescue|Result|retry|select|separate|then|True|undefine|until|variant|Void|when|xor)$/.test(name);
+  }
+
+  function isOperatorSymbol(s) {
+    // FIXME Standard says character must not be a |, but then it won't recognise |>>
+    var specialSymbolChars = "_:;,?!'\"$.->:=/=~/~()()[]{}";
+    var standardOperatorSymbols = "+-*/^<>=\\.";
+    if(/^[^a-zA-Z0-9\s\:]$/.test(s)) {
+      // SPEC 8.32.20
+      // AT LEAST ONE OF THE FOLLOWING PROPERTIES
+      // 1 It does not appear in any of the special symbols.
+      if (specialSymbolChars.indexOf(s) === -1) {
+        return true;
+      }
+
+      // 2 It appears in any of the standard (unary or binary) operators
+      // BUT is neither a dot . nor an equal sign =.
+      if (s !== "." && s !== "=" && standardOperatorSymbols.indexOf(s) !== -1) {
+        return true;
+      }
+
+      // 3 It is a tilde ~, percent %, question mark ?, or exclamation mark !.
+
+      if (s === "~" || s === "%" || s === "?" || s === "!") {
+        return true;
+      }
+    }
+    return false;
+  }
+  var specialSymbols = [
+    "--",
+    ":",
+    ";",
+    ",",
+    "?",
+    "!",
+    "'",
+    "\"",
+    "$",
+    ".",
+    "->",
+    ":=",
+    "=",
+    "/=",
+    "~",
+    "/~",
+    "(",
+    ")",
+    "(|",
+    "|)",
+    "[",
+    "]",
+    "{",
+    "}",
+  ];
+
+  var predefinedOperators = [
+    "=",
+    "/=",
+    "~",
+    "~=",
+  ];
+
+  var standardOperators = [
+    "+",
+    "-",
+    "*",
+    "/",
+    "^",
+    "<",
+    ">",
+    "<=",
+    ">=",
+    "//",
+    "\\\\",
+    "..",
+  ];
+
+  function isFreeOperator(os) {
+    // SPEC 3.32.21 Page 157 (PDF page: 177)
+
+    // A free operator is sequence of one or more characters satisfying the following properties:
+
+    // 1 It is not a special symbol, standard operator or predefined operator.
+
+    if (specialSymbols.indexOf(os) !== -1) {
+      return false;
+    }
+
+    if (standardOperators.indexOf(os) !== -1) {
+      return false;
+    }
+
+    if (predefinedOperators.indexOf(os) !== -1) {
+      return false;
+    }
+
+
+    // 2 Every character in the sequence is an operator symbol.
+
+      // Already satisfied because this is only called with a sequence of isOperatorSymbol satisfying characters
+
+    // 3 Every subsequence that is not a standard operator or predefined operator is distinct from all special symbols
+    var fulfilled_3 = true;
+    var subsequences = allSubsequences(os);
+    subsequences.forEach(function (subsequence) {
+      var is_standard = standardOperators.indexOf(subsequence) !== -1;
+      var is_predefined = predefinedOperators.indexOf(subsequence) !== -1;
+      if (!is_standard && !is_predefined) {
+        if (specialSymbols.indexOf(subsequence) !== -1) {
+          // NOT distinct
+          fulfilled_3 = false;
+        }
+      }
+    });
+
+    return fulfilled_3;
   }
 
   function Node(nodeType, data) {
@@ -81,10 +209,12 @@
 }
 start = class*
 class
-  = w note:Note? expanded:(e:ExpandedToken W {return e})? ClassToken name:ClassName generics:GenericParams? inherit:inherit? create:create? convert:Convert? featureLists:FeatureList* Invariant? W (Note)? EndToken w
-    { console.log(featureLists);
+  = w note:Note? deferred:MaybeDeferred frozen:MaybeFrozen expanded:(e:ExpandedToken W {return e})? ClassToken name:ClassName generics:GenericParams? inherit:inherit? create:create? convert:Convert? featureLists:FeatureList* Invariant? W (Note)? EndToken w
+    {
       return new eiffel.ast.Class(
         name,
+        deferred,
+        frozen,
         expanded,
         optionalList(note),
         optionalList(inherit),
@@ -93,6 +223,15 @@ class
         featureLists
       );
     }
+
+MaybeFrozen
+  = f:FrozenToken W {return f}
+  / { return null}
+
+MaybeDeferred
+  = d:DeferredToken W {return d}
+  / { return null}
+
 GenericParams
   = w "[" w gs:GenericParamList w "]"
   {
@@ -100,7 +239,7 @@ GenericParams
   }
 
 GenericParamList
-  = first:GenericParameter rest:(w "," w GenericParameter)* {return buildList(first, rest, gId()); }
+  = first:GenericParameter rest:(w "," w r:GenericParameter {return r;})* {return buildList(first, rest, gId()); }
 
 GenericParameter
   = i:Identifier cs:GenericConstraint?
@@ -113,7 +252,7 @@ GenericParameter
   }
 
 GenericConstraint
-  = w "->" cons:ConstrainingTypes crs:ConstraintCreators?
+  = w "->" w cons:ConstrainingTypes crs:ConstraintCreators?
   {
     return {
       cons: cons,
@@ -139,17 +278,22 @@ ConstraintCreators
   }
 
 MultipleConstraint
-  = w "{" w cs:SingleConstraintList w "}" {return cs}
+  = "{" w cs:SingleConstraintList w "}" {return cs}
 
 SingleConstraintList
   = first:SingleConstraint rest:(w "," SingleConstraint)* {return buildList(first, rest, gId()); }
 
 Note = NoteToken p:NotePair+ W {return p;}
-NotePair = W i:Identifier w ":" w v:NoteValue {return {key: i, value: v.value};}
+NotePair = W i:Identifier w ":" w v:NoteValues (w ";")? {return {key: i, value: v.value};}
+
+NoteValues
+  = NoteValue w "," w NoteValues
+  / NoteValue
 
 NoteValue
   = StringLiteral
   / IntegerLiteral
+  / Identifier
 
 ClassName = W name:Identifier { return name}
 create = W CreateToken W first:Identifier rest:("," w id:Identifier { return id})* {return buildList(first, rest, gId())}
@@ -257,10 +401,10 @@ FeatureList
     }
 
 Feature
-  = W c:Constant {return c}
-  / W f:Function {return f}
-  / W p:Procedure {return p}
-  / W a:Attribute {return a}
+  = W c:Constant (w ";")? {return c}
+  / W f:Function (w ";")? {return f}
+  / W p:Procedure (w ";")? {return p}
+  / W a:Attribute (w ";")? {return a}
 
 NewFeatureList
   = first:NewFeatureName rest:(w "," w r:NewFeatureName {return r;})* {return buildList(first, rest, gId())}
@@ -384,6 +528,7 @@ RoutineBodyElement
   / l:Locals
   / o:Obsolete
   / e:External
+  / e:DeferredBlock
   / OnceBlock
   / d:DoBlock
   / post:Postconditions
@@ -392,6 +537,12 @@ External
   = W ExternalToken instructions:InstructionSeq
   {
     return new eiffel.ast.External(instructions);
+  }
+
+DeferredBlock
+  = W DeferredToken instructions:InstructionSeq
+  {
+    return new eiffel.ast.DeferredBlock(instructions);
   }
 
 DoBlock
@@ -421,6 +572,15 @@ Postconditions
 Invariant
   = W InvariantToken c:Invariantcondition* {return c;}
 
+Assertion
+  = l:LabelledCondition* Note?
+  {
+    return new eiffel.ast.CheckInstruction(l.expression);
+  }
+
+CheckInstruction
+  = CheckToken Assertion W EndToken
+
 Precondition
   = l:LabelledCondition
   {
@@ -446,6 +606,13 @@ LabelledCondition
     return {
       name: l,
       expression: e,
+    };
+  }
+  / W l:ConditionLabel
+  {
+    return {
+      name: l,
+      expression: null,
     };
   }
 
@@ -476,6 +643,7 @@ Instruction
   / IfInstr
   / AcrossInstr
   / Expression
+  / CheckInstruction
 
 NoOp = w ";"
   {
@@ -490,7 +658,7 @@ ImpliesExpr
   = start:pos l:OrExpr rest:(w o:"implies" !IllegalAfterKeyword w r:OrExpr e:pos { return {kind: o, right:r, end:e}})* end:pos { return buildBinaryTree(l, rest, start, end)}
 
 OrExpr
-  = start:pos l:AndExpr rest:(w o:("or " w "else" { return "or else"} / "or") !IllegalAfterKeyword w r:AndExpr { return {kind: o, right:r}})* end:pos { return buildBinaryTree(l, rest, start, end)}
+  = start:pos l:AndExpr rest:(w o:("or " w "else" { return "or else"} / "or" / "xor") !IllegalAfterKeyword w r:AndExpr { return {kind: o, right:r}})* end:pos { return buildBinaryTree(l, rest, start, end)}
 
 AndExpr
   = start:pos l:CompExpr rest:(w o:("and " w "then" { return "and then" } / "and") !IllegalAfterKeyword w r:CompExpr { return {kind: o, right:r}})* end:pos { return buildBinaryTree(l, rest, start, end)}
@@ -511,7 +679,7 @@ BinMultExpr
 
 
 ExponentExpr
-  = start:pos l:UnaryExpr w k:"^" w r:ExponentExpr end:pos
+  = start:pos l:FreeBinaryExpr w k:"^" w r:ExponentExpr end:pos
     {
       return new eiffel.ast.BinaryOp(
         k,
@@ -521,10 +689,13 @@ ExponentExpr
         end
       );
     }
-  / UnaryExpr
+  / FreeBinaryExpr
+
+FreeBinaryExpr
+  = start:pos l:UnaryExpr rest:(w o:(FreeOperator) w r:UnaryExpr { return {kind: o, right:r}})* end:pos { return buildBinaryTree(l, rest, start, end)}
 
 UnaryExpr
-  = start:pos o:("-" !("-") {return "-"} / "+" {return "+"} / "not" !IllegalAfterKeyword / "old" !IllegalAfterKeyword) w u:UnaryExpr end:pos
+  = start:pos o:("-" !("-") {return "-"} / "+" {return "+"} / "not" !IllegalAfterKeyword / "old" !IllegalAfterKeyword / FreeOperator) w u:UnaryExpr end:pos
     {
       return new eiffel.ast.UnaryOp(
         o,
@@ -563,6 +734,7 @@ TupleExpression
     return new eiffel.ast.TupleExpression(es, start, end);
   }
 
+// TODO: insert whitespace around type?
 TypeExpression
   = "{" i:Type "}"
   {
@@ -572,11 +744,25 @@ TypeExpression
 FactorExpr
   = f:FirstExpr ops:(Index / Call)* { return buildIndexArgTree(f, ops)}
   / Precursor
+  / CreateExpression
   / Literal
   / AttachedExpression
 
+CreateExpression
+  = CreateToken !(IllegalAfterKeyword) w t:ExplicitCreationType m:CreationCall?
+  {
+    return new eiffel.ast.CreateExpression(
+      t,
+      (m ? m.name : "default_create"),
+      m ? optionalList(m.args) : []
+    );
+  }
+
 Precursor
-  = PrecursorToken w "{" w t:Identifier w "}" a:Args?
+  = PrecursorToken Parent_qualification? a:Args?
+
+Parent_qualification
+  = w "{" w t:Identifier w "}"
 
 AttachedExpression
   = start:pos AttachedToken t:(w "{" w t:Type w "}" {return t;})? w ov:Expression W AsToken W nv:Identifier end:pos
@@ -661,7 +847,7 @@ LoopInstructions
   = W LoopToken is:InstructionSeq {return is; }
 
 LoopVariant
-  = W VariantToken W v:Expression {return v;}
+  = W VariantToken W (ConditionLabel w)? v:Expression {return v;}
 
 IfInstr
   = IfToken W c:Expression W ThenToken is:InstructionSeq ei:ElseIf? e:Else? W EndToken
@@ -697,7 +883,7 @@ CreateInstr
   {
     return new eiffel.ast.CreateInstruction(
       n,
-      (m ? m : "default_create"),
+      (m ? m.name : "default_create"),
       m ? optionalList(m.args) : []
     );
   }
@@ -733,10 +919,10 @@ IdentifierList
 
 id "identifier" = [a-zA-Z][a-zA-Z0-9_]*
 
-Indent = (" " / "\t")+
+Indent = (" " / "\t")+ ("--" (!(LineTerminatorSequence) .)*)
 
 W "whitespace"
-    = (" " / "\t" / "\n" / "\r" / ("--" (!(LineTerminatorSequence) .)*))+
+    = ([ \t\n\r] / ("--" (!(LineTerminatorSequence) .)*))+
 w = W?
 
 Identifier "identifier"
@@ -760,8 +946,32 @@ SourceCharacter
   = .
 
 DecimalIntegerLiteral
-  = "0"
-  / NonZeroDigit DecimalDigit*
+  = DecimalDigit (DecimalDigit / "_")+ DecimalDigit
+  / DecimalDigit+
+
+BinaryIntegerLiteral
+  = ("0b" / "0B") BinaryDigit (BinaryDigit / "_")+ BinaryDigit
+  / ("0b" / "0B") BinaryDigit+
+
+BinaryDigit
+  = [01]
+
+OctalIntegerLiteral
+  = ("0c" / "0C") OctalDigit (OctalDigit / "_")+ OctalDigit
+  / ("0c" / "0C") OctalDigit+
+
+OctalDigit
+  = [0-7]
+
+HexIntegerLiteral
+  = ("0x" / "0X") HexDigit (HexDigit / "_")+ HexDigit
+  / ("0x" / "0X") HexDigit+
+
+HexDigit
+  = [0-9a-fA-F]
+
+
+
 DecimalDigit
   = [0-9]
 NonZeroDigit
@@ -781,10 +991,33 @@ Comment "comment"
 SingleLineComment
   = "--" (!LineTerminator SourceCharacter)*
 
+BaseIntegerLiteral
+  = ("-" w)? DecimalIntegerLiteral !IllegalAfterKeyword
+  / ("-" w)? BinaryIntegerLiteral !IllegalAfterKeyword
+  / ("-" w)? HexIntegerLiteral !IllegalAfterKeyword
+  / ("-" w)? OctalIntegerLiteral !IllegalAfterKeyword
+
+
 IntegerLiteral
-  = start:pos DecimalIntegerLiteral end:pos {
-    return new eiffel.ast.IntLiteral(parseFloat(text()), start, end);
+  = start:pos BaseIntegerLiteral !IllegalAfterKeyword end:pos {
+    return new eiffel.ast.IntLiteral(text(), start, end);
   }
+
+Real_Constant
+  = start:pos Sign? Real end:pos
+  {
+    return new eiffel.ast.RealLiteral(text(), start, end);
+  }
+
+Real
+  = DecimalIntegerLiteral "." DecimalIntegerLiteral? Exponent? !IllegalAfterKeyword
+  / "." DecimalIntegerLiteral Exponent? !IllegalAfterKeyword
+
+Exponent
+  = [eE] Sign? DecimalIntegerLiteral
+
+Sign
+  = "-"
 
 //TODO Verbatim strings
 StringLiteral "string"
@@ -849,13 +1082,13 @@ EscapeCharacter
 Literal
   = start:pos r:VoidLiteral    end:pos !IllegalAfterKeyword { return new eiffel.ast.VoidLiteral(start, end);}
   / start:pos r:BooleanLiteral end:pos !IllegalAfterKeyword {return new eiffel.ast.BooleanLiteral(r, start, end);}
+  / r:Real_Constant {return r;}
   / r:IntegerLiteral !IllegalAfterKeyword {return r;}
   / r:StringLiteral  !IllegalAfterKeyword {return r;}
   / r:CharLiteral  !IllegalAfterKeyword {return r;}
 
 Letter
-  = [a-z]
-  / [A-Z]
+  = [a-zA-Z]
 
 IdentifierName "identifier"
   = start:pos first:IdentifierStart rest:IdentifierPart* end:pos {
@@ -875,9 +1108,66 @@ VoidLiteral
   = VoidToken
 
 BooleanLiteral
-  = TrueToken { return true; }
-  / FalseToken { return false; }
+  = TrueToken { return text(); }
+  / FalseToken { return text(); }
 
+SpecialSymbol
+  = "__"
+  / ":"
+  / ";"
+  / ","
+  / "?"
+  / "!"
+  / "'"
+  / "\""
+  / "$"
+  / "."
+  / "->"
+  / ":="
+  / "="
+  / "/="
+  / "~"
+  / "/~"
+  / "("
+  / ")"
+  / "(|"
+  / "|)"
+  / "["
+  / "]"
+  / "{"
+  / "}"
+
+PredefinedOperator
+  = "="
+  / "/="
+  / "~"
+  / "~="
+
+StandardOperator
+  = "+"
+  / "-"
+  / "*"
+  / "/"
+  / "^"
+  / "<"
+  / ">"
+  / "<="
+  / ">="
+  / "//"
+  / "\\\\"
+  / ".."
+
+FreeOperator
+  = os:OperatorSymbol+ & { return isFreeOperator(os.join(""));}
+  {
+      return os.join("");
+  }
+
+OperatorSymbol
+  = s:. & { return isOperatorSymbol(s) }
+  {
+    return s;
+  }
 
 
 Keyword

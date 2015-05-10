@@ -4,6 +4,7 @@
 module eiffel.ast {
   import sym = eiffel.symbols;
   import TypeInstance = sym.TypeInstance;
+  import LookupTable = eiffel.util.LookupTable;
 
   export interface VisitorAcceptor extends AST {
     children: AST[];
@@ -70,6 +71,8 @@ module eiffel.ast {
   export class Class extends AST implements VisitorAcceptor {
     constructor(
       name: Identifier,
+      deferred: Token,
+      frozen: Token,
       expanded: Token,
       note: any, parentGroups: ParentGroup[],
       generics: FormalGenericParameter[],
@@ -78,6 +81,8 @@ module eiffel.ast {
     ) {
       super(this);
       this.name = name;
+      this.deferred = deferred;
+      this.frozen = frozen;
       this.expanded = expanded;
       this.children.push(name);
 
@@ -97,6 +102,8 @@ module eiffel.ast {
     children:AST[];
 
     name:Identifier;
+    deferred: Token;
+    frozen: Token;
     expanded: Token;
     genericParameters: FormalGenericParameter[];
     parentGroups:ParentGroup[];
@@ -175,6 +182,7 @@ module eiffel.ast {
 
   export interface Feature extends AST, VisitorAcceptor {
     frozenNamesAndAliases: FrozenNameAlias[];
+    rawType: Type;
   }
 
   interface NameAlias {
@@ -187,7 +195,7 @@ module eiffel.ast {
   }
 
   export class Routine extends AST implements Feature {
-    constructor(frozenNamesAndAliases: FrozenNameAlias[], parameters: VarDeclList[], rt: Type, bodyElements: AST[]) {
+    constructor(frozenNamesAndAliases: FrozenNameAlias[], parameters: VarDeclList[], rawType: Type, bodyElements: AST[]) {
       super(this);
       this.frozenNamesAndAliases = frozenNamesAndAliases;
       this.parameters = parameters;
@@ -198,6 +206,7 @@ module eiffel.ast {
       Array.prototype.push.apply(this.children, bodyElements);
     }
 
+    rawType:eiffel.ast.Type;
     frozenNamesAndAliases: FrozenNameAlias[];
     parameters:VarDeclList[];
     sym: eiffel.symbols.RoutineSymbol;
@@ -380,6 +389,12 @@ module eiffel.ast {
     }
   }
 
+  export class DeferredBlock extends RoutineInstructions {
+    accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
+      return visitor.vDeferredBlock(this, arg);
+    }
+  }
+
   export class OnceBlock extends RoutineInstructions {
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vOnceBlock(this, arg);
@@ -463,7 +478,7 @@ module eiffel.ast {
     }
 
     frozenNamesAndAliases: FrozenNameAlias[];
-    rawType:eiffel.ast.Type;
+    rawType: eiffel.ast.Type;
     sym: eiffel.symbols.AttributeSymbol;
 
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
@@ -492,14 +507,14 @@ module eiffel.ast {
   }
 
   export class ParentGroup extends AST implements VisitorAcceptor {
-    constructor(conforming: eiffel.ast.Identifier[], parents: eiffel.ast.Parent[]) {
+    constructor(conforming: eiffel.ast.Identifier, parents: eiffel.ast.Parent[]) {
       super(this);
 
       this.conforming = conforming;
       this.parents = parents;
     }
 
-    conforming: Identifier[];
+    conforming: Identifier;
     parents: Parent[];
 
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
@@ -633,14 +648,19 @@ module eiffel.ast {
   }
 
   export class Literal<T> extends AST {
+    constructor(vac: VisitorAcceptor, rawValue: string) {
+      super(vac);
+      this.rawValue = rawValue;
+    }
     value: T;
+    rawValue: string;
     end: eiffel.ast.Pos;
     start: eiffel.ast.Pos;
   }
 
   export class CharLiteral extends Literal<string> implements VisitorAcceptor {
     constructor(value: string, start: Pos, end: Pos) {
-      super(this);
+      super(this, value);
       this.value = value;
       this.start = start;
       this.end = end;
@@ -652,9 +672,9 @@ module eiffel.ast {
   }
 
   export class BooleanLiteral extends Literal<boolean> implements VisitorAcceptor {
-    constructor(value: boolean, start: Pos, end: Pos) {
-      super(this);
-      this.value = value;
+    constructor(value: string, start: Pos, end: Pos) {
+      super(this, value);
+      this.value = value === "true";
       this.start = start;
       this.end = end;
     }
@@ -666,9 +686,9 @@ module eiffel.ast {
   }
 
   export class IntLiteral extends Literal<number> implements VisitorAcceptor {
-    constructor(value: number, start: Pos, end: Pos) {
-      super(this);
-      this.value = value;
+    constructor(value: string, start: Pos, end: Pos) {
+      super(this, value);
+      this.value = parseInt(value);
       this.start = start;
       this.end = end;
     }
@@ -678,9 +698,22 @@ module eiffel.ast {
       }
   }
 
+  export class RealLiteral extends Literal<number> implements VisitorAcceptor {
+    constructor(value: string, start: Pos, end: Pos) {
+      super(this, value);
+      this.value = parseFloat(value);
+      this.start = start;
+      this.end = end;
+    }
+
+    accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
+      return visitor.vRealLiteral(this, arg);
+    }
+  }
+
   export class VoidLiteral extends Literal<any> implements VisitorAcceptor {
     constructor(start: Pos, end: Pos) {
-      super(this);
+      super(this, null);
       this.value = null;
       this.start = start;
       this.end = end;
@@ -693,7 +726,7 @@ module eiffel.ast {
 
   export class StringLiteral extends Literal<string> implements VisitorAcceptor{
     constructor(value: string, start: Pos, end: Pos) {
-      super(this);
+      super(this, value);
       this.value = value;
       this.start = start;
       this.end = end;
@@ -752,6 +785,18 @@ module eiffel.ast {
 
   }
 
+  export class CheckInstruction extends AST implements Instruction {
+
+    constructor(e: Expression) {
+      super(this);
+    }
+    accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
+      return visitor.vCheckInstruction(this, arg);
+    }
+
+    sym: eiffel.symbols.TypeInstance;
+  }
+
   export class Invariantcondition extends Condition implements VisitorAcceptor {
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vInvariantcondition(this, arg);
@@ -796,6 +841,28 @@ module eiffel.ast {
 
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vCreateInstruction(this, arg);
+    }
+  }
+
+  export class CreateExpression extends AST implements Instruction {
+
+    constructor(rawType: Type, method:eiffel.ast.Identifier, arguments:eiffel.ast.Expression[]) {
+      super(this);
+      this.rawType = rawType;
+      this.method = method;
+      this.arguments = arguments;
+
+      this.children.push(rawType, method);
+      Array.prototype.push.apply(this.children, arguments);
+    }
+
+    rawType: Type;
+    method: Identifier;
+    arguments: Expression[];
+    sym:TypeInstance;
+
+    accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
+      return visitor.vCreateExpression(this, arg);
     }
   }
 

@@ -1,8 +1,12 @@
 /// <reference path="visitor.ts" />
+/// <reference path="util.ts" />
 /// <reference path="fromJS.d.ts" />
 
 module eiffel.semantics {
   import sym = eiffel.symbols;
+  import LookupTable = eiffel.util.LookupTable;
+  import caseIgnoreEquals = eiffel.util.caseIgnoreEquals;
+  import pairs = eiffel.util.pairs;
 
   var createClassSymbols = function (asts, analysisContext:AnalysisContext) {
     asts.forEach(function (ast:eiffel.ast.Class) {
@@ -76,19 +80,45 @@ module eiffel.semantics {
       return makeTypeInstanceIn(sourceClass, rawTypeParameter, analysisContext);
     });
 
-    return new eiffel.symbols.TypeInstance(baseType, typeParamInstances);
+    return new eiffel.symbols.TypeInstance(baseType, typeParamInstances, sourceClass);
   };
 
-  var initParentTypeInstances = function initTypeInstances(analysisContext: AnalysisContext): void {
+  var validateTypeInstance = function validateTypeInstance(instance: eiffel.symbols.TypeInstance, context: AnalysisContext) {
+    // TODO implement constraints
+
+    var sourceClass = instance.sourceClass;
+    var baseType = instance.baseType;
+
+    var expectedParamCount = baseType.genericParametersInOrder.length;
+    var actualParamCount = instance.typeParameters.length;
+
+    if (expectedParamCount < actualParamCount) {
+      var difference = actualParamCount - expectedParamCount;
+      context.errors.uncategorized("Missing " + difference + " generic parameters.");
+    }
+    else if (expectedParamCount > actualParamCount) {
+      context.errors.uncategorized("Too many generic arguments, you can only have " + expectedParamCount + ", but you have " + actualParamCount);
+    }
+
+    instance.typeParameters.forEach(<(TypeInstance) => void> _.partial(validateTypeInstance, _, context));
+  };
+
+  var initParentTypeInstancesAndValidate = function initParentTypeInstancesAndValidate(analysisContext: AnalysisContext): void {
+    var typeInstances = [];
     analysisContext.allClasses.forEach(function (oneClass) {
       oneClass.ast.parentGroups.forEach(function (parentGroup) {
         parentGroup.parents.forEach(function (parent ) {
           parent.parentType = makeTypeInstanceIn(oneClass, parent.rawType, analysisContext);
-        })
+          typeInstances.push(parent.parentType);
+        });
       })
     });
 
+    // Validate all
+    typeInstances.map(<any> _.partial(validateTypeInstance, _, analysisContext));
   };
+
+
 
   var parseError = function parseError(builtinSource, e) {
     console.group("Parse Error: " + builtinSource.filename);
@@ -244,6 +274,60 @@ module eiffel.semantics {
     }
   };
 
+  var checkValidty_8_6_13_parent_rule = function checkValidty_8_6_13_parent_rule(analysisContext: AnalysisContext) {
+    analysisContext.allClasses.forEach(function (oneClass) {
+      // For every class
+      // 1 In every Parent part for a class B, B is not a descendant of D.
+      // 2 No conforming parent is a frozen class.
+      // 3 If two or more Parent parts are for classes which have a common ancestor A, D meets the conditions of the Repeated Inheritance Consistency constraint for A.
+      // DELAYED
+      // 4 At least one of the Parent parts is conforming.
+      // 5 No two ancestor types of D are different generic derivations of the same class.
+      // 6 Every Parent is generic-creation-ready
+
+
+      var conformingCount = 0;
+
+      if (oneClass.ast.parentGroups.length == 0) {
+        // Implicit ANY ancestor
+        conformingCount = 1;
+      }
+
+      var allParents = [];
+
+      oneClass.ast.parentGroups.forEach(function (parentGroup) {
+        var nonConforming = false;
+        if (parentGroup.conforming != null) {
+          if (caseIgnoreEquals(parentGroup.conforming.name, "NONE")) {
+            nonConforming = true;
+          }
+          else {
+            analysisContext.errors.uncategorized("Invalid nonconformance modifier: " + parentGroup.conforming.name + " in class " + oneClass.name);
+          }
+        }
+
+        if (!nonConforming) {
+          conformingCount++;
+        }
+
+        parentGroup.parents.forEach(function (parent ) {
+          // POINT 2
+          allParents.push(parent);
+          if (parent.parentType.baseType.isFrozen && nonConforming) {
+            analysisContext.errors.noFrozenParent(oneClass, parent);
+          }
+        });
+      });
+
+      if (conformingCount == 0) {
+        analysisContext.errors.noConformingParent(oneClass);
+      }
+
+      pairs(allParents).forEach(function () {
+      })
+    });
+  };
+
   export function analyze(...manyAsts: ast.Class[][]): AnalysisResult {
     var parse = function parse(builtinSource: BuiltinSource) {
       try {
@@ -265,8 +349,28 @@ module eiffel.semantics {
     createRoutineParamSymbols(analysisContext.allRoutines);
     createRoutineLocalSymbols(analysisContext);
     checkCyclicInheritance(analysisContext);
-    initParentTypeInstances(analysisContext);
-    handDownFeatures(analysisContext);
+    initParentTypeInstancesAndValidate(analysisContext);
+    checkValidty_8_6_13_parent_rule(analysisContext);
+
+    analysisContext.allClasses.forEach(function (oneClass) {
+      oneClass.ast.parentGroups.forEach(function (parentGroup) {
+        parentGroup.parents.forEach(function (parent ) {
+          validateTypeInstance(parent.parentType, analysisContext);
+        });
+      })
+    });
+
+    analysisContext.allClasses.forEach(function (classSymbol) {
+      classSymbol.declaredFeatures.forEach(function (fSym: eiffel.symbols.FeatureSymbol) {
+        if (!fSym.isCommand) {
+          fSym.typeInstance = makeTypeInstanceIn(classSymbol, fSym.ast.rawType, analysisContext);
+        }
+      });
+    });
+
+
+
+        handDownFeatures(analysisContext);
 
     analysisContext.allClasses.forEach(function (classSymbol) {
       classSymbol.ast.creationClause.forEach(function (identifier) {
@@ -293,7 +397,7 @@ module eiffel.semantics {
     return newVar;
   }
 
-  class AnalysisContext {
+  export class AnalysisContext {
     classSymbols: LookupTable<sym.ClassSymbol> = new Map<string, sym.ClassSymbol>();
     allFunctions: symbols.FunctionSymbol[] = [];
     allProcedures: symbols.ProcedureSymbol[] = [];
@@ -313,7 +417,7 @@ module eiffel.semantics {
     }
 
     classWithName(name: string): eiffel.symbols.ClassSymbol {
-      var lowerCaseName = name.toLowerCase();
+      var lowerCaseName = this.redirectToSized(name).toLowerCase();
       if (this.classSymbols.has(lowerCaseName)) {
         return this.classSymbols.get(lowerCaseName);
       }
@@ -323,8 +427,21 @@ module eiffel.semantics {
     }
 
     hasClass(name: string): boolean {
-      var lowerCaseName = name.toLowerCase();
+      var lowerCaseName = this.redirectToSized(name).toLowerCase();
       return this.classSymbols.has(lowerCaseName);
+    }
+
+    redirectToSized(name: string): string {
+      var mapping = {
+        "integer": "INTEGER_32",
+      };
+      var lowerCaseName = name.toLowerCase();
+      if (mapping.hasOwnProperty(lowerCaseName)) {
+        return mapping[lowerCaseName];
+      }
+      else {
+        return name;
+      }
     }
 
     errors: ErrorContext = new ErrorContext();
@@ -368,6 +485,13 @@ module eiffel.semantics {
     }
 
 
+    noConformingParent(oneClass: eiffel.symbols.ClassSymbol):void {
+      this.add(SemanticErrorKind.NoConformingParents, "No conforming inheritance part found in class" + oneClass.name);
+    }
+
+    noFrozenParent(sourceClass: eiffel.symbols.ClassSymbol, parent: eiffel.ast.Parent): void {
+      this.add(SemanticErrorKind.CannotExtendFrozenClass, sourceClass.name + " is trying to extend a frozen class", parent);
+    }
   }
 
   class SemanticVisitor<A, R> extends ast.Visitor<A, R> {
@@ -389,6 +513,8 @@ module eiffel.semantics {
     UnknownClass,
     InheritanceCycle,
     DuplicateGenericParameter,
+    NoConformingParents,
+    CannotExtendFrozenClass,
   }
 
   class FeatureDiscovery extends SemanticVisitor<any, any> {
@@ -413,6 +539,7 @@ module eiffel.semantics {
         var attributeSymbol = new symbols.AttributeSymbol(name, alias, fna.frozen, attr);
 
         attr.sym = attributeSymbol;
+        this.classSymbol.declaredFeatures.set(lcName, attributeSymbol);
         this.classSymbol.declaredAttributes.set(lcName, attributeSymbol);
       }, this);
 
@@ -432,6 +559,7 @@ module eiffel.semantics {
         var sym = new symbols.FunctionSymbol(lcFunctionName, alias, fna.frozen, func);
 
         func.sym = sym;
+        this.classSymbol.declaredFeatures.set(lcFunctionName, sym);
         this.classSymbol.declaredFunctions.set(lcFunctionName, sym);
         this.classSymbol.declaredRoutines.set(lcFunctionName, sym);
         this.analysisContext.allFunctions.push(sym);
@@ -461,6 +589,7 @@ module eiffel.semantics {
         var sym = new symbols.ProcedureSymbol(procedureName, alias, fna.frozen, procedure);
 
         procedure.sym = sym;
+        this.classSymbol.declaredFeatures.set(lcProcedureName, sym);
         this.classSymbol.declaredProcedures.set(lcProcedureName, sym);
         this.classSymbol.declaredRoutines.set(lcProcedureName, sym);
         this.analysisContext.allProcedures.push(sym);
@@ -483,6 +612,7 @@ module eiffel.semantics {
         var attributeSymbol = new symbols.AttributeSymbol(name, alias, fna.frozen, constantAttribute);
 
         constantAttribute.sym = attributeSymbol;
+        this.classSymbol.declaredFeatures.set(lcName, attributeSymbol);
         this.classSymbol.declaredAttributes.set(lcName, attributeSymbol);
       }, this);
       //return super.vConstantAttribute(constantAttribute, this.classSymbol);

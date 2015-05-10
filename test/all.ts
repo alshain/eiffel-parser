@@ -31,7 +31,7 @@ test("parser.parse exists", function() {
 
 
 QUnit.module("OKTests");
-okTests.forEach(function (file__content) {
+okTests.forEach(function (file__content: {filename: string; content: string}) {
 
   test("Parsing " + file__content.filename, function() {
     try {
@@ -388,7 +388,7 @@ test("Symbols exist", function() {
 
 test("Local variables exist", function () {
   var analyzed = analyze("class HASLOCALS feature abcd local var: INTEGER do end end");
-  var local = analyzed.context.classWithName("HASLOCALS").declaredRoutines["abcd"].localsAndParamsByName["var"];
+  var local = analyzed.context.classWithName("HASLOCALS").declaredRoutines.get("abcd").localsAndParamsByName.get("var");
   equal(local.name, "var", "Local variable is not named var");
 });
 
@@ -398,9 +398,9 @@ test("Symbols resolve correctly in attributes", function () {
   var aSym = analyzed.context.classWithName("A");
   var bSym = analyzed.context.classWithName("B");
   var cSym = analyzed.context.classWithName("C");
-  ok(aSym.resolveSymbol("a").type.baseSymbol === aSym, "Type was not resolved");
-  ok(bSym.resolveSymbol("a").type.baseSymbol === aSym, "Type was not resolved");
-  ok(cSym.resolveSymbol("b").type.baseSymbol === bSym, "Type was not resolved");
+  ok(aSym.resolveSymbol("a").typeInstance.baseType === aSym, "Type was not resolved");
+  ok(bSym.resolveSymbol("a").typeInstance.baseType === aSym, "Type was not resolved");
+  ok(cSym.resolveSymbol("b").typeInstance.baseType === bSym, "Type was not resolved");
 });
 
 
@@ -419,7 +419,7 @@ test("Alias registers correctly", function () {
 
 test("Function return types resolve correctly", function () {
   var analyzed = analyze("class A feature b: A do end end");
-  ok(analyzed.context.classWithName("A").resolveSymbol("b").type.baseSymbol === analyzed.context.classWithName("A"), "Type was not resolved");
+  ok(analyzed.context.classWithName("A").resolveSymbol("b").typeInstance.baseType === analyzed.context.classWithName("A"), "Type was not resolved");
 });
 
 test("Local variables type resolves correctly", function () {
