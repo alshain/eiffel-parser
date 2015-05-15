@@ -192,6 +192,7 @@ gulp.task('default', ["all", "serve"]);
 
 gulp.task("serve", function() {
  browserSync({
+      open: false,
       server: "./",
       startPath: "test/all.html",
   });
