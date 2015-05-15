@@ -110,8 +110,16 @@ module eiffel.semantics {
         parentGroup.parents.forEach(function (parent ) {
           parent.parentType = makeTypeInstanceIn(oneClass, parent.rawType, analysisContext);
           typeInstances.push(parent.parentType);
+          oneClass.parentTypes.push(parent.parentType);
         });
-      })
+      });
+      if (oneClass.ast.parentGroups.length === 0) {
+        if (oneClass.lowerCaseName !== "any") {
+          var anyInstance = new eiffel.symbols.TypeInstance(analysisContext.classWithName("ANY"), [], oneClass);
+          oneClass.parentTypes.push(anyInstance);
+          typeInstances.push(anyInstance);
+        }
+      }
     });
 
     // Validate all
@@ -323,10 +331,105 @@ module eiffel.semantics {
         analysisContext.errors.noConformingParent(oneClass);
       }
 
-      pairs(allParents).forEach(function () {
+      oneClass.ancestorTypesByBaseType.forEach(function (typesWithSameBase) {
+        pairs(typesWithSameBase).forEach(function (a) {
+          if (a[0].differentGenericDerivationThan(a[1])) {
+            debugger;
+            a[0].differentGenericDerivationThan(a[1]);
+            analysisContext.errors.differentGenericDerivations(oneClass, a[0], a[1]);
+          }
+        });
       })
     });
   };
+
+  export function traverseInheritance(f, analysisContext: AnalysisContext) {
+    var classes = analysisContext.allClasses;
+    var seen = new Set<sym.ClassSymbol>();
+
+    function processClass(clazz: sym.ClassSymbol) {
+      if (!seen.has(clazz)) {
+        seen.add(clazz);
+
+        if (clazz.inheritsFromCyclicInheritance) {
+          return;
+        }
+
+        if (clazz.hasCyclicInheritance) {
+          return;
+        }
+
+        // Good to go, not in any cycles
+
+
+        // Make sure all parents have been processed
+        clazz.ast.parentGroups.forEach(function (parentGroup) {
+          parentGroup.parents.forEach(function (parent) {
+            processClass(parent.parentType.baseType);
+          })
+        });
+
+        f(clazz);
+      }
+    }
+
+    processClass(analysisContext.classWithName("ANY"));
+    classes.forEach(processClass);
+  }
+
+  export function gatherAncestors(oneClass: eiffel.symbols.ClassSymbol) {
+    var genericInstances = oneClass.genericParametersInOrder.map(function (genericParam) {
+      return new eiffel.symbols.TypeInstance(genericParam, [], oneClass);
+    });
+
+    oneClass.ancestorTypes.push(new eiffel.symbols.TypeInstance(oneClass, genericInstances, oneClass));
+
+    oneClass.parentTypes.forEach(function (parentType) {
+      var substitutedAncestors = parentType.baseType.ancestorTypes.map(function (ancestorType) {
+        return parentType.substitute(ancestorType);
+      });
+      Array.prototype.push.apply(oneClass.ancestorTypes, substitutedAncestors);
+    });
+    oneClass.ancestorTypes.forEach(function (ancestorType) {
+      var key = ancestorType.baseType;
+      if (!oneClass.ancestorTypesByBaseType.has(key)) {
+        oneClass.ancestorTypesByBaseType.set(key, []);
+      }
+      oneClass.ancestorTypesByBaseType.get(key).push(ancestorType);
+    });
+  }
+
+  export function inheritFeatures(oneClass: eiffel.symbols.ClassSymbol) {
+    var inheritedFeatures = [];
+    oneClass.parentTypes.forEach(function (ancestorType) {
+      if (ancestorType.baseType === oneClass) {
+        console.error("Parents should not contain itself");
+        debugger;
+      }
+      else {
+
+      }
+    });
+    var genericInstances = oneClass.genericParametersInOrder.map(function (genericParam) {
+      return new eiffel.symbols.TypeInstance(genericParam, [], oneClass);
+    });
+
+    oneClass.ancestorTypes.push(new eiffel.symbols.TypeInstance(oneClass, genericInstances, oneClass));
+
+    oneClass.parentTypes.forEach(function (parentType) {
+      var substitutedAncestors = parentType.baseType.ancestorTypes.map(function (ancestorType) {
+        return parentType.substitute(ancestorType);
+      });
+      Array.prototype.push.apply(oneClass.ancestorTypes, substitutedAncestors);
+    });
+    oneClass.ancestorTypes.forEach(function (ancestorType) {
+      var key = ancestorType.baseType;
+      if (!oneClass.ancestorTypesByBaseType.has(key)) {
+        oneClass.ancestorTypesByBaseType.set(key, []);
+      }
+      oneClass.ancestorTypesByBaseType.get(key).push(ancestorType);
+    });
+  }
 
   export function analyze(...manyAsts: ast.Class[][]): AnalysisResult {
     var parse = function parse(builtinSource: BuiltinSource) {
@@ -350,7 +453,11 @@ module eiffel.semantics {
     createRoutineLocalSymbols(analysisContext);
     checkCyclicInheritance(analysisContext);
     initParentTypeInstancesAndValidate(analysisContext);
+    traverseInheritance(gatherAncestors, analysisContext);
     checkValidty_8_6_13_parent_rule(analysisContext);
+    traverseInheritance(inheritFeatures, analysisContext);
+
+
 
     analysisContext.allClasses.forEach(function (oneClass) {
       oneClass.ast.parentGroups.forEach(function (parentGroup) {
@@ -492,6 +599,11 @@ module eiffel.semantics {
     noFrozenParent(sourceClass: eiffel.symbols.ClassSymbol, parent: eiffel.ast.Parent): void {
       this.add(SemanticErrorKind.CannotExtendFrozenClass, sourceClass.name + " is trying to extend a frozen class", parent);
     }
+
+    differentGenericDerivations(oneClass:eiffel.symbols.ClassSymbol, deriv1:eiffel.symbols.TypeInstance, deriv2:eiffel.symbols.TypeInstance):void {
+      this.add(SemanticErrorKind.TwoAncestorsWithDifferentGenericDerivations, "For class " + oneClass.name + ": " + deriv1.repr + ", " + deriv2.repr);
+
+    }
   }
 
   class SemanticVisitor<A, R> extends ast.Visitor<A, R> {
@@ -515,6 +627,7 @@ module eiffel.semantics {
     DuplicateGenericParameter,
     NoConformingParents,
     CannotExtendFrozenClass,
+    TwoAncestorsWithDifferentGenericDerivations,
   }
 
   class FeatureDiscovery extends SemanticVisitor<any, any> {

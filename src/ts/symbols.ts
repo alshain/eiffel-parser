@@ -94,6 +94,10 @@ module eiffel.symbols {
     possibleFinalFeatures: LookupTable<FeatureSymbol>;
     finalFeatures: LookupTable<FeatureSymbol> = new Map<string, FeatureSymbol>();
 
+    ancestorTypes: TypeInstance[] = [];
+    ancestorTypesByBaseType: Map<ClassSymbol, TypeInstance[]> = new Map<ClassSymbol, TypeInstance[]>();
+    parentTypes: TypeInstance[] = [];
+
     hasCyclicInheritance: boolean = false;
     inheritsFromCyclicInheritance: boolean = false;
 
@@ -152,16 +156,32 @@ module eiffel.symbols {
 
   export class TypeInstance {
 
-
+    toString() {
+      return this.repr;
+    }
     constructor(baseType: ClassSymbol, typeParameters: TypeInstance[], sourceClass: ClassSymbol) {
       this.baseType = baseType;
       this.typeParameters = typeParameters;
+      this.typeParameters.forEach(function (typeParam) {
+        if (typeParam === undefined) {
+          debugger;
+        }
+      });
+
+      if (this.baseType instanceof TypeInstance) {
+        debugger;
+      }
       this.sourceClass = sourceClass;
+      this.repr = this.baseType.name;
+      if (this.typeParameters.length >= 1) {
+        this.repr += "[" + _.pluck(this.typeParameters, "repr").join(", ") + "]";
+      }
     }
 
     baseType: ClassSymbol;
     typeParameters: TypeInstance[];
     sourceClass: ClassSymbol;
+    repr: string;
 
     /**
      * Performs generic substitution of a formal generic parameter with its corresponding type instance
@@ -169,12 +189,11 @@ module eiffel.symbols {
      * Returns type if it isn't a generic parameter
      */
     substitute(typeInstance: TypeInstance): TypeInstance {
-      var substSymbol = function(symbol: ClassSymbol): ClassSymbol {
-
-
+      var substSymbol = (symbol: ClassSymbol) => {
         if (this.baseType.hasGenericParameterWithName(symbol.name)) {
-          var typeParamIndex = this.baseType.genericParametersInOrder.indexOf(symbol);
-          return this.typeParameters[typeParamIndex];
+          var formalGenericParam = this.baseType.genericParameterWithName(symbol.name);
+          var indexOfGenericParam = this.baseType.genericParametersInOrder.indexOf(formalGenericParam);
+          return this.typeParameters[indexOfGenericParam];
         }
         else {
           return symbol;
@@ -184,7 +203,19 @@ module eiffel.symbols {
       var substBaseSymbol = substSymbol(typeInstance.baseType);
       var substTypeParams = typeInstance.typeParameters.map(this.substitute, this);
 
-      return new TypeInstance(substBaseSymbol, substTypeParams, this.sourceClass);
+      if (substBaseSymbol instanceof TypeInstance) {
+        if (substTypeParams.length >= 1) {
+          throw new Error("Higher order polymorphism detected");
+        }
+        return substBaseSymbol;
+      }
+      else if (substBaseSymbol instanceof ClassSymbol) {
+        return new TypeInstance(substBaseSymbol, <TypeInstance[]> substTypeParams, this.sourceClass);
+      }
+      else {
+        console.error("This case should not happen", substBaseSymbol);
+        debugger;
+      }
     }
 
     equals(other: TypeInstance) {
@@ -197,14 +228,14 @@ module eiffel.symbols {
           throw new Error("Invalid State: both should have same amount of type parameters");
         }
 
-        var isDifferent = false;
+        var isEqual = true;
         this.typeParameters.forEach(function (typeParam, i) {
-          if (typeParam.equals(other.typeParameters[i])) {
-            isDifferent = true;
+          if (!typeParam.equals(other.typeParameters[i])) {
+            isEqual = false;
           }
         });
 
-        return isDifferent;
+        return isEqual;
       }
     }
 
