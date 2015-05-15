@@ -674,7 +674,7 @@ module eiffel.ast {
   export class BooleanLiteral extends Literal<boolean> implements VisitorAcceptor {
     constructor(value: string, start: Pos, end: Pos) {
       super(this, value);
-      this.value = value === "true";
+      this.value = value.toLowerCase() === "true";
       this.start = start;
       this.end = end;
     }
