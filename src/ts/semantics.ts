@@ -109,20 +109,26 @@ module eiffel.semantics {
   };
 
   var initParentTypeInstancesAndValidate = function initParentTypeInstancesAndValidate(analysisContext: AnalysisContext): void {
+    var defaultParentGroup: ast.ParentGroup = <ast.ParentGroup> <any> eiffel.parser.parse("inherit\n  ANY", {startRule: "ParentGroup"});
     var typeInstances = [];
     analysisContext.allClasses.forEach(function (oneClass) {
-      oneClass.ast.parentGroups.forEach(function (parentGroup) {
-        parentGroup.parents.forEach(function (parent ) {
-          parent.parentType = makeTypeInstanceIn(oneClass, parent.rawType, analysisContext);
-          typeInstances.push(parent.parentType);
-          oneClass.parentTypes.push(parent.parentType);
+      function processParentGroup(parentGroup: ast.ParentGroup) {
+        parentGroup.parents.forEach(function (parent: ast.Parent) {
+          var typeInstance = makeTypeInstanceIn(oneClass, parent.rawType, analysisContext);
+          typeInstances.push(parent.parentSymbol);
+          var parentSymbol = new sym.ParentSymbol(parent, parentGroup, typeInstance);
+          parent.parentSymbol = parentSymbol;
+          oneClass.parentSymbols.push(parentSymbol);
         });
+      }
+      oneClass.ast.parentGroups.forEach(function (parentGroup) {
+
       });
       if (oneClass.ast.parentGroups.length === 0) {
         if (oneClass.lowerCaseName !== "any") {
           var anyInstance = new eiffel.symbols.TypeInstance(analysisContext.classWithName("ANY"), [], oneClass);
           oneClass.parentTypes.push(anyInstance);
-          typeInstances.push(anyInstance);
+          processParentGroup(defaultParentGroup);
         }
       }
     });
@@ -278,7 +284,7 @@ module eiffel.semantics {
       else {
         oneClass.ast.parentGroups.forEach(function (parentGroup:eiffel.ast.ParentGroup) {
           parentGroup.parents.forEach(function (parent:eiffel.ast.Parent) {
-            if (parent.parentType !== null) {
+            if (parent.parentSymbol !== null) {
 
             }
           })
@@ -326,7 +332,7 @@ module eiffel.semantics {
         parentGroup.parents.forEach(function (parent ) {
           // POINT 2
           allParents.push(parent);
-          if (parent.parentType.baseType.isFrozen && nonConforming) {
+          if (parent.parentSymbol.parentType.baseType.isFrozen && nonConforming) {
             analysisContext.errors.noFrozenParent(oneClass, parent);
           }
         });
@@ -370,7 +376,7 @@ module eiffel.semantics {
         // Make sure all parents have been processed
         clazz.ast.parentGroups.forEach(function (parentGroup) {
           parentGroup.parents.forEach(function (parent) {
-            processClass(parent.parentType.baseType);
+            processClass(parent.parentSymbol.parentType.baseType);
           })
         });
 
@@ -389,9 +395,9 @@ module eiffel.semantics {
 
     oneClass.ancestorTypes.push(new eiffel.symbols.TypeInstance(oneClass, genericInstances, oneClass));
 
-    oneClass.parentTypes.forEach(function (parentType) {
-      var substitutedAncestors = parentType.baseType.ancestorTypes.map(function (ancestorType) {
-        return parentType.substitute(ancestorType);
+    oneClass.parentSymbols.forEach(function (parentSymbol) {
+      var substitutedAncestors = parentSymbol.parentType.baseType.ancestorTypes.map(function (ancestorType) {
+        return parentSymbol.parentType.substitute(ancestorType);
       });
       Array.prototype.push.apply(oneClass.ancestorTypes, substitutedAncestors);
     });
@@ -406,13 +412,16 @@ module eiffel.semantics {
 
   export function inheritFeatures(oneClass: eiffel.symbols.ClassSymbol) {
     var inheritedFeatures = [];
-    oneClass.parentTypes.forEach(function (ancestorType) {
-      if (ancestorType.baseType === oneClass) {
+    var precursors = [];
+    oneClass.parentSymbols.forEach(function (parentSymbol) {
+      if (parentSymbol.parentType.baseType === oneClass) {
         console.error("Parents should not contain itself");
         debugger;
       }
       else {
-
+        var newPrecursors = parentSymbol.parentType.baseType.finalFeatures;
+        parentSymbol.parentType.baseType.finalFeatures
+        //Array.prototype.push.apply(inheritedFeatures, );
       }
     });
     var genericInstances = oneClass.genericParametersInOrder.map(function (genericParam) {
@@ -421,7 +430,8 @@ module eiffel.semantics {
 
     oneClass.ancestorTypes.push(new eiffel.symbols.TypeInstance(oneClass, genericInstances, oneClass));
 
-    oneClass.parentTypes.forEach(function (parentType) {
+    oneClass.parentSymbols.forEach(function (parentSymbol) {
+      var parentType = parentSymbol.parentType;
       var substitutedAncestors = parentType.baseType.ancestorTypes.map(function (ancestorType) {
         return parentType.substitute(ancestorType);
       });
@@ -467,7 +477,7 @@ module eiffel.semantics {
     analysisContext.allClasses.forEach(function (oneClass) {
       oneClass.ast.parentGroups.forEach(function (parentGroup) {
         parentGroup.parents.forEach(function (parent ) {
-          validateTypeInstance(parent.parentType, analysisContext);
+          validateTypeInstance(parent.parentSymbol.parentType, analysisContext);
         });
       })
     });

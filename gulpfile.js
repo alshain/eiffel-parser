@@ -39,6 +39,13 @@ var paths = {
 
 };
 
+var allowedStartRules = [
+  "start",
+  "Expression",
+  "Type",
+  "ParentGroup",
+];
+
 gulp.task("clean", ["cleanCollected", "cleanTypescript", "cleanParser", "cleanBuiltin", "cleanVees"], function(cb) {
   del(["dist", "test/tmp", ".tmp"], cb);
 });
@@ -87,7 +94,7 @@ gulp.task("cleanCollected", function(cb) {
 gulp.task("peg", ["cleanPeg"], function() {
   gulp.src("src/grammar/eiffel.pegjs")
     .pipe(peg({
-        allowedStartRules: ["start", "Expression", "Type"],
+        allowedStartRules: allowedStartRules,
         exportVar: "eiffel.parser",
       }))
     .pipe(rename("parser.js"))

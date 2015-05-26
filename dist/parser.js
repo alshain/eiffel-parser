@@ -29,7 +29,7 @@ eiffel.parser = (function() {
 
         peg$FAILED = {},
 
-        peg$startRuleFunctions = { start: peg$parsestart, Expression: peg$parseExpression, Type: peg$parseType },
+        peg$startRuleFunctions = { start: peg$parsestart, Expression: peg$parseExpression, Type: peg$parseType, ParentGroup: peg$parseParentGroup },
         peg$startRuleFunction  = peg$parsestart,
 
         peg$c0 = [],

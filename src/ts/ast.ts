@@ -532,7 +532,7 @@ module eiffel.ast {
     }
 
     rawType: Type;
-    parentType: TypeInstance;
+    parentSymbol: sym.ParentSymbol;
     name:Identifier;
     adaptions: Adaption[];
 
