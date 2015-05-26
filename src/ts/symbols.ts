@@ -77,6 +77,21 @@ module eiffel.symbols {
     ast: ast.VarDeclEntry;
   }
 
+  export class ParentSymbol {
+
+    constructor(ast:ast.Parent, groupAst:ast.ParentGroup, parentType:eiffel.symbols.TypeInstance) {
+      this.ast = ast;
+      this.groupAst = groupAst;
+      this.parentType = parentType;
+      this.isNonConforming = groupAst.conforming != null;
+    }
+
+    ast: ast.Parent;
+    groupAst: ast.ParentGroup;
+    isNonConforming: boolean;
+    parentType: TypeInstance;
+  }
+
   export class ClassSymbol extends Symbol {
     constructor(name:string, ast: ast.Class) {
       super(name);
@@ -90,13 +105,11 @@ module eiffel.symbols {
     declaredRoutines: LookupTable<RoutineSymbol> = new Map<string, RoutineSymbol>();
     declaredAttributes: LookupTable<AttributeSymbol> = new Map<string, AttributeSymbol>();
     creationProcedures: LookupTable<ProcedureSymbol> = new Map<string, ProcedureSymbol>();
-    inheritedFeatures: FeatureSymbol[] = [];
-    possibleFinalFeatures: LookupTable<FeatureSymbol>;
     finalFeatures: LookupTable<FeatureSymbol> = new Map<string, FeatureSymbol>();
 
     ancestorTypes: TypeInstance[] = [];
     ancestorTypesByBaseType: Map<ClassSymbol, TypeInstance[]> = new Map<ClassSymbol, TypeInstance[]>();
-    parentTypes: TypeInstance[] = [];
+    parentSymbols: ParentSymbol[] = [];
 
     hasCyclicInheritance: boolean = false;
     inheritsFromCyclicInheritance: boolean = false;
@@ -145,6 +158,16 @@ module eiffel.symbols {
         return this.declaredAttributes.get(lcName);
       }
       throw new Error("Symbol " + name + " does not exist in class " + this.name + ".");
+    }
+
+    toString() {
+      var repr = this.name;
+      if (this.genericParametersInOrder.length !== 0) {
+        repr += "[";
+        repr += this.genericParametersInOrder.map(x => x.name).join(", ");
+        repr += "]";
+      }
+      return repr
     }
   }
 
