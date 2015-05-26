@@ -121,7 +121,7 @@ module eiffel.ast {
     }
   }
 
-  interface FormalGenericParameter {
+  export interface FormalGenericParameter {
     name: Identifier;
     constraints: TypeConstraint[];
     creators: Identifier[];
