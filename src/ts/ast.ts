@@ -185,12 +185,12 @@ module eiffel.ast {
     rawType: Type;
   }
 
-  interface NameAlias {
+  interface ExtendedFeatureName {
     name: Identifier;
     alias: Alias;
   }
 
-  interface FrozenNameAlias extends NameAlias {
+  interface FrozenNameAlias extends ExtendedFeatureName {
     frozen: boolean;
   }
 
@@ -546,14 +546,14 @@ module eiffel.ast {
   }
 
   export class Rename extends AST implements VisitorAcceptor {
-    constructor(oldName:eiffel.ast.Identifier, newName: NameAlias) {
+    constructor(oldName:eiffel.ast.Identifier, newName: ExtendedFeatureName) {
       super(this);
       this.oldName = oldName;
       this.newName = newName;
     }
 
     oldName: Identifier;
-    newName: NameAlias;
+    newName: ExtendedFeatureName;
 
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vRename(this, arg);
