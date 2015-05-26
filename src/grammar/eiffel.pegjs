@@ -316,7 +316,7 @@ Parent
 /** FIXME: No backtracking, END of inheritance only mandatory if at least one rule fits */
 
 Adaptions
-  = Adaption+ W EndToken
+  = as:Adaption+ W EndToken { return as; }
 
 Adaption
   = InhUndefine

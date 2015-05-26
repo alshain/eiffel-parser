@@ -156,7 +156,7 @@ feature {NONE} -- Initialization
     end
 
 feature -- Basic operations
-  frozen dlo_nothing
+  frozen do_nothing
       -- Execute a null action.
     do
     end

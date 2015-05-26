@@ -7,6 +7,7 @@ module eiffel.semantics {
   import LookupTable = eiffel.util.LookupTable;
   import caseIgnoreEquals = eiffel.util.caseIgnoreEquals;
   import pairs = eiffel.util.pairs;
+  import group = eiffel.util.group;
 
   var createClassSymbols = function (asts, analysisContext:AnalysisContext) {
     asts.forEach(function (ast:eiffel.ast.Class) {
@@ -109,25 +110,21 @@ module eiffel.semantics {
   };
 
   var initParentTypeInstancesAndValidate = function initParentTypeInstancesAndValidate(analysisContext: AnalysisContext): void {
-    var defaultParentGroup: ast.ParentGroup = <ast.ParentGroup> <any> eiffel.parser.parse("inherit\n  ANY", {startRule: "ParentGroup"});
-    var typeInstances = [];
+    var defaultParentGroup: ast.ParentGroup = <ast.ParentGroup> <any> eiffel.parser.parse(" inherit\n  ANY", {startRule: "ParentGroup"});
+    var typeInstances: sym.TypeInstance[] = [];
     analysisContext.allClasses.forEach(function (oneClass) {
       function processParentGroup(parentGroup: ast.ParentGroup) {
         parentGroup.parents.forEach(function (parent: ast.Parent) {
           var typeInstance = makeTypeInstanceIn(oneClass, parent.rawType, analysisContext);
-          typeInstances.push(parent.parentSymbol);
-          var parentSymbol = new sym.ParentSymbol(parent, parentGroup, typeInstance);
+          var parentSymbol = new eiffel.symbols.ParentSymbol(parent, parentGroup, typeInstance);
           parent.parentSymbol = parentSymbol;
+          typeInstances.push(parent.parentSymbol.parentType);
           oneClass.parentSymbols.push(parentSymbol);
         });
       }
-      oneClass.ast.parentGroups.forEach(function (parentGroup) {
-
-      });
+      oneClass.ast.parentGroups.forEach(processParentGroup);
       if (oneClass.ast.parentGroups.length === 0) {
         if (oneClass.lowerCaseName !== "any") {
-          var anyInstance = new eiffel.symbols.TypeInstance(analysisContext.classWithName("ANY"), [], oneClass);
-          oneClass.parentTypes.push(anyInstance);
           processParentGroup(defaultParentGroup);
         }
       }
@@ -254,7 +251,7 @@ module eiffel.semantics {
 
   var initGenericParamSyms = function (analysisContext) {
     analysisContext.allClasses.map(function (oneClass) {
-      oneClass.ast.genericParameters.forEach(function (genericParameter) {
+      oneClass.ast.genericParameters.forEach(function (genericParameter: ast.FormalGenericParameter) {
         var name = genericParameter.name.name;
 
         var genericParamSym = new eiffel.symbols.ClassSymbol(name, null);
@@ -354,7 +351,7 @@ module eiffel.semantics {
     });
   };
 
-  export function traverseInheritance(f, analysisContext: AnalysisContext) {
+  export function traverseInheritance(f: (sym: sym.ClassSymbol, context?: AnalysisContext) => any, analysisContext: AnalysisContext) {
     var classes = analysisContext.allClasses;
     var seen = new Set<sym.ClassSymbol>();
 
@@ -380,7 +377,7 @@ module eiffel.semantics {
           })
         });
 
-        f(clazz);
+        f(clazz, analysisContext);
       }
     }
 
@@ -410,19 +407,77 @@ module eiffel.semantics {
     });
   }
 
-  export function inheritFeatures(oneClass: eiffel.symbols.ClassSymbol) {
-    var inheritedFeatures = [];
+  export function inheritFeatures(oneClass: eiffel.symbols.ClassSymbol, context: AnalysisContext) {
     var precursors = [];
-    oneClass.parentSymbols.forEach(function (parentSymbol) {
+    if (oneClass.lowerCaseName === "any") {
+      oneClass.declaredFeatures.forEach(function (feature, featureName) {
+        console.log(featureName, feature);
+        oneClass.finalFeatures.set(featureName, feature);
+      });
+    }
+    oneClass.parentSymbols.forEach(function (parentSymbol: eiffel.symbols.ParentSymbol) {
       if (parentSymbol.parentType.baseType === oneClass) {
         console.error("Parents should not contain itself");
         debugger;
       }
       else {
-        var newPrecursors = parentSymbol.parentType.baseType.finalFeatures;
-        parentSymbol.parentType.baseType.finalFeatures
+        var finalFeatures = parentSymbol.parentType.baseType.finalFeatures;
+        var featureNames = [];
+        finalFeatures.forEach(function extractFinalFeatureName(_, finalFeatureName) {
+          featureNames.push(finalFeatureName);
+        });
+        var nameMapping = new Map<string, string>();
+
+        parentSymbol.renames.forEach(function (rename: eiffel.ast.Rename) {
+          var oldName = rename.oldName.name;
+          if (!finalFeatures.has(oldName)) {
+            context.errors.unknownOldFeatureInRename(rename, parentSymbol);
+          }
+          else {
+            if (nameMapping.has(oldName)) {
+              context.errors.alreadyRenamed(rename, nameMapping.get(oldName), parentSymbol);
+            }
+            else {
+              nameMapping.set(oldName, rename.newName.name.name);
+            }
+          }
+        });
+        var undefines = new Set<string>();
+        parentSymbol.undefines.forEach(function (identifier) {
+          var lcUndefine = identifier.name.toLowerCase();
+          // VDUS_1
+          if (!finalFeatures.has(lcUndefine)) {
+            context.errors.uncategorized("VDUS_1, tried undefining feature that does not exist in parent: " + lcUndefine);
+          }
+
+          // VDUS_4
+          if (undefines.has(lcUndefine)) {
+            context.errors.uncategorized("VDUS_4, why undefine the same feature multiple times?" + lcUndefine);
+          }
+
+          undefines.add(lcUndefine);
+        });
+
+
+        finalFeatures.forEach(function (finalFeature, oldFinalFeatureName) {
+          var finalFeatureName = oldFinalFeatureName;
+          if (nameMapping.has(oldFinalFeatureName)) {
+            finalFeature = finalFeature.duplicate();
+            finalFeatureName = nameMapping.get(oldFinalFeatureName)
+            finalFeature.setName(finalFeatureName);
+          }
+
+          precursors.push(finalFeature);
+        });
+
+
+
+        parentSymbol.parentType.baseType.finalFeatures.forEach(function (finalFeature) {
+          //console.log(finalFeature);
+        });
         //Array.prototype.push.apply(inheritedFeatures, );
       }
+      console.log(precursors);
     });
     var genericInstances = oneClass.genericParametersInOrder.map(function (genericParam) {
       return new eiffel.symbols.TypeInstance(genericParam, [], oneClass);
@@ -443,6 +498,42 @@ module eiffel.semantics {
         oneClass.ancestorTypesByBaseType.set(key, []);
       }
       oneClass.ancestorTypesByBaseType.get(key).push(ancestorType);
+    });
+  }
+
+  function initAdaptions(context: AnalysisContext) {
+    var parents = context.astDictionary.get(eiffel.ast.Parent);
+    parents.forEach(function (parent:eiffel.ast.Parent) {
+      var parentSymbol = parent.parentSymbol;
+      var seen = new Set<any>();
+      var errored = new Set<any>();
+      parent.adaptions.forEach(function addAdaptionToParentSymbol(adaption: any) {
+        // Check for duplicate adaptions
+        var constructor = Object.getPrototypeOf(adaption).constructor;
+        if (seen.has(constructor)) {
+          if (!errored.has(constructor)) {
+            errored.add(constructor);
+            context.errors.duplicateAdaptionsOfType(constructor.name, adaption);
+          }
+        }
+        else {
+          seen.add(constructor);
+        }
+
+        // register adaption
+        if (adaption instanceof eiffel.ast.Renames) {
+          Array.prototype.push.apply(parentSymbol.renames, (<eiffel.ast.Renames> adaption).renames);
+        }
+        if (adaption instanceof eiffel.ast.Undefines) {
+          Array.prototype.push.apply(parentSymbol.undefines, adaption.identifiers);
+        }
+        if (adaption instanceof eiffel.ast.Redefines) {
+          Array.prototype.push.apply(parentSymbol.redefines, adaption.identifiers);
+        }
+        if (adaption instanceof eiffel.ast.Selects) {
+          Array.prototype.push.apply(parentSymbol.selects, adaption.identifiers);
+        }
+      });
     });
   }
 
@@ -468,7 +559,9 @@ module eiffel.semantics {
     createRoutineLocalSymbols(analysisContext);
     checkCyclicInheritance(analysisContext);
     initParentTypeInstancesAndValidate(analysisContext);
+    // Can now use traverseInheritance
     traverseInheritance(populateAncestorTypes, analysisContext);
+    initAdaptions(analysisContext);
     checkValidty_8_6_13_parent_rule(analysisContext);
     traverseInheritance(inheritFeatures, analysisContext);
 
@@ -619,6 +712,20 @@ module eiffel.semantics {
       this.add(SemanticErrorKind.TwoAncestorsWithDifferentGenericDerivations, "For class " + oneClass.name + ": " + deriv1.repr + ", " + deriv2.repr);
 
     }
+
+    duplicateAdaptionsOfType(name: string, adaption: eiffel.ast.AST):void {
+      this.add(SemanticErrorKind.DuplicateAdaption, "Duplicate adaption: " + name);
+    }
+
+    unknownOldFeatureInRename(rename: eiffel.ast.Rename, parentSymbol: eiffel.symbols.ParentSymbol):void {
+      var parentClassName = parentSymbol.parentType.baseType.name;
+      this.add(SemanticErrorKind.UnknownSourceFeatureInRename, parentClassName + " has no feature " + rename.oldName.name + ". You told Eiffel to inherit a feature named '" + rename.oldName.name + "' from a class called '" + parentClassName + "' under a new name.");
+    }
+
+    alreadyRenamed(rename:eiffel.ast.Rename, oldNewName: string, parentSymbol:eiffel.symbols.ParentSymbol):void {
+      var parentClassName = parentSymbol.parentType.baseType.name;
+      this.add(SemanticErrorKind.AlreadyRenamedFeature, rename.oldName.name + " has already been renamed to " + oldNewName);
+    }
   }
 
   class SemanticVisitor<A, R> extends ast.Visitor<A, R> {
@@ -643,6 +750,9 @@ module eiffel.semantics {
     NoConformingParents,
     CannotExtendFrozenClass,
     TwoAncestorsWithDifferentGenericDerivations,
+    DuplicateAdaption,
+    UnknownSourceFeatureInRename,
+    AlreadyRenamedFeature,
   }
 
   class FeatureDiscovery extends SemanticVisitor<any, any> {
@@ -750,12 +860,12 @@ module eiffel.semantics {
 
   class AstToDictionaryByPrototype extends SemanticVisitor<any, any> {
     vDefault(ast:eiffel.ast.AST, arg:any):any {
-      var prototype = Object.getPrototypeOf(ast);
-      if (arg.has(prototype)) {
-        arg.get(prototype).push(ast);
+      var constructor = Object.getPrototypeOf(ast).constructor;
+      if (arg.has(constructor)) {
+        arg.get(constructor).push(ast);
       }
     else {
-        arg.set(prototype, [ast]);
+        arg.set(constructor, [ast]);
       }
       return super.vDefault(ast, arg);
     }

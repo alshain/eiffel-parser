@@ -11,6 +11,12 @@ module eiffel.ast {
     accept<A, R>(visitor:Visitor<A, R>, arg:A): R;
   }
 
+  export class Source {
+    fileName: string;
+    clazz: Class;
+    feature: Feature;
+  }
+
   export class AST {
     constructor(impl:VisitorAcceptor) {
       this._acceptor = impl;
@@ -18,6 +24,7 @@ module eiffel.ast {
     }
 
     children:AST[];
+    source: Source;
     _acceptor:VisitorAcceptor;
   }
 
@@ -530,8 +537,10 @@ module eiffel.ast {
     constructor(rt: Type, adaptions: Adaption[]) {
       super(this);
       this.rawType = rt;
-      this.adaptions = adaptions;
       this.children.push(rt);
+
+      this.adaptions = (adaptions == null) ? [] : adaptions;
+      this.nullAdaptions = adaptions;
       Array.prototype.push.apply(this.children, adaptions);
     }
 
@@ -539,6 +548,7 @@ module eiffel.ast {
     parentSymbol: sym.ParentSymbol;
     name:Identifier;
     adaptions: Adaption[];
+    nullAdaptions: Adaption[];
 
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vParent(this, arg);

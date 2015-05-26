@@ -10,6 +10,11 @@ module eiffel.symbols {
 
       name: string;
       lowerCaseName: string;
+
+      setName(name: string) {
+        this.name = name;
+        this.lowerCaseName = name.toLowerCase();
+      }
     }
 
   export class FeatureSymbol extends Symbol {
@@ -17,6 +22,7 @@ module eiffel.symbols {
       super(name);
       this.alias = alias;
       this.isFrozen = isFrozen;
+      this.isDeferred = false;
       this.ast = ast;
       this.isCommand = this.ast.rawType == null;
     }
@@ -26,7 +32,17 @@ module eiffel.symbols {
     ast: eiffel.ast.Feature;
     alias: string;
     isFrozen: boolean;
+    isDeferred: boolean;
     isCommand: boolean;
+
+    duplicate(): FeatureSymbol {
+      console.error("Called duplicate on", this);
+      if (true) {
+        throw new Error("Duplicate has not been implemented");
+      }
+
+      return this;
+    }
   }
 
   export class RoutineSymbol extends FeatureSymbol {
@@ -46,16 +62,22 @@ module eiffel.symbols {
     }
 
     ast: ast.Function;
+
+    duplicate() {
+      return new FunctionSymbol(this.name, this.alias, this.isFrozen, this.ast);
+    }
   }
 
   export class ProcedureSymbol extends RoutineSymbol {
-
-
     constructor(name:string, alias: string, frozen: boolean, ast:ast.Procedure) {
       super(name, alias, frozen, ast);
     }
 
     ast: ast.Procedure;
+
+    duplicate() {
+      return new ProcedureSymbol(this.name, this.alias, this.isFrozen, this.ast);
+    }
   }
 
   export class AttributeSymbol extends FeatureSymbol {
@@ -65,6 +87,10 @@ module eiffel.symbols {
     }
 
     ast: ast.VarOrConstAttribute;
+
+    duplicate() {
+      return new AttributeSymbol(this.name, this.alias, this.isFrozen, this.ast);
+    }
   }
 
   export class VariableSymbol extends Symbol {
@@ -90,6 +116,12 @@ module eiffel.symbols {
     groupAst: ast.ParentGroup;
     isNonConforming: boolean;
     parentType: TypeInstance;
+
+    renames: eiffel.ast.Rename[] = [];
+    undefines: eiffel.ast.Identifier[] = [];
+    redefines: eiffel.ast.Identifier[] = [];
+    selects: eiffel.ast.Identifier[] = [];
+
   }
 
   export class ClassSymbol extends Symbol {
