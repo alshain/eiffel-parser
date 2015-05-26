@@ -531,6 +531,8 @@ module eiffel.ast {
       super(this);
       this.rawType = rt;
       this.adaptions = adaptions;
+      this.children.push(rt);
+      Array.prototype.push.apply(this.children, adaptions);
     }
 
     rawType: Type;
