@@ -297,9 +297,9 @@ NoteValue
 
 ClassName = W name:Identifier { return name}
 create = W CreateToken W first:Identifier rest:("," w id:Identifier { return id})* {return buildList(first, rest, gId())}
-inherit = InheritanceClause+
+inherit = ParentGroup+
 
-InheritanceClause
+ParentGroup
   = W InheritToken c:(w "{" w i:(Identifier?) w "}" {return i;} / { return null; })? ps:Parent+
   {
     return new eiffel.ast.ParentGroup(c, ps);
