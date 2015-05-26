@@ -377,7 +377,7 @@ module eiffel.semantics {
     classes.forEach(processClass);
   }
 
-  export function gatherAncestors(oneClass: eiffel.symbols.ClassSymbol) {
+  export function populateAncestorTypes(oneClass: eiffel.symbols.ClassSymbol) {
     var genericInstances = oneClass.genericParametersInOrder.map(function (genericParam) {
       return new eiffel.symbols.TypeInstance(genericParam, [], oneClass);
     });
@@ -453,7 +453,7 @@ module eiffel.semantics {
     createRoutineLocalSymbols(analysisContext);
     checkCyclicInheritance(analysisContext);
     initParentTypeInstancesAndValidate(analysisContext);
-    traverseInheritance(gatherAncestors, analysisContext);
+    traverseInheritance(populateAncestorTypes, analysisContext);
     checkValidty_8_6_13_parent_rule(analysisContext);
     traverseInheritance(inheritFeatures, analysisContext);
 
