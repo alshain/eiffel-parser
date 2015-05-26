@@ -83,6 +83,11 @@ module eiffel.semantics {
     return new eiffel.symbols.TypeInstance(baseType, typeParamInstances, sourceClass);
   };
 
+  /**
+   * Check whether amount of generic parameters is correct
+   * @param instance
+   * @param context
+   */
   var validateTypeInstance = function validateTypeInstance(instance: eiffel.symbols.TypeInstance, context: AnalysisContext) {
     // TODO implement constraints
 
