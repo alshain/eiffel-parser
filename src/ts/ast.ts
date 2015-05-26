@@ -512,6 +512,8 @@ module eiffel.ast {
 
       this.conforming = conforming;
       this.parents = parents;
+      this.children.push(conforming);
+      Array.prototype.push.apply(this.children, parents);
     }
 
     conforming: Identifier;
