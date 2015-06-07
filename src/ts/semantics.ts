@@ -408,45 +408,61 @@ module eiffel.semantics {
   }
 
   export function inheritFeatures(oneClass: eiffel.symbols.ClassSymbol, context: AnalysisContext) {
+    /**
+     * Constructed as pe 6.16.12
+     * @type {Array}
+     */
     var precursors = [];
+    var uniqueFeatures = new Map<string, Map<sym.FeatureSymbol, sym.FeatureSymbol>>();
+
     if (oneClass.lowerCaseName === "any") {
-      oneClass.declaredFeatures.forEach(function (feature, featureName) {
-        console.log(featureName, feature);
-        oneClass.finalFeatures.set(featureName, feature);
-      });
+      // ANY is already initialized
+      return;
     }
+
+
     oneClass.parentSymbols.forEach(function (parentSymbol: eiffel.symbols.ParentSymbol) {
+      if (parentSymbol.isNonConforming) {
+        console.error("Nonconforming inheritance is not supported");
+        debugger;
+      }
       if (parentSymbol.parentType.baseType === oneClass) {
         console.error("Parents should not contain itself");
         debugger;
       }
       else {
-        var finalFeatures = parentSymbol.parentType.baseType.finalFeatures;
+        var parentFinalFeatures = parentSymbol.parentType.baseType.finalFeatures;
         var featureNames = [];
-        finalFeatures.forEach(function extractFinalFeatureName(_, finalFeatureName) {
+        parentFinalFeatures.forEach(function extractFinalFeatureName(_, finalFeatureName) {
           featureNames.push(finalFeatureName);
         });
-        var nameMapping = new Map<string, string>();
 
-        parentSymbol.renames.forEach(function (rename: eiffel.ast.Rename) {
+
+
+        // RENAME
+        var oldNameToNewName = new Map<string, string>();
+
+        parentSymbol.renames.forEach(function makeRenameMapping(rename:eiffel.ast.Rename) {
           var oldName = rename.oldName.name;
-          if (!finalFeatures.has(oldName)) {
+          if (!parentFinalFeatures.has(oldName)) {
             context.errors.unknownOldFeatureInRename(rename, parentSymbol);
           }
           else {
-            if (nameMapping.has(oldName)) {
-              context.errors.alreadyRenamed(rename, nameMapping.get(oldName), parentSymbol);
+            if (oldNameToNewName.has(oldName)) {
+              context.errors.alreadyRenamed(rename, oldNameToNewName.get(oldName), parentSymbol);
             }
             else {
-              nameMapping.set(oldName, rename.newName.name.name);
+              oldNameToNewName.set(oldName, rename.newName.name.name);
             }
           }
         });
+
+        // UNDEFINES
         var undefines = new Set<string>();
         parentSymbol.undefines.forEach(function (identifier) {
           var lcUndefine = identifier.name.toLowerCase();
           // VDUS_1
-          if (!finalFeatures.has(lcUndefine)) {
+          if (!parentFinalFeatures.has(lcUndefine)) {
             context.errors.uncategorized("VDUS_1, tried undefining feature that does not exist in parent: " + lcUndefine);
           }
 
@@ -459,46 +475,90 @@ module eiffel.semantics {
         });
 
 
-        finalFeatures.forEach(function (finalFeature, oldFinalFeatureName) {
+
+
+        parentFinalFeatures.forEach(function (finalFeature, oldFinalFeatureName) {
+          var needsDuplicate = false;
           var finalFeatureName = oldFinalFeatureName;
-          if (nameMapping.has(oldFinalFeatureName)) {
-            finalFeature = finalFeature.duplicate();
-            finalFeatureName = nameMapping.get(oldFinalFeatureName)
-            finalFeature.setName(finalFeatureName);
+          var newIsDeferred = finalFeature.isDeferred;
+          if (oldNameToNewName.has(oldFinalFeatureName)) {
+            needsDuplicate = true;
+            finalFeatureName = oldNameToNewName.get(oldFinalFeatureName)
           }
 
-          precursors.push(finalFeature);
+
+          if (undefines.has(oldFinalFeatureName)) {
+            needsDuplicate = true;
+            finalFeature.duplicate();
+            if (finalFeature.isDeferred) {
+              // VDUS_3
+              context.errors.uncategorized("VDUS_3, cannot make deferred feature deferred");
+            }
+            else {
+              // VDUS_2
+              if (finalFeature instanceof eiffel.symbols.AttributeSymbol) {
+                context.errors.uncategorized("VDUS_2, cannot undefine attribute");
+              }
+              newIsDeferred = true;
+            }
+
+
+            // VDUS_5
+            // Any redeclaration of f in C specifies a deferred feature.
+            if (oneClass.declaredFeatures.has(finalFeatureName)) {
+              if (!oneClass.declaredFeatures.get(finalFeatureName).isDeferred) {
+                context.errors.uncategorized("VDUS_5, tried effecting a feature that was inherited as undefined: " + finalFeatureName);
+              }
+            }
+          }
+
+          var isUnique = true;
+          if (uniqueFeatures.has(finalFeatureName)) {
+            var uniquesWithSameName = uniqueFeatures.get(finalFeatureName);
+            if (uniquesWithSameName.has(finalFeature.identity)) {
+              isUnique = false;
+
+              // "unique" feature might be marked as deferred because deferred clause is already processed
+              // override deferred state
+              if (!newIsDeferred) {
+                var duplicate = uniquesWithSameName.get(finalFeature.identity);
+                duplicate.isDeferred = false;
+              }
+            }
+          }
+          else {
+            uniqueFeatures.set(finalFeatureName, new Map<sym.FeatureSymbol, sym.FeatureSymbol>());
+          }
+
+          if (isUnique) {
+            var finalFeatureRenamedAndDeferred = finalFeature.duplicate();
+            finalFeatureRenamedAndDeferred.name = finalFeatureName;
+            finalFeatureRenamedAndDeferred.isDeferred = newIsDeferred;
+            uniqueFeatures.get(finalFeatureName).set(finalFeature.identity, finalFeatureRenamedAndDeferred);
+            precursors.push(finalFeatureRenamedAndDeferred);
+          }
+
+          //Array.prototype.push.apply(inheritedFeatures, );
         });
-
-
-
-        parentSymbol.parentType.baseType.finalFeatures.forEach(function (finalFeature) {
-          //console.log(finalFeature);
-        });
-        //Array.prototype.push.apply(inheritedFeatures, );
       }
-      console.log(precursors);
-    });
-    var genericInstances = oneClass.genericParametersInOrder.map(function (genericParam) {
-      return new eiffel.symbols.TypeInstance(genericParam, [], oneClass);
     });
 
-    oneClass.ancestorTypes.push(new eiffel.symbols.TypeInstance(oneClass, genericInstances, oneClass));
-
-    oneClass.parentSymbols.forEach(function (parentSymbol) {
-      var parentType = parentSymbol.parentType;
-      var substitutedAncestors = parentType.baseType.ancestorTypes.map(function (ancestorType) {
-        return parentType.substitute(ancestorType);
-      });
-      Array.prototype.push.apply(oneClass.ancestorTypes, substitutedAncestors);
+    // gathered precursors
+    var precursorsByName = eiffel.util.group(precursors, function(feature: sym.FeatureSymbol) {
+      return feature.name;
     });
-    oneClass.ancestorTypes.forEach(function (ancestorType) {
-      var key = ancestorType.baseType;
-      if (!oneClass.ancestorTypesByBaseType.has(key)) {
-        oneClass.ancestorTypesByBaseType.set(key, []);
+
+    var mergedPrecursors = new Map<string, sym.FeatureSymbol>();
+    precursorsByName.forEach(function (precursorsWithSameName, name) {
+      if (precursorsWithSameName.length == 1) {
+        mergedPrecursors.set(name, precursorsWithSameName[0]);
       }
-      oneClass.ancestorTypesByBaseType.get(key).push(ancestorType);
+      else {
+
+      }
     });
+
+    console.log(precursors);
   }
 
   function initAdaptions(context: AnalysisContext) {
@@ -537,6 +597,44 @@ module eiffel.semantics {
     });
   }
 
+
+
+  function initAny(context: AnalysisContext) {
+    var anySym = context.classWithName("ANY");
+    anySym.declaredFeatures.forEach(function initAnyFeature(feature: sym.FeatureSymbol, featureName) {
+      anySym.finalFeatures.set(featureName, feature);
+      feature.routineId = new eiffel.symbols.RoutineId(anySym, feature);
+      feature.identity = feature;
+    });
+  }
+
+
+  function initReturnTypeTypeInstances(analysisContext) {
+    analysisContext.allClasses.forEach(function (classSymbol) {
+      classSymbol.declaredFeatures.forEach(function (fSym:eiffel.symbols.FeatureSymbol) {
+        if (!fSym.isCommand) {
+          fSym.typeInstance = makeTypeInstanceIn(classSymbol, fSym.ast.rawType, analysisContext);
+        }
+      });
+    });
+  }
+
+  function initFunctionArgTypes(analysisContext: AnalysisContext) {
+    analysisContext.allClasses.forEach(function (classSymbol) {
+      var funcSymbols = <sym.FunctionSymbol[]> classSymbol.allWithPrototype(sym.FunctionSymbol);
+      funcSymbols.forEach(function (funcSymbol) {
+        var ast = <eiffel.ast.Function> funcSymbol.ast;
+        ast.parameters.forEach()
+
+      });
+      classSymbol.declaredFeatures.forEach(function (fSym:eiffel.symbols.FeatureSymbol) {
+        if (!fSym.isAttribute) {
+          fSym.typeInstance = makeTypeInstanceIn(classSymbol, fSym.ast.rawType, analysisContext);
+        }
+      });
+    });
+  }
+
   export function analyze(...manyAsts: ast.Class[][]): AnalysisResult {
     var parse = function parse(builtinSource: BuiltinSource) {
       try {
@@ -559,10 +657,13 @@ module eiffel.semantics {
     createRoutineLocalSymbols(analysisContext);
     checkCyclicInheritance(analysisContext);
     initParentTypeInstancesAndValidate(analysisContext);
+    initReturnTypeTypeInstances(analysisContext);
+    initArgTypeInstances(analysisContext);
     // Can now use traverseInheritance
     traverseInheritance(populateAncestorTypes, analysisContext);
     initAdaptions(analysisContext);
     checkValidty_8_6_13_parent_rule(analysisContext);
+    initAny(analysisContext);
     traverseInheritance(inheritFeatures, analysisContext);
 
 
@@ -575,13 +676,6 @@ module eiffel.semantics {
       })
     });
 
-    analysisContext.allClasses.forEach(function (classSymbol) {
-      classSymbol.declaredFeatures.forEach(function (fSym: eiffel.symbols.FeatureSymbol) {
-        if (!fSym.isCommand) {
-          fSym.typeInstance = makeTypeInstanceIn(classSymbol, fSym.ast.rawType, analysisContext);
-        }
-      });
-    });
 
 
 
@@ -876,9 +970,7 @@ module eiffel.semantics {
 
 
   }
-
-
-    export interface AnalysisResult {
+      export interface AnalysisResult {
     asts: eiffel.ast.Class[];
     errors: ErrorContext;
     context: AnalysisContext;
