@@ -15,6 +15,10 @@ module eiffel.symbols {
         this.name = name;
         this.lowerCaseName = name.toLowerCase();
       }
+
+      toString() {
+        return this.constructor.name + ": " + this.name;
+      }
     }
 
   export class FeatureSymbol extends Symbol {
@@ -25,23 +29,60 @@ module eiffel.symbols {
       this.isDeferred = false;
       this.ast = ast;
       this.isCommand = this.ast.rawType == null;
+      this.isAttribute = this instanceof AttributeSymbol;
+      this.identity = null;
     }
-
-    typeInstance: TypeInstance;
 
     ast: eiffel.ast.Feature;
     alias: string;
     isFrozen: boolean;
     isDeferred: boolean;
     isCommand: boolean;
+    isAttribute: boolean;
+
+    typeInstance: TypeInstance;
+
+    identity: FeatureSymbol = null;
+    renamedFrom: FeatureSymbol = null;
+    routineId: RoutineId = null;
+    routineIds: Set<RoutineId> = new Set<RoutineId>();
+    seeds: Set<FeatureSymbol> = new Set<FeatureSymbol>();
+    precursors: Set<FeatureSymbol> = new Set<FeatureSymbol>();
+
 
     duplicate(): FeatureSymbol {
       console.error("Called duplicate on", this);
       if (true) {
+        debugger;
         throw new Error("Duplicate has not been implemented");
       }
 
       return this;
+    }
+
+    hasSameSignature(other: FeatureSymbol) {
+      console.error("Called duplicate on", this);
+      if (true) {
+        debugger;
+        throw new Error("Duplicate has not been implemented");
+      }
+
+      return this;
+    }
+  }
+
+  export class RoutineId {
+    introducedBy: ClassSymbol;
+    originalFeature: FeatureSymbol;
+    version: Map<ClassSymbol, FeatureSymbol>;
+
+
+    constructor(introducedBy:eiffel.symbols.ClassSymbol, originalFeature:eiffel.symbols.FeatureSymbol) {
+      this.introducedBy = introducedBy;
+      this.originalFeature = originalFeature;
+
+      this.version = new Map<ClassSymbol, FeatureSymbol>();
+      this.version.set(introducedBy, originalFeature);
     }
   }
 
@@ -64,7 +105,18 @@ module eiffel.symbols {
     ast: ast.Function;
 
     duplicate() {
-      return new FunctionSymbol(this.name, this.alias, this.isFrozen, this.ast);
+      var sym = new FunctionSymbol(this.name, this.alias, this.isFrozen, this.ast);
+      sym.identity = this.identity;
+
+      sym.typeInstance = this.typeInstance;
+      sym.identity = this.identity;
+      sym.renamedFrom = this.renamedFrom;
+      sym.routineId = this.routineId;
+      sym.routineIds = this.routineIds;
+      sym.seeds = this.seeds;
+      sym.precursors = this.precursors;
+
+      return sym;
     }
   }
 
@@ -76,7 +128,27 @@ module eiffel.symbols {
     ast: ast.Procedure;
 
     duplicate() {
-      return new ProcedureSymbol(this.name, this.alias, this.isFrozen, this.ast);
+      var sym = new ProcedureSymbol(this.name, this.alias, this.isFrozen, this.ast);
+      sym.identity = this.identity;
+
+      sym.typeInstance = this.typeInstance;
+      sym.identity = this.identity;
+      sym.renamedFrom = this.renamedFrom;
+      sym.routineId = this.routineId;
+      sym.routineIds = this.routineIds;
+      sym.seeds = this.seeds;
+      sym.precursors = this.precursors;
+
+      return sym;
+    }
+
+    hasSameSignature(other: FeatureSymbol) {
+      if (this.constructor !== other.constructor) {
+        return null;
+      }
+      var otherProc = <ProcedureSymbol> other;
+
+
     }
   }
 
@@ -89,7 +161,18 @@ module eiffel.symbols {
     ast: ast.VarOrConstAttribute;
 
     duplicate() {
-      return new AttributeSymbol(this.name, this.alias, this.isFrozen, this.ast);
+      var sym = new AttributeSymbol(this.name, this.alias, this.isFrozen, this.ast);
+      sym.identity = this.identity;
+
+      sym.typeInstance = this.typeInstance;
+      sym.identity = this.identity;
+      sym.renamedFrom = this.renamedFrom;
+      sym.routineId = this.routineId;
+      sym.routineIds = this.routineIds;
+      sym.seeds = this.seeds;
+      sym.precursors = this.precursors;
+
+      return sym;
     }
   }
 
@@ -105,7 +188,7 @@ module eiffel.symbols {
 
   export class ParentSymbol {
 
-    constructor(ast:ast.Parent, groupAst:ast.ParentGroup, parentType:eiffel.symbols.TypeInstance) {
+    constructor(ast: eiffel.ast.Parent, groupAst:ast.ParentGroup, parentType:eiffel.symbols.TypeInstance) {
       this.ast = ast;
       this.groupAst = groupAst;
       this.parentType = parentType;
@@ -121,6 +204,10 @@ module eiffel.symbols {
     undefines: eiffel.ast.Identifier[] = [];
     redefines: eiffel.ast.Identifier[] = [];
     selects: eiffel.ast.Identifier[] = [];
+
+    toString() {
+      return "Parent: " + this.ast.rawType;
+    }
 
   }
 
@@ -138,6 +225,8 @@ module eiffel.symbols {
     declaredAttributes: LookupTable<AttributeSymbol> = new Map<string, AttributeSymbol>();
     creationProcedures: LookupTable<ProcedureSymbol> = new Map<string, ProcedureSymbol>();
     finalFeatures: LookupTable<FeatureSymbol> = new Map<string, FeatureSymbol>();
+
+    routineIds: Map<FeatureSymbol, Map<ClassSymbol, FeatureSymbol>> = new Map<FeatureSymbol, Map<ClassSymbol, FeatureSymbol>>();
 
     ancestorTypes: TypeInstance[] = [];
     ancestorTypesByBaseType: Map<ClassSymbol, TypeInstance[]> = new Map<ClassSymbol, TypeInstance[]>();
@@ -167,7 +256,6 @@ module eiffel.symbols {
     hasGenericParameterWithName(name: string) {
       return this.genericParametersByName.has(name.toLowerCase());
     }
-
 
 
     hasSymbol(name: string): boolean {
@@ -313,6 +401,14 @@ module eiffel.symbols {
 
         return isDifferent;
       }
+    }
+
+    clone() {
+      var clonedParameters = this.typeParameters.map(function (typeParam) {
+        return typeParam.clone();
+      });
+
+      return new TypeInstance(this.baseType, clonedParameters, this.sourceClass);
     }
   }
 }
