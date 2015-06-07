@@ -182,7 +182,7 @@ module eiffel.ast {
     }
 
     vExternal(external: External, arg:A):R {
-      return null;
+      return this.vDefault(external, arg);
     }
 
     vResultExpression(resultExpression: ResultExpression, arg:A):R {
@@ -198,7 +198,7 @@ module eiffel.ast {
     }
 
     vObsolete(obsolete: Obsolete, arg:A):R {
-      return null;
+      return this.vDefault(obsolete, arg);
     }
 
     vAttachedExpression(attachedExpression: AttachedExpression, arg:A):R {
