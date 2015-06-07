@@ -64,15 +64,16 @@ eiffel.parser = (function() {
         peg$c15 = function(r) {return r;},
         peg$c16 = function(first, rest) {return buildList(first, rest, gId()); },
         peg$c17 = function(i, cs) {
-            return {
-              name: i,
-              constraints: (cs == null) ? [] : cs.cons,
-              creators: (cs == null) ? [] : cs.creators,
-            }
+            return new eiffel.ast.FormalGenericParameter(
+              i,
+              (cs == null) ? [] : cs.cons,
+              (cs == null) ? [] : cs.creators
+            );
           },
         peg$c18 = "->",
         peg$c19 = { type: "literal", value: "->", description: "\"->\"" },
         peg$c20 = function(cons, crs) {
+            console.warn("Generic constraint: not implemented");
             return {
               cons: cons,
               creators: crs,
@@ -150,17 +151,17 @@ eiffel.parser = (function() {
         peg$c57 = function(a) {return a},
         peg$c58 = function(fi) {return fi; },
         peg$c59 = function(f, na) {
-            return {
-              frozen: f,
-              name: na.name,
-              alias: na.alias
-            }
+            return new eiffel.ast.FrozenNameAlias(
+              na.name,
+              na.alias,
+              f
+            );
           },
         peg$c60 = function(n, a) {
-            return {
-              name: n,
-              alias: a,
-            }
+            return new eiffel.ast.ExtendedFeatureName(
+              n,
+              a
+            );
           },
         peg$c61 = function(start, h, rt, b, end) {
             return new eiffel.ast.Function(
