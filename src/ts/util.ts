@@ -56,7 +56,7 @@ module eiffel.util {
     return result;
   }
 
-  export function group<K, V>(vs: V[], groupBy: (v: V) => K): Map<K, V[]> {
+  export function group<K, V>(vs, groupBy: (v: V) => K): Map<K, V[]> {
     var result = new Map<K, V[]>()
     vs.forEach(function (v: V) {
       var key = groupBy(v);
