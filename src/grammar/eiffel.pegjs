@@ -244,16 +244,17 @@ GenericParamList
 GenericParameter
   = i:Identifier cs:GenericConstraint?
   {
-    return {
-      name: i,
-      constraints: (cs == null) ? [] : cs.cons,
-      creators: (cs == null) ? [] : cs.creators,
-    }
+    return new eiffel.ast.FormalGenericParameter(
+      i,
+      (cs == null) ? [] : cs.cons,
+      (cs == null) ? [] : cs.creators
+    );
   }
 
 GenericConstraint
   = w "->" w cons:ConstrainingTypes crs:ConstraintCreators?
   {
+    console.warn("Generic constraint: not implemented");
     return {
       cons: cons,
       creators: crs,
@@ -412,20 +413,20 @@ NewFeatureList
 NewFeatureName
   = f:(fi:FrozenToken w {return fi; })? na:ExtendedFeatureName
   {
-    return {
-      frozen: f,
-      name: na.name,
-      alias: na.alias
-    }
+    return new eiffel.ast.FrozenNameAlias(
+      na.name,
+      na.alias,
+      f
+    );
   }
 
 ExtendedFeatureName
   = n:FeatureName a:Alias?
   {
-    return {
-      name: n,
-      alias: a,
-    }
+    return new eiffel.ast.ExtendedFeatureName(
+      n,
+      a
+    );
   }
 
 FeatureName

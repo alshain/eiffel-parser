@@ -17,6 +17,12 @@ module eiffel.ast {
     feature: Feature;
   }
 
+  function duplicateAll<E extends AST>(es: E[]): E[] {
+    return <E[]> <any> es.map(function (ast) {
+      return ast.deepClone();
+    });
+  }
+
   export class AST {
     constructor(impl:VisitorAcceptor) {
       this._acceptor = impl;
@@ -26,6 +32,11 @@ module eiffel.ast {
     children:AST[];
     source: Source;
     _acceptor:VisitorAcceptor;
+
+    deepClone() {
+      console.error("Should not call this method, missing override in: " + this.constructor.name);
+      debugger;
+    }
   }
 
   export class Identifier extends AST implements VisitorAcceptor {
@@ -44,6 +55,10 @@ module eiffel.ast {
     name:string;
     start:Pos;
     end:Pos;
+
+    deepClone() {
+      return new Identifier(this.name, this.start.deepClone(), this.end.deepClone());
+    }
   }
   export class Token extends AST implements VisitorAcceptor {
     constructor(text:string, start: eiffel.ast.Pos, end: eiffel.ast.Pos) {
@@ -60,6 +75,10 @@ module eiffel.ast {
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vToken(this, arg);
     }
+
+    deepClone() {
+      return new Token(this.text, this.start.deepClone(), this.end.deepClone());
+    }
   }
 
   export class Pos {
@@ -73,6 +92,10 @@ module eiffel.ast {
     line:number;
     // 1 based column number
     column:number;
+
+    deepClone() {
+      return new Pos(this.offset);
+    }
   }
 
   export class Class extends AST implements VisitorAcceptor {
@@ -126,13 +149,44 @@ module eiffel.ast {
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vClass(this, arg);
     }
+
+    duplicate() {
+      return new Class(this.name.deepClone(), this.deferred.deepClone(),
+        this.frozen.deepClone(), this.expanded.deepClone(), null,
+        duplicateAll(this.parentGroups),
+        duplicateAll(this.genericParameters),
+        duplicateAll(this.creationClause),
+        duplicateAll(this.featureLists)
+      );
+    }
   }
 
-  export interface FormalGenericParameter {
+  export class FormalGenericParameter extends AST implements VisitorAcceptor {
     name: Identifier;
     constraints: TypeConstraint[];
     creators: Identifier[];
     sym: eiffel.symbols.ClassSymbol;
+
+
+    constructor(name:eiffel.ast.Identifier, constraints:eiffel.ast.TypeConstraint[], creators:eiffel.ast.Identifier[]) {
+      super(this);
+      this.name = name;
+      this.constraints = constraints;
+      this.creators = creators;
+
+
+      this.children.push(name);
+      Array.prototype.push.apply(this.children, constraints);
+      Array.prototype.push.apply(this.children, creators);
+    }
+
+    accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
+      return visitor.vFormalGenericParameter(this, arg);
+    }
+
+    deepClone() {
+      return new FormalGenericParameter(this.name.deepClone(), duplicateAll(this.constraints), duplicateAll(this.creators));
+    }
   }
 
   export class TypeConstraint extends AST implements VisitorAcceptor {
@@ -150,6 +204,10 @@ module eiffel.ast {
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vTypeConstraint(this, arg);
     }
+
+    deepClone() {
+      return new TypeConstraint(this.rt.deepClone(), this.rename.deepClone());
+    }
   }
 
   export class FeatureList extends AST implements VisitorAcceptor {
@@ -166,6 +224,10 @@ module eiffel.ast {
 
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vFeatureList(this, arg);
+    }
+
+    deepClone() {
+      return new FeatureList(duplicateAll(this.exports), duplicateAll(this.features));
     }
   }
 
@@ -185,6 +247,10 @@ module eiffel.ast {
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vIdentifierAccess(this, arg);
     }
+
+    deepClone() {
+      return new IdentifierAccess(this.identifier.deepClone());
+    }
   }
 
   export interface Feature extends AST, VisitorAcceptor {
@@ -192,13 +258,35 @@ module eiffel.ast {
     rawType: Type;
   }
 
-  interface ExtendedFeatureName {
+  export class ExtendedFeatureName extends AST implements VisitorAcceptor{
+    constructor(name:eiffel.ast.Identifier, alias:eiffel.ast.Alias) {
+      super(this);
+      this.name = name;
+      this.alias = alias;
+    }
     name: Identifier;
     alias: Alias;
+
+    accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
+      return visitor.vExtendedFeatureName(this, arg);
+    }
+
+    deepClone() {
+      return new ExtendedFeatureName(this.name.deepClone(), this.alias.deepClone());
+    }
   }
 
-  interface FrozenNameAlias extends ExtendedFeatureName {
+  export class FrozenNameAlias extends ExtendedFeatureName {
+    constructor(name: eiffel.ast.Identifier, alias: eiffel.ast.Alias, frozen: boolean) {
+      super(name, alias);
+      this.frozen = frozen;
+    }
+
     frozen: boolean;
+
+    accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
+      return visitor.vFrozenNameAlias(this, arg);
+    }
   }
 
   export class Routine extends AST implements Feature {
@@ -206,6 +294,7 @@ module eiffel.ast {
       super(this);
       this.frozenNamesAndAliases = frozenNamesAndAliases;
       this.parameters = parameters;
+      this.bodyElements = bodyElements;
 
       Array.prototype.push.apply(this.children, _.pluck(frozenNamesAndAliases, "name"));
       Array.prototype.push.apply(this.children, parameters);
@@ -215,12 +304,17 @@ module eiffel.ast {
 
     rawType:eiffel.ast.Type;
     frozenNamesAndAliases: FrozenNameAlias[];
-    parameters:VarDeclList[];
+    parameters: VarDeclList[];
     sym: eiffel.symbols.RoutineSymbol;
     aliases: Alias[];
+    bodyElements: AST[];
 
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vRoutine(this, arg);
+    }
+
+    deepClone() {
+      return new Routine(duplicateAll(this.frozenNamesAndAliases), duplicateAll(this.parameters), this.rawType.deepClone(), duplicateAll(this.bodyElements));
     }
   }
 
@@ -238,13 +332,21 @@ module eiffel.ast {
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vLocalsBlock(this, arg);
     }
+
+    deepClone() {
+      return new LocalsBlock(this.linesOfVarDeclLists.map(duplicateAll));
+    }
   }
 
 
   export class External extends AST implements VisitorAcceptor {
+    start: eiffel.ast.Pos;
+    end: eiffel.ast.Pos;
     constructor(expressions: Expression[], start: Pos, end: Pos) {
       super(this);
       this.expressions = expressions;
+      this.start = start;
+      this.end = end;
     }
 
     expressions: Expression[];
@@ -253,20 +355,32 @@ module eiffel.ast {
       return visitor.vExternal(this, arg);
     }
 
+    deepClone() {
+      return new External(duplicateAll(this.expressions), this.start.deepClone(), this.end.deepClone());
+    }
+
   }
 
   export class Obsolete extends AST implements VisitorAcceptor {
     constructor(expression: Expression, start: Pos, end: Pos) {
       super(this);
       this.expression = expression;
+      this.start = start;
+      this.end = end;
     }
 
     expression: Expression;
+    start: eiffel.ast.Pos;
+    end: eiffel.ast.Pos;
+
 
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vObsolete(this, arg);
     }
 
+    deepClone() {
+      return new Obsolete(this.expression, this.start.deepClone(), this.end.deepClone());
+    }
   }
 
   export class VarDeclList extends AST implements VisitorAcceptor {
@@ -274,7 +388,7 @@ module eiffel.ast {
       super(this);
       this.varDecls = varDecls;
       this.rawType = rawType;
-      varDecls.forEach(function (varDecl) {
+      varDecls.forEach(function (varDecl: VarDeclEntry) {
         varDecl.varDeclList = this;
       });
       Array.prototype.push.apply(this.children, varDecls);
@@ -286,6 +400,10 @@ module eiffel.ast {
 
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vVarDeclList(this, arg);
+    }
+
+    deepClone() {
+      return new VarDeclList(duplicateAll(this.varDecls), this.rawType.deepClone());
     }
   }
 
@@ -303,6 +421,10 @@ module eiffel.ast {
 
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vVarDeclEntry(this, arg);
+    }
+
+    deepClone() {
+      return new VarDeclEntry(this.name.deepClone());
     }
   }
 
@@ -327,6 +449,18 @@ module eiffel.ast {
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vType(this, arg);
     }
+
+    toString() {
+      var text = this.name.name;
+      if (this.parameters !== null) {
+        text += "[" + this.parameters.join(", ") + "]";
+      }
+      return text;
+    }
+
+    deepClone() {
+      return new Type(this.name.deepClone(), duplicateAll(this.parameters), this.detachable, this.start.deepClone(), this.end.deepClone());
+    }
   }
 
   export class TupleExpression extends AST implements Expression {
@@ -347,6 +481,10 @@ module eiffel.ast {
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vTupleExpression(this, arg);
     }
+
+    deepClone() {
+      return new TupleExpression(duplicateAll(this.expressions), this.start.deepClone(), this.end.deepClone());
+    }
   }
 
   export class TypeExpression extends AST implements Expression {
@@ -361,6 +499,10 @@ module eiffel.ast {
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vTypeExpression(this, arg);
     }
+
+    deepClone() {
+      return new TypeExpression(this.rt.deepClone());
+    }
   }
 
   export class Function extends Routine {
@@ -368,11 +510,19 @@ module eiffel.ast {
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vFunction(this, arg);
     }
+
+    deepClone() {
+      return new Function(duplicateAll(this.frozenNamesAndAliases), duplicateAll(this.parameters), this.rawType.deepClone(), duplicateAll(this.bodyElements));
+    }
   }
 
   export class Procedure extends Routine {
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vProcedure(this, arg);
+    }
+
+    deepClone() {
+      return new Procedure(duplicateAll(this.frozenNamesAndAliases), duplicateAll(this.parameters), null, duplicateAll(this.bodyElements));
     }
   }
 
@@ -386,13 +536,17 @@ module eiffel.ast {
     instructions: Expression[];
 
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
-        return visitor.vRoutineInstructions(this, arg);
-      }
+      return visitor.vRoutineInstructions(this, arg);
+    }
   }
 
   export class DoBlock extends RoutineInstructions {
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vDoBlock(this, arg);
+    }
+
+    deepClone() {
+      return new DoBlock(duplicateAll(this.instructions));
     }
   }
 
@@ -400,12 +554,22 @@ module eiffel.ast {
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vDeferredBlock(this, arg);
     }
+
+    deepClone() {
+      return new DeferredBlock(duplicateAll(this.instructions));
+    }
+
   }
 
   export class OnceBlock extends RoutineInstructions {
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vOnceBlock(this, arg);
     }
+
+    deepClone() {
+      return new OnceBlock(duplicateAll(this.instructions));
+    }
+
   }
 
   export class Alias extends AST implements VisitorAcceptor {
@@ -425,6 +589,10 @@ module eiffel.ast {
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vAlias(this, arg);
     }
+
+    deepClone() {
+      return new Alias(this.name.deepClone(), this.start.deepClone(), this.end.deepClone());
+    }
   }
 
   export class CurrentExpression extends AST implements Expression {
@@ -441,6 +609,10 @@ module eiffel.ast {
 
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vCurrentExpr(this, arg);
+    }
+
+    deepClone() {
+      return new CurrentExpression(this.start.deepClone(), this.end.deepClone());
     }
   }
 
@@ -459,6 +631,10 @@ module eiffel.ast {
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vResultExpression(this, arg);
     }
+
+    deepClone() {
+      return new ResultExpression(this.start.deepClone(), this.end.deepClone());
+    }
   }
 
   export class AnchoredType extends AST implements VisitorAcceptor {
@@ -471,6 +647,10 @@ module eiffel.ast {
 
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vAnchoredType(this, arg);
+    }
+
+    deepClone() {
+      return new AnchoredType(this.expression.deepClone());
     }
   }
 
@@ -490,6 +670,10 @@ module eiffel.ast {
 
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vVarOrConstAttribute(this, arg);
+    }
+
+    deepClone() {
+      return new VarOrConstAttribute(duplicateAll(this.frozenNamesAndAliases), this.rawType.deepClone());
     }
   }
 
@@ -511,6 +695,10 @@ module eiffel.ast {
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vConstantAttribute(this, arg);
     }
+
+    deepClone() {
+      return new ConstantAttribute(duplicateAll(this.frozenNamesAndAliases), this.rawType.deepClone(), this.value.deepClone());
+    }
   }
 
   export class ParentGroup extends AST implements VisitorAcceptor {
@@ -528,6 +716,10 @@ module eiffel.ast {
 
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vParentGroup(this, arg);
+    }
+
+    deepClone() {
+      return new ParentGroup(this.conforming.deepClone(), duplicateAll(this.parents));
     }
   }
 
@@ -553,6 +745,10 @@ module eiffel.ast {
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vParent(this, arg);
     }
+
+    deepClone() {
+      return new Parent(this.rawType.deepClone(), duplicateAll(this.adaptions));
+    }
   }
 
   export class Rename extends AST implements VisitorAcceptor {
@@ -567,6 +763,10 @@ module eiffel.ast {
 
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vRename(this, arg);
+    }
+
+    deepClone() {
+      return new Rename(this.oldName.deepClone(), this.newName.deepClone());
     }
   }
 
@@ -598,6 +798,10 @@ module eiffel.ast {
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vRedefines(this, arg);
     }
+
+    deepClone() {
+      return new Redefines(this.token.deepClone(), duplicateAll(this.identifiers));
+    }
   }
 
   export class Selects extends AST implements VisitorAcceptor {
@@ -612,6 +816,10 @@ module eiffel.ast {
 
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vSelects(this, arg);
+    }
+
+    deepClone() {
+      return new Selects(this.token.deepClone(), duplicateAll(this.identifiers));
     }
   }
 
@@ -628,6 +836,10 @@ module eiffel.ast {
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vExportChangeset(this, arg);
     }
+
+    deepClone() {
+      return new ExportChangeset(duplicateAll(this.access), duplicateAll(this.featureSet));
+    }
   }
 
   export class NewExports extends AST implements VisitorAcceptor {
@@ -642,6 +854,10 @@ module eiffel.ast {
 
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vNewExports(this, arg);
+    }
+
+    deepClone() {
+      return new NewExports(this.token.deepClone(), duplicateAll(this.exportChangeset));
     }
   }
 
@@ -659,6 +875,10 @@ module eiffel.ast {
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vUndefines(this, arg);
     }
+
+    deepClone() {
+      return new Undefines(this.token.deepClone(), duplicateAll(this.identifiers));
+    }
   }
 
   export class Literal<T> extends AST {
@@ -670,6 +890,10 @@ module eiffel.ast {
     rawValue: string;
     end: eiffel.ast.Pos;
     start: eiffel.ast.Pos;
+
+    deepClone() : Literal<T> {
+      throw new Error("Should not call Literal<T>.deepClone() directly")
+    }
   }
 
   export class CharLiteral extends Literal<string> implements VisitorAcceptor {
@@ -682,6 +906,10 @@ module eiffel.ast {
 
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vCharLiteral(this, arg);
+    }
+
+    deepClone() {
+      return new CharLiteral(this.rawValue, this.start.deepClone(), this.end.deepClone());
     }
   }
 
@@ -697,6 +925,10 @@ module eiffel.ast {
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vBooleanLiteral(this, arg);
     }
+
+    deepClone() {
+      return new BooleanLiteral(this.rawValue, this.start.deepClone(), this.end.deepClone());
+    }
   }
 
   export class IntLiteral extends Literal<number> implements VisitorAcceptor {
@@ -709,12 +941,17 @@ module eiffel.ast {
 
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
         return visitor.vIntLiteral(this, arg);
-      }
+    }
+
+    deepClone() {
+      return new IntLiteral(this.value + "", this.start.deepClone(), this.end.deepClone());
+    }
   }
 
   export class RealLiteral extends Literal<number> implements VisitorAcceptor {
     constructor(value: string, start: Pos, end: Pos) {
       super(this, value);
+      this.rawValue = value;
       this.value = parseFloat(value);
       this.start = start;
       this.end = end;
@@ -722,6 +959,10 @@ module eiffel.ast {
 
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vRealLiteral(this, arg);
+    }
+
+    deepClone() {
+      return new RealLiteral(this.rawValue, this.start.deepClone(), this.end.deepClone());
     }
   }
 
@@ -736,6 +977,10 @@ module eiffel.ast {
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vVoidLiteral(this, arg);
     }
+
+    deepClone() {
+      return new VoidLiteral(this.start.deepClone(), this.end.deepClone());
+    }
   }
 
   export class StringLiteral extends Literal<string> implements VisitorAcceptor{
@@ -748,6 +993,10 @@ module eiffel.ast {
 
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vStringLiteral(this, arg);
+    }
+
+    deepClone() {
+      return new StringLiteral(this.rawValue, this.start.deepClone(), this.end.deepClone());
     }
   }
 
@@ -762,9 +1011,13 @@ module eiffel.ast {
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vAll(this, arg);
     }
+
+    deepClone() {
+      return new All(this.allToken.deepClone());
+    }
   }
 
-  export interface Instruction extends Expression, VisitorAcceptor {
+  export interface Instruction extends Expression {
   }
 
   export class Condition extends AST implements VisitorAcceptor {
@@ -790,6 +1043,9 @@ module eiffel.ast {
       return visitor.vPrecondition(this, arg);
     }
 
+    deepClone() {
+      return new Precondition(this.label.deepClone(), this.condition.deepClone());
+    }
   }
 
   export class Postcondition extends Condition implements VisitorAcceptor {
@@ -797,18 +1053,29 @@ module eiffel.ast {
       return visitor.vPostcondition(this, arg);
     }
 
+    deepClone() {
+      return new Postcondition(this.label.deepClone(), this.condition.deepClone());
+    }
   }
 
-  export class CheckInstruction extends AST implements Instruction {
 
+  export class CheckInstruction extends AST implements Instruction {
     constructor(e: Expression) {
       super(this);
+      this.expression = e;
     }
+
+    expression: Expression;
+
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vCheckInstruction(this, arg);
     }
 
     sym: eiffel.symbols.TypeInstance;
+
+    deepClone() {
+      return new CheckInstruction(this.expression.deepClone());
+    }
   }
 
   export class Invariantcondition extends Condition implements VisitorAcceptor {
@@ -834,6 +1101,10 @@ module eiffel.ast {
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vAssignment(this, arg);
     }
+
+    deepClone() {
+      return new Assignment(this.left.deepClone(), this.right.deepClone());
+    }
   }
 
   export class CreateInstruction extends AST implements Instruction {
@@ -855,6 +1126,10 @@ module eiffel.ast {
 
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vCreateInstruction(this, arg);
+    }
+
+    deepClone() {
+      return new CreateInstruction(this.target.deepClone(), this.method.deepClone(), duplicateAll(this.arguments));
     }
   }
 
@@ -878,10 +1153,15 @@ module eiffel.ast {
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vCreateExpression(this, arg);
     }
+
+    deepClone() {
+      return new CreateExpression(this.rawType.deepClone(), this.method.deepClone(), duplicateAll(this.arguments));
+    }
   }
 
   export interface Expression extends AST, VisitorAcceptor {
     sym: TypeInstance;
+    deepClone: () => Expression;
   }
 
   export class UnaryOp extends AST implements Expression {
@@ -905,6 +1185,10 @@ module eiffel.ast {
 
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vUnaryOp(this, arg);
+    }
+
+    deepClone() {
+      return new UnaryOp(this.operator, this.operand.deepClone(), this.start.deepClone(), this.end.deepClone());
     }
   }
 
@@ -932,6 +1216,10 @@ module eiffel.ast {
 
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vBinaryOp(this, arg);
+    }
+
+    deepClone() {
+      return new BinaryOp(this.operator, this.left.deepClone(), this.right.deepClone(), this.start.deepClone(), this.end.deepClone());
     }
   }
 
@@ -1021,6 +1309,10 @@ module eiffel.ast {
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vCallExpression(this, arg);
     }
+
+    deepClone() {
+      return new CallExpression(this.operand.deepClone(), this.name.deepClone(), duplicateAll(this.parameters));
+    }
   }
 
   export class UnqualifiedCallExpression extends AST implements Expression, VisitorAcceptor {
@@ -1041,6 +1333,10 @@ module eiffel.ast {
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vUnqualifiedCallExpression(this, arg);
     }
+
+    deepClone() {
+      return new UnqualifiedCallExpression(this.identifier.deepClone(), duplicateAll(this.parameters));
+    }
   }
 
   export class IndexExpression extends AST implements Expression, VisitorAcceptor {
@@ -1059,6 +1355,10 @@ module eiffel.ast {
 
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vIndexExpression(this, arg);
+    }
+
+    deepClone() {
+      return new IndexExpression(this.operand.deepClone(), this.argument.deepClone());
     }
   }
 
@@ -1084,6 +1384,10 @@ module eiffel.ast {
 
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vAttachedExpression(this, arg);
+    }
+
+    deepClone() {
+      return new AttachedExpression(this.ofType.deepClone(), this.expr.deepClone(), this.newVar.deepClone(), this.start.deepClone(), this.end.deepClone());
     }
   }
 
@@ -1111,6 +1415,10 @@ module eiffel.ast {
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vFromLoop(this, arg);
     }
+
+    deepClone() {
+      return new FromLoop(duplicateAll(this.initializerBlock), this.until.deepClone(), duplicateAll(this.loopBlock), this.variant.deepClone());
+    }
   }
 
   export class IfElse extends AST implements Instruction {
@@ -1136,6 +1444,10 @@ module eiffel.ast {
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vIfElse(this, arg);
     }
+
+    deepClone() {
+      return new IfElse(this.condition.deepClone(), duplicateAll(this.thenBlock), duplicateAll(this.elseIfs), duplicateAll(this.elseBlock));
+    }
   }
 
   export class ElseIf extends AST implements Instruction {
@@ -1155,6 +1467,10 @@ module eiffel.ast {
 
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vElseIf(this, arg);
+    }
+
+    deepClone() {
+      return new ElseIf(this.condition.deepClone(), duplicateAll(this.thenBlock));
     }
 
   }

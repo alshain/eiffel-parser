@@ -277,6 +277,16 @@ module eiffel.ast {
       return this.vDefault(all, arg);
     }
 
+    vFormalGenericParameter(formalGenericParameter: FormalGenericParameter, arg:A):R {
+      return this.vDefault(formalGenericParameter, arg);
+    }
 
+    vExtendedFeatureName(extendedFeatureName: ExtendedFeatureName, arg:A):R {
+      return this.vDefault(extendedFeatureName, arg);
+    }
+
+    vFrozenNameAlias(frozenNameAlias: FrozenNameAlias, arg:A):R {
+      return this.vDefault(frozenNameAlias, arg);
+    }
   }
 }
