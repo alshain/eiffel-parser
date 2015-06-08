@@ -1026,7 +1026,7 @@ BaseIntegerLiteral
   / ("-" w)? OctalIntegerLiteral !IllegalAfterKeyword
 
 
-IntegerLiteral
+IntegerLiteral "integer"
   = start:pos BaseIntegerLiteral !IllegalAfterKeyword end:pos {
     return new eiffel.ast.IntLiteral(text(), start, end);
   }
