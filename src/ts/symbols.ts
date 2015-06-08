@@ -48,6 +48,8 @@ module eiffel.symbols {
     routineIds: Set<RoutineId> = new Set<RoutineId>();
     seeds: Set<FeatureSymbol> = new Set<FeatureSymbol>();
     precursors: Set<FeatureSymbol> = new Set<FeatureSymbol>();
+    parameters: VariableSymbol[] = [];
+    parametersByName: Map<string, VariableSymbol> = new Map<string, VariableSymbol>();
 
 
     duplicate(): FeatureSymbol {
