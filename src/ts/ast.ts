@@ -18,6 +18,9 @@ module eiffel.ast {
   }
 
   function duplicateAll<E extends AST>(es: E[]): E[] {
+    if (es == null) {
+      return null;
+    }
     return <E[]> <any> es.map(function (ast) {
       return ast.deepClone();
     });
