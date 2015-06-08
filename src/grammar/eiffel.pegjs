@@ -677,6 +677,7 @@ Instruction
   / AcrossInstr
   / Expression
   / CheckInstruction
+  / InspectInstruction
 
 NoOp = w ";"
   {
@@ -907,6 +908,29 @@ Else
   = W ElseToken is:InstructionSeq { return is }
 
 ElseIf = rest:(W ElseifToken W c:Expression W ThenToken is:InstructionSeq {return new eiffel.ast.ElseIf(c, optionalList(is));})+ {return rest}
+
+
+InspectInstruction
+  = start:pos t:InspectToken W c:Expression w:WhenPart* e:Else? W EndToken end:pos
+  {
+    return new eiffel.ast.InspectInstruction(
+      t,
+      c,
+      optionalList(w),
+      optionalList(e),
+      start,
+      end
+    );
+  }
+
+WhenPart
+  = W WhenToken W Choices ThenToken is:InstructionSeq
+
+Choices
+  = f:Choice w rest:("," w t:Choice w {return t})* {return buildList(f, rest, gId())}
+
+Choice
+  = IdentifierAccess
 
 AssignmentInstr
   = lhs:LeftHandSide w ":=" w rhs:Expression
