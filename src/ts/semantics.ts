@@ -62,7 +62,7 @@ module eiffel.semantics {
     });
   };
 
-  var makeTypeInstanceIn = function makeTypeInstanceIn(sourceClass: sym.ClassSymbol, rawType: eiffel.ast.Type, analysisContext: AnalysisContext) {
+  function makeTypeInstanceIn(sourceClass: sym.ClassSymbol, rawType: eiffel.ast.Type, analysisContext: AnalysisContext) {
     var resolveType = function resolveType(identifier: eiffel.ast.Identifier) {
       var  name = identifier.name;
       if (sourceClass.hasGenericParameterWithName(name)) {
@@ -82,7 +82,7 @@ module eiffel.semantics {
     });
 
     return new eiffel.symbols.TypeInstance(baseType, typeParamInstances, sourceClass);
-  };
+  }
 
   /**
    * Check whether amount of generic parameters is correct
