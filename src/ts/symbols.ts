@@ -180,12 +180,13 @@ module eiffel.symbols {
 
   export class VariableSymbol extends Symbol {
 
-    constructor(name:string, ast:ast.VarDeclEntry) {
+    constructor(name:string, ast:ast.VarDeclEntry, type: TypeInstance) {
       super(name);
       this.ast = ast;
     }
 
     ast: ast.VarDeclEntry;
+    type: TypeInstance;
   }
 
   export class ParentSymbol {
