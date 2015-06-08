@@ -1,5 +1,6 @@
 var gulp = require('gulp');
 module.exports = gulp;
+var plumber = require('gulp-plumber');
 var watch = require('gulp-watch');
 var del = require('del');
 var sourcemaps = require('gulp-sourcemaps');
@@ -93,6 +94,7 @@ gulp.task("cleanCollected", function(cb) {
 
 gulp.task("peg", ["cleanPeg"], function() {
   gulp.src("src/grammar/eiffel.pegjs")
+    .pipe(plumber())
     .pipe(peg({
         allowedStartRules: allowedStartRules,
         exportVar: "eiffel.parser",
