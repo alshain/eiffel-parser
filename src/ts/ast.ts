@@ -249,6 +249,8 @@ module eiffel.ast {
       this.identifier = identifier;
       this.start = identifier.start;
       this.end = identifier.end;
+
+      this.children.push(this.identifier);
     }
     identifier:eiffel.ast.Identifier;
     start: Pos;
@@ -275,6 +277,8 @@ module eiffel.ast {
       super(this);
       this.name = name;
       this.alias = alias;
+
+      this.children.push(this.name, this.alias);
     }
     name: Identifier;
     alias: Alias;
@@ -1310,6 +1314,7 @@ module eiffel.ast {
 
       this.children.push(operand, name);
       Array.prototype.push.apply(this.children, parameters);
+
     }
 
     sym: TypeInstance;
@@ -1333,6 +1338,7 @@ module eiffel.ast {
       this.identifier = identifier;
       this.parameters = parameters;
 
+      this.children.push(this.identifier);
       Array.prototype.push.apply(this.children, parameters);
     }
 
