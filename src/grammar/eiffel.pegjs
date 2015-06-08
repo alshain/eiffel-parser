@@ -793,7 +793,7 @@ Parent_qualification
   = w "{" w t:Identifier w "}" { return t; }
 
 AttachedExpression
-  = start:pos AttachedToken t:(w "{" w t:Type w "}" {return t;})? w ov:Expression W AsToken W nv:Identifier end:pos
+  = start:pos AttachedToken t:(w "{" w t:Type w "}" {return t;})? w ov:Expression nv:(W AsToken W nv:Identifier { return nv;})? end:pos
   {
     return new eiffel.ast.AttachedExpression(t, ov, nv, start, end);
   }
