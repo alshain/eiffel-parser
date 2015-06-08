@@ -20,6 +20,7 @@
     "gulp-concat": "^2.5.2",
     "gulp-intercept": "^0.1.0",
     "gulp-peg": "^0.1.2",
+    "gulp-plumber": "^1.0.1",
     "gulp-rename": "^1.2.2",
     "gulp-sourcemaps": "^1.5.2",
     "gulp-typescript": "^2.7.5",
