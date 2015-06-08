@@ -95,7 +95,6 @@ module eiffel.symbols {
 
     locals: VariableSymbol[] = [];
     localsAndParamsByName: LookupTable<VariableSymbol> = new Map<string, VariableSymbol>();
-    paramsInOrder: VariableSymbol[] = [];
     ast: ast.Routine;
   }
 
@@ -179,7 +178,6 @@ module eiffel.symbols {
   }
 
   export class VariableSymbol extends Symbol {
-
     constructor(name:string, ast:ast.VarDeclEntry, type: TypeInstance) {
       super(name);
       this.ast = ast;
@@ -368,7 +366,7 @@ module eiffel.symbols {
       if (other == null) {
         return false;
       }
-      
+
       if (this.baseType != other.baseType) {
         return false;
       }
