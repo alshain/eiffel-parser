@@ -1581,4 +1581,28 @@ module eiffel.ast {
       return new TypeLikeFeature(deepClone(this.token), deepClone(this.featureName));
     }
   }
+
+  export class AliasBlock extends AST implements VisitorAcceptor {
+    token: Token;
+    expression: Expression;
+
+    start: Pos;
+    end: Pos;
+
+    constructor(token:eiffel.ast.Token, expression:eiffel.ast.Expression, start:eiffel.ast.Pos, end:eiffel.ast.Pos) {
+      super(this);
+      this.token = token;
+      this.expression = expression;
+      this.start = start;
+      this.end = end;
+    }
+
+    accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
+      return visitor.vAliasBlock(this, arg);
+    }
+
+    deepClone() {
+      return new AliasBlock(deepClone(this.token), deepClone(this.expression), deepClone(this.start), deepClone(this.end));
+    }
+  }
 }
