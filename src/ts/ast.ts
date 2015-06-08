@@ -1490,6 +1490,95 @@ module eiffel.ast {
     deepClone() {
       return new ElseIf(deepClone(this.condition), duplicateAll(this.thenBlock));
     }
+  }
 
+  export class PrecursorCall extends AST implements Instruction {
+    token: Token;
+    parentQualifier: Identifier;
+    arguments: Expression[];
+
+    sym: TypeInstance;
+
+    start: Pos;
+    end: Pos;
+
+
+    constructor(token:eiffel.ast.Token, parentQualifier:eiffel.ast.Identifier, arguments:eiffel.ast.Expression[], start:eiffel.ast.Pos, end:eiffel.ast.Pos) {
+      super(this);
+      this.token = token;
+      this.parentQualifier = parentQualifier;
+      this.arguments = arguments;
+      this.start = start;
+      this.end = end;
+
+      this.children.push(token, parentQualifier);
+      Array.prototype.push.apply(this.children, this.arguments);
+    }
+
+    accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
+      return visitor.vPrecursorCall(this, arg);
+    }
+
+    deepClone() {
+      return new PrecursorCall(deepClone(this.token), deepClone(this.parentQualifier), duplicateAll(this.arguments), deepClone(this.start), deepClone(this.end));
+    }
+  }
+
+  export class TypeLike {
+
+  }
+
+  export class TypeLikeCurrent extends AST implements VisitorAcceptor{
+    token: Token;
+    current: CurrentExpression;
+    constructor(token:eiffel.ast.Token, current:eiffel.ast.CurrentExpression) {
+      super(this);
+      this.token = token;
+      this.current = current;
+
+      this.children.push(token, current);
+
+      this.start = this.token.start;
+      this.end = this.current.end;
+    }
+
+    start: Pos;
+    end: Pos;
+
+    accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
+      return visitor.vTypeLikeCurrent(this, arg);
+    }
+
+    deepClone() {
+      return new TypeLikeCurrent(deepClone(this.token), deepClone(this.current));
+    }
+
+  }
+
+  export class TypeLikeFeature extends AST implements VisitorAcceptor{
+    token: Token;
+    featureName: Identifier;
+
+    constructor(token:eiffel.ast.Token, featureName:eiffel.ast.Identifier) {
+      super(this);
+      this.token = token;
+      this.featureName = featureName;
+
+      this.children.push(token, featureName);
+
+      this.start = this.token.start;
+      this.end = this.featureName.end;
+    }
+
+    start: Pos;
+    end: Pos;
+
+    accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
+      return visitor.vTypeLikeFeature(this, arg);
+    }
+
+    deepClone() {
+      return new TypeLikeFeature(deepClone(this.token), deepClone(this.featureName));
+    }
   }
 }
