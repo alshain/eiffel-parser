@@ -859,11 +859,12 @@ Type
       end
     );
   }
-  / start:pos t:LikeToken W c:Current end:pos
+  // TODO factor out detachable stuff
+  / start:pos detachable:(DetachableToken W {return true} / {return false}) t:LikeToken W c:Current end:pos
   {
     return new eiffel.ast.TypeLikeCurrent(t, c);
   }
-  / start:pos t:LikeToken W i:Identifier end:pos
+  / start:pos detachable:(DetachableToken W {return true} / {return false}) t:LikeToken W i:Identifier end:pos
   {
     return new eiffel.ast.TypeLikeFeature(t, i);
   }
