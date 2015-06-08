@@ -286,7 +286,7 @@ SingleConstraint
   }
 
 ConstraintCreators
-  = W CreateToken is:IdentifierList W EndToken
+  = W CreateToken W is:IdentifierList W EndToken
   {
     console.warn("Constraint Creators: Not implemented");
     return is;
