@@ -124,6 +124,15 @@ var astTests = [
       end: {},
     },
   ],
+  [
+    "Verbatim string",
+    "Expression",
+    '"{test\ntest}"',
+    {
+      start: {},
+      end: {},
+    },
+  ],
 
  ];
 
