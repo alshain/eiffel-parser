@@ -507,7 +507,7 @@ Alias
   }
 
 VarList
-  = v:Vars vs:(w ";" w vi:Vars w { return vi; })* { return Array.prototype.concat.apply(v, vs)}
+  = v:Vars vs:(w ";"? w vi:Vars { return vi; })* { return Array.prototype.concat.apply(v, vs)}
 
 Vars
   = ids:IdentifierList w ":" w t:Type
