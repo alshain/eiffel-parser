@@ -288,5 +288,17 @@ module eiffel.ast {
     vFrozenNameAlias(frozenNameAlias: FrozenNameAlias, arg:A):R {
       return this.vDefault(frozenNameAlias, arg);
     }
+
+    vPrecursorCall(precursorCall: PrecursorCall, arg:A):R {
+      return this.vInstruction(precursorCall, arg);
+    }
+
+    vTypeLikeFeature(typeLikeFeature: TypeLikeFeature, arg:A):R {
+      return this.vDefault(typeLikeFeature, arg);
+    }
+
+    vTypeLikeCurrent(typeLikeCurrent: TypeLikeCurrent, arg:A):R {
+      return this.vDefault(typeLikeCurrent, arg);
+    }
   }
 }
