@@ -1595,6 +1595,8 @@ module eiffel.ast {
       this.expression = expression;
       this.start = start;
       this.end = end;
+
+      this.children.push(this.token, this.expression);
     }
 
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
@@ -1612,6 +1614,8 @@ module eiffel.ast {
       this.variable = variable;
       this.start = start;
       this.end = end;
+
+      this.children.push(this.variable);
     }
 
 
