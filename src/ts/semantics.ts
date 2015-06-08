@@ -751,6 +751,7 @@ module eiffel.semantics {
     redirectToSized(name: string): string {
       var mapping = {
         "integer": "INTEGER_32",
+        "character": "CHARACTER_32",
       };
       var lowerCaseName = name.toLowerCase();
       if (mapping.hasOwnProperty(lowerCaseName)) {
