@@ -1634,4 +1634,69 @@ module eiffel.ast {
       return new Address(deepClone(this.variable), deepClone(this.start), deepClone(this.end));
     }
   }
+
+  export class InspectInstruction extends AST implements  Instruction{
+    inspectToken: Token;
+    condition: Expression;
+    whens: WhenPart[];
+    elseBlock: Instruction[];
+
+    start: Pos;
+    end: Pos;
+
+    sym: TypeInstance;
+
+    constructor(inspectToken:eiffel.ast.Token, condition: Expression, whens:eiffel.ast.WhenPart[], elseBlock:eiffel.ast.Instruction[], start:eiffel.ast.Pos, end:eiffel.ast.Pos) {
+      super(this);
+      this.inspectToken = inspectToken;
+      this.condition = condition;
+      this.whens = whens;
+      this.elseBlock = elseBlock;
+      this.start = start;
+      this.end = end;
+
+      this.children.push(inspectToken);
+      Array.prototype.push.apply(this.children, whens);
+      Array.prototype.push.apply(this.children, this.elseBlock);
+    }
+
+    accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
+      return visitor.vInspectInstruction(this, arg);
+    }
+
+    deepClone() {
+      return new InspectInstruction(deepClone(this.inspectToken), deepClone(this.condition), duplicateAll(this.whens), duplicateAll(this.elseBlock), deepClone(this.start), deepClone(this.end));
+    }
+  }
+
+  export class WhenPart extends AST implements VisitorAcceptor{
+    whenToken: Token;
+    choices: Identifier[];
+    instructions: Instruction[];
+
+    start: Pos;
+    end: Pos;
+
+
+    constructor(whenToken:eiffel.ast.Token, choices:eiffel.ast.Identifier[], instructions:eiffel.ast.Instruction[], start:eiffel.ast.Pos, end:eiffel.ast.Pos) {
+      super(this);
+      this.whenToken = whenToken;
+      this.choices = choices;
+      this.instructions = instructions;
+      this.start = start;
+      this.end = end;
+
+      this.children.push(this.whenToken);
+      Array.prototype.push.apply(this.children, this.choices);
+      Array.prototype.push.apply(this.children, this.instructions);
+    }
+
+    accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
+      return visitor.vWhenPart(this, arg);
+    }
+
+    deepClone() {
+      return new WhenPart(deepClone(this.whenToken), duplicateAll(this.choices), duplicateAll(this.instructions), deepClone(this.start), deepClone(this.end));
+    }
+  }
 }

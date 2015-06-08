@@ -308,5 +308,13 @@ module eiffel.ast {
     vAddress(address: Address, arg:A):R {
       return this.vExpression(address, arg);
     }
+
+    vInspectInstruction(inspectInstruction: InspectInstruction, arg:A):R {
+      return this.vInstruction(inspectInstruction, arg);
+    }
+
+    vWhenPart(whenPart: WhenPart, arg:A):R {
+      return this.vDefault(whenPart, arg);
+    }
   }
 }
