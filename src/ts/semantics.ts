@@ -52,6 +52,10 @@ module eiffel.semantics {
   };
 
   function makeTypeInstanceIn(sourceClass: sym.ClassSymbol, rawType: eiffel.ast.Type, analysisContext: AnalysisContext) {
+    if (!(rawType instanceof eiffel.ast.Type)) {
+      return null;
+    }
+
     var resolveType = function resolveType(identifier: eiffel.ast.Identifier) {
       var  name = identifier.name;
       if (sourceClass.hasGenericParameterWithName(name)) {
@@ -66,9 +70,20 @@ module eiffel.semantics {
       }
     };
     var baseType = resolveType(rawType.name);
+    if (baseType === null) {
+      return null;
+    }
+    var missingParam = false;
     var typeParamInstances = rawType.parameters.map(function (rawTypeParameter) {
-      return makeTypeInstanceIn(sourceClass, rawTypeParameter, analysisContext);
+      var result = makeTypeInstanceIn(sourceClass, rawTypeParameter, analysisContext);
+      if (result == null) {
+        missingParam = true;
+      }
+      return result;
     });
+    if (missingParam) {
+      return null;
+    }
 
     return new eiffel.symbols.TypeInstance(baseType, typeParamInstances, sourceClass);
   }
