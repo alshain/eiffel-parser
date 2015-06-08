@@ -113,11 +113,12 @@ feature -- Extended operations
       if not attached a then
         Result := item (default_arguments)
       else
-        check
-          from_precondition: attached {OPEN_ARGS} new_tuple_from_tuple (({OPEN_ARGS}).type_id, a) as x
-        then
-          Result := item (x)
-        end
+        -- TODO: Implement in JavaScript
+        -- check
+        --   from_precondition: attached {OPEN_ARGS} new_tuple_from_tuple (({OPEN_ARGS}).type_id, a) as x
+        -- then
+        --   Result := item (x)
+        -- end
       end
     end
 
