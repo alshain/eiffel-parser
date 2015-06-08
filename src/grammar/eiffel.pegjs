@@ -178,8 +178,9 @@
       return [first].concat(extractList(rest, f));
   }
 
-  function merge() {
-    return Array.prototype.reduce.call(arguments, function(xs, x) { return xs.concat(x);});
+  function merge(first, rest) {
+    var result = [first];
+    return Array.prototype.reduce.call(rest, function(xs, x) { return xs.concat(x);}, result);
   }
 
   function buildIndexArgTree(first, rest) {
@@ -623,7 +624,7 @@ Locals = W LocalToken vs:VarLists { return new eiffel.ast.LocalsBlock(vs); }
 VarLists = vs:(W v:VarList {return v;})+ {return vs;}
 
 InstructionSeq
-  = (W i:Instruction rest:(ns:(Indent* LineTerminatorSequence w {return null;} / Indent* n:NoOp Indent* {return n;}) r:Instruction {if(ns) { return [ns, r]} else { return [ns]}})* {return merge([i], rest)})?
+  = (W i:Instruction rest:(ns:(Indent* LineTerminatorSequence w {return null;} / Indent* n:NoOp Indent* {return n;}) r:Instruction {if(ns) { return [ns, r]} else { return [r]}})* {return merge(i, rest)})?
   // = (W i:Instruction rest:(ns:(Indent* LineTerminatorSequence w {return null;} / Indent* n:NoOp Indent* {return n;}) r:Instruction {if(ns) { return [ns, r]} else {})* {return buildList(i, rest, gId())})?
 
 pos
