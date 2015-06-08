@@ -752,6 +752,13 @@ FirstExpr
   }
   / IdentifierAccess
   / StringLiteral
+  / Address
+
+Address "address"
+  = start:pos "$" i:Identifier
+  {
+    return new eiffel.ast.Address(i, start, i.end);
+  }
 
 TupleExpression
   = start:pos "[" w es:ExpressionList w "]" end:pos
