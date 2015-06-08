@@ -581,7 +581,10 @@ Assertion
   }
 
 CheckInstruction
-  = CheckToken Assertion W EndToken
+  = CheckToken a:Assertion W EndToken
+  {
+    return a;
+  }
 
 Precondition
   = l:LabelledCondition
@@ -764,7 +767,7 @@ Precursor
   = PrecursorToken Parent_qualification? a:Args?
 
 Parent_qualification
-  = w "{" w t:Identifier w "}"
+  = w "{" w t:Identifier w "}" { return t; }
 
 AttachedExpression
   = start:pos AttachedToken t:(w "{" w t:Type w "}" {return t;})? w ov:Expression W AsToken W nv:Identifier end:pos
