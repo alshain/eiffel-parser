@@ -26,6 +26,15 @@ module eiffel.ast {
     });
   }
 
+  function deepClone(e) {
+    if (e == null) {
+      return null;
+    }
+    else {
+      return e.deepClone();
+    }
+  }
+
   export class AST {
     constructor(impl:VisitorAcceptor) {
       this._acceptor = impl;
@@ -60,7 +69,7 @@ module eiffel.ast {
     end:Pos;
 
     deepClone() {
-      return new Identifier(this.name, this.start.deepClone(), this.end.deepClone());
+      return new Identifier(this.name, deepClone(this.start), deepClone(this.end));
     }
   }
   export class Token extends AST implements VisitorAcceptor {
@@ -80,7 +89,7 @@ module eiffel.ast {
     }
 
     deepClone() {
-      return new Token(this.text, this.start.deepClone(), this.end.deepClone());
+      return new Token(this.text, deepClone(this.start), deepClone(this.end));
     }
   }
 
@@ -154,8 +163,8 @@ module eiffel.ast {
     }
 
     duplicate() {
-      return new Class(this.name.deepClone(), this.deferred.deepClone(),
-        this.frozen.deepClone(), this.expanded.deepClone(), null,
+      return new Class(deepClone(this.name), deepClone(this.deferred),
+        deepClone(this.frozen), deepClone(this.expanded), null,
         duplicateAll(this.parentGroups),
         duplicateAll(this.genericParameters),
         duplicateAll(this.creationClause),
@@ -188,7 +197,7 @@ module eiffel.ast {
     }
 
     deepClone() {
-      return new FormalGenericParameter(this.name.deepClone(), duplicateAll(this.constraints), duplicateAll(this.creators));
+      return new FormalGenericParameter(deepClone(this.name), duplicateAll(this.constraints), duplicateAll(this.creators));
     }
   }
 
@@ -209,7 +218,7 @@ module eiffel.ast {
     }
 
     deepClone() {
-      return new TypeConstraint(this.rt.deepClone(), this.rename.deepClone());
+      return new TypeConstraint(deepClone(this.rt), deepClone(this.rename));
     }
   }
 
@@ -252,7 +261,7 @@ module eiffel.ast {
     }
 
     deepClone() {
-      return new IdentifierAccess(this.identifier.deepClone());
+      return new IdentifierAccess(deepClone(this.identifier));
     }
   }
 
@@ -275,7 +284,7 @@ module eiffel.ast {
     }
 
     deepClone() {
-      return new ExtendedFeatureName(this.name.deepClone(), this.alias.deepClone());
+      return new ExtendedFeatureName(deepClone(this.name), deepClone(this.alias));
     }
   }
 
@@ -317,7 +326,7 @@ module eiffel.ast {
     }
 
     deepClone() {
-      return new Routine(duplicateAll(this.frozenNamesAndAliases), duplicateAll(this.parameters), this.rawType.deepClone(), duplicateAll(this.bodyElements));
+      return new Routine(duplicateAll(this.frozenNamesAndAliases), duplicateAll(this.parameters), deepClone(this.rawType), duplicateAll(this.bodyElements));
     }
   }
 
@@ -359,7 +368,7 @@ module eiffel.ast {
     }
 
     deepClone() {
-      return new External(duplicateAll(this.expressions), this.start.deepClone(), this.end.deepClone());
+      return new External(duplicateAll(this.expressions), deepClone(this.start), deepClone(this.end));
     }
 
   }
@@ -382,7 +391,7 @@ module eiffel.ast {
     }
 
     deepClone() {
-      return new Obsolete(this.expression, this.start.deepClone(), this.end.deepClone());
+      return new Obsolete(this.expression, deepClone(this.start), deepClone(this.end));
     }
   }
 
@@ -406,7 +415,7 @@ module eiffel.ast {
     }
 
     deepClone() {
-      return new VarDeclList(duplicateAll(this.varDecls), this.rawType.deepClone());
+      return new VarDeclList(duplicateAll(this.varDecls), deepClone(this.rawType));
     }
   }
 
@@ -427,7 +436,7 @@ module eiffel.ast {
     }
 
     deepClone() {
-      return new VarDeclEntry(this.name.deepClone());
+      return new VarDeclEntry(deepClone(this.name));
     }
   }
 
@@ -462,7 +471,7 @@ module eiffel.ast {
     }
 
     deepClone() {
-      return new Type(this.name.deepClone(), duplicateAll(this.parameters), this.detachable, this.start.deepClone(), this.end.deepClone());
+      return new Type(deepClone(this.name), duplicateAll(this.parameters), this.detachable, deepClone(this.start), deepClone(this.end));
     }
   }
 
@@ -486,7 +495,7 @@ module eiffel.ast {
     }
 
     deepClone() {
-      return new TupleExpression(duplicateAll(this.expressions), this.start.deepClone(), this.end.deepClone());
+      return new TupleExpression(duplicateAll(this.expressions), deepClone(this.start), deepClone(this.end));
     }
   }
 
@@ -504,7 +513,7 @@ module eiffel.ast {
     }
 
     deepClone() {
-      return new TypeExpression(this.rt.deepClone());
+      return new TypeExpression(deepClone(this.rt));
     }
   }
 
@@ -515,7 +524,7 @@ module eiffel.ast {
     }
 
     deepClone() {
-      return new Function(duplicateAll(this.frozenNamesAndAliases), duplicateAll(this.parameters), this.rawType.deepClone(), duplicateAll(this.bodyElements));
+      return new Function(duplicateAll(this.frozenNamesAndAliases), duplicateAll(this.parameters), deepClone(this.rawType), duplicateAll(this.bodyElements));
     }
   }
 
@@ -594,7 +603,7 @@ module eiffel.ast {
     }
 
     deepClone() {
-      return new Alias(this.name.deepClone(), this.start.deepClone(), this.end.deepClone());
+      return new Alias(deepClone(this.name), deepClone(this.start), deepClone(this.end));
     }
   }
 
@@ -615,7 +624,7 @@ module eiffel.ast {
     }
 
     deepClone() {
-      return new CurrentExpression(this.start.deepClone(), this.end.deepClone());
+      return new CurrentExpression(deepClone(this.start), deepClone(this.end));
     }
   }
 
@@ -636,7 +645,7 @@ module eiffel.ast {
     }
 
     deepClone() {
-      return new ResultExpression(this.start.deepClone(), this.end.deepClone());
+      return new ResultExpression(deepClone(this.start), deepClone(this.end));
     }
   }
 
@@ -653,7 +662,7 @@ module eiffel.ast {
     }
 
     deepClone() {
-      return new AnchoredType(this.expression.deepClone());
+      return new AnchoredType(deepClone(this.expression));
     }
   }
 
@@ -676,7 +685,7 @@ module eiffel.ast {
     }
 
     deepClone() {
-      return new VarOrConstAttribute(duplicateAll(this.frozenNamesAndAliases), this.rawType.deepClone());
+      return new VarOrConstAttribute(duplicateAll(this.frozenNamesAndAliases), deepClone(this.rawType));
     }
   }
 
@@ -700,7 +709,7 @@ module eiffel.ast {
     }
 
     deepClone() {
-      return new ConstantAttribute(duplicateAll(this.frozenNamesAndAliases), this.rawType.deepClone(), this.value.deepClone());
+      return new ConstantAttribute(duplicateAll(this.frozenNamesAndAliases), deepClone(this.rawType), deepClone(this.value));
     }
   }
 
@@ -722,7 +731,7 @@ module eiffel.ast {
     }
 
     deepClone() {
-      return new ParentGroup(this.conforming.deepClone(), duplicateAll(this.parents));
+      return new ParentGroup(deepClone(this.conforming), duplicateAll(this.parents));
     }
   }
 
@@ -750,7 +759,7 @@ module eiffel.ast {
     }
 
     deepClone() {
-      return new Parent(this.rawType.deepClone(), duplicateAll(this.adaptions));
+      return new Parent(deepClone(this.rawType), duplicateAll(this.adaptions));
     }
   }
 
@@ -769,7 +778,7 @@ module eiffel.ast {
     }
 
     deepClone() {
-      return new Rename(this.oldName.deepClone(), this.newName.deepClone());
+      return new Rename(deepClone(this.oldName), deepClone(this.newName));
     }
   }
 
@@ -803,7 +812,7 @@ module eiffel.ast {
     }
 
     deepClone() {
-      return new Redefines(this.token.deepClone(), duplicateAll(this.identifiers));
+      return new Redefines(deepClone(this.token), duplicateAll(this.identifiers));
     }
   }
 
@@ -822,7 +831,7 @@ module eiffel.ast {
     }
 
     deepClone() {
-      return new Selects(this.token.deepClone(), duplicateAll(this.identifiers));
+      return new Selects(deepClone(this.token), duplicateAll(this.identifiers));
     }
   }
 
@@ -860,7 +869,7 @@ module eiffel.ast {
     }
 
     deepClone() {
-      return new NewExports(this.token.deepClone(), duplicateAll(this.exportChangeset));
+      return new NewExports(deepClone(this.token), duplicateAll(this.exportChangeset));
     }
   }
 
@@ -880,7 +889,7 @@ module eiffel.ast {
     }
 
     deepClone() {
-      return new Undefines(this.token.deepClone(), duplicateAll(this.identifiers));
+      return new Undefines(deepClone(this.token), duplicateAll(this.identifiers));
     }
   }
 
@@ -912,7 +921,7 @@ module eiffel.ast {
     }
 
     deepClone() {
-      return new CharLiteral(this.rawValue, this.start.deepClone(), this.end.deepClone());
+      return new CharLiteral(this.rawValue, deepClone(this.start), deepClone(this.end));
     }
   }
 
@@ -930,7 +939,7 @@ module eiffel.ast {
     }
 
     deepClone() {
-      return new BooleanLiteral(this.rawValue, this.start.deepClone(), this.end.deepClone());
+      return new BooleanLiteral(this.rawValue, deepClone(this.start), deepClone(this.end));
     }
   }
 
@@ -947,7 +956,7 @@ module eiffel.ast {
     }
 
     deepClone() {
-      return new IntLiteral(this.value + "", this.start.deepClone(), this.end.deepClone());
+      return new IntLiteral(this.value + "", deepClone(this.start), deepClone(this.end));
     }
   }
 
@@ -965,7 +974,7 @@ module eiffel.ast {
     }
 
     deepClone() {
-      return new RealLiteral(this.rawValue, this.start.deepClone(), this.end.deepClone());
+      return new RealLiteral(this.rawValue, deepClone(this.start), deepClone(this.end));
     }
   }
 
@@ -982,7 +991,7 @@ module eiffel.ast {
     }
 
     deepClone() {
-      return new VoidLiteral(this.start.deepClone(), this.end.deepClone());
+      return new VoidLiteral(deepClone(this.start), deepClone(this.end));
     }
   }
 
@@ -999,7 +1008,7 @@ module eiffel.ast {
     }
 
     deepClone() {
-      return new StringLiteral(this.rawValue, this.start.deepClone(), this.end.deepClone());
+      return new StringLiteral(this.rawValue, deepClone(this.start), deepClone(this.end));
     }
   }
 
@@ -1016,7 +1025,7 @@ module eiffel.ast {
     }
 
     deepClone() {
-      return new All(this.allToken.deepClone());
+      return new All(deepClone(this.allToken));
     }
   }
 
@@ -1047,7 +1056,7 @@ module eiffel.ast {
     }
 
     deepClone() {
-      return new Precondition(this.label.deepClone(), this.condition.deepClone());
+      return new Precondition(deepClone(this.label), deepClone(this.condition));
     }
   }
 
@@ -1057,7 +1066,7 @@ module eiffel.ast {
     }
 
     deepClone() {
-      return new Postcondition(this.label.deepClone(), this.condition.deepClone());
+      return new Postcondition(deepClone(this.label), deepClone(this.condition));
     }
   }
 
@@ -1077,7 +1086,7 @@ module eiffel.ast {
     sym: eiffel.symbols.TypeInstance;
 
     deepClone() {
-      return new CheckInstruction(this.expression.deepClone());
+      return new CheckInstruction(deepClone(this.expression));
     }
   }
 
@@ -1106,7 +1115,7 @@ module eiffel.ast {
     }
 
     deepClone() {
-      return new Assignment(this.left.deepClone(), this.right.deepClone());
+      return new Assignment(deepClone(this.left), deepClone(this.right));
     }
   }
 
@@ -1132,7 +1141,7 @@ module eiffel.ast {
     }
 
     deepClone() {
-      return new CreateInstruction(this.target.deepClone(), this.method.deepClone(), duplicateAll(this.arguments));
+      return new CreateInstruction(deepClone(this.target), deepClone(this.method), duplicateAll(this.arguments));
     }
   }
 
@@ -1158,7 +1167,7 @@ module eiffel.ast {
     }
 
     deepClone() {
-      return new CreateExpression(this.rawType.deepClone(), this.method.deepClone(), duplicateAll(this.arguments));
+      return new CreateExpression(deepClone(this.rawType), deepClone(this.method), duplicateAll(this.arguments));
     }
   }
 
@@ -1191,7 +1200,7 @@ module eiffel.ast {
     }
 
     deepClone() {
-      return new UnaryOp(this.operator, this.operand.deepClone(), this.start.deepClone(), this.end.deepClone());
+      return new UnaryOp(this.operator, deepClone(this.operand), deepClone(this.start), deepClone(this.end));
     }
   }
 
@@ -1222,7 +1231,7 @@ module eiffel.ast {
     }
 
     deepClone() {
-      return new BinaryOp(this.operator, this.left.deepClone(), this.right.deepClone(), this.start.deepClone(), this.end.deepClone());
+      return new BinaryOp(this.operator, deepClone(this.left), deepClone(this.right), deepClone(this.start), deepClone(this.end));
     }
   }
 
@@ -1314,7 +1323,7 @@ module eiffel.ast {
     }
 
     deepClone() {
-      return new CallExpression(this.operand.deepClone(), this.name.deepClone(), duplicateAll(this.parameters));
+      return new CallExpression(deepClone(this.operand), deepClone(this.name), duplicateAll(this.parameters));
     }
   }
 
@@ -1338,7 +1347,7 @@ module eiffel.ast {
     }
 
     deepClone() {
-      return new UnqualifiedCallExpression(this.identifier.deepClone(), duplicateAll(this.parameters));
+      return new UnqualifiedCallExpression(deepClone(this.identifier), duplicateAll(this.parameters));
     }
   }
 
@@ -1361,7 +1370,7 @@ module eiffel.ast {
     }
 
     deepClone() {
-      return new IndexExpression(this.operand.deepClone(), this.argument.deepClone());
+      return new IndexExpression(deepClone(this.operand), deepClone(this.argument));
     }
   }
 
@@ -1390,7 +1399,7 @@ module eiffel.ast {
     }
 
     deepClone() {
-      return new AttachedExpression(this.ofType.deepClone(), this.expr.deepClone(), this.newVar.deepClone(), this.start.deepClone(), this.end.deepClone());
+      return new AttachedExpression(deepClone(this.ofType), deepClone(this.expr), deepClone(this.newVar), deepClone(this.start), deepClone(this.end));
     }
   }
 
@@ -1420,7 +1429,7 @@ module eiffel.ast {
     }
 
     deepClone() {
-      return new FromLoop(duplicateAll(this.initializerBlock), this.until.deepClone(), duplicateAll(this.loopBlock), this.variant.deepClone());
+      return new FromLoop(duplicateAll(this.initializerBlock), deepClone(this.until), duplicateAll(this.loopBlock), deepClone(this.variant));
     }
   }
 
@@ -1449,7 +1458,7 @@ module eiffel.ast {
     }
 
     deepClone() {
-      return new IfElse(this.condition.deepClone(), duplicateAll(this.thenBlock), duplicateAll(this.elseIfs), duplicateAll(this.elseBlock));
+      return new IfElse(deepClone(this.condition), duplicateAll(this.thenBlock), duplicateAll(this.elseIfs), duplicateAll(this.elseBlock));
     }
   }
 
@@ -1473,7 +1482,7 @@ module eiffel.ast {
     }
 
     deepClone() {
-      return new ElseIf(this.condition.deepClone(), duplicateAll(this.thenBlock));
+      return new ElseIf(deepClone(this.condition), duplicateAll(this.thenBlock));
     }
 
   }
