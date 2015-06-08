@@ -764,7 +764,10 @@ CreateExpression
   }
 
 Precursor
-  = PrecursorToken Parent_qualification? a:Args?
+  = start:pos t:PrecursorToken q:Parent_qualification? a:Args? end:pos
+  {
+    return new eiffel.ast.PrecursorCall(t, q, a, start, end);
+  }
 
 Parent_qualification
   = w "{" w t:Identifier w "}" { return t; }
@@ -816,14 +819,14 @@ Type
       end
     );
   }
-  / start:pos LikeToken W o:LikeOperand end:pos
+  / start:pos t:LikeToken W c:Current end:pos
   {
-    return new eiffel.ast.Type();
+    return new eiffel.ast.TypeLikeCurrent(t, c);
   }
-
-LikeOperand
-  = Identifier
-  / Current
+  / start:pos t:LikeToken W i:Identifier end:pos
+  {
+    return new eiffel.ast.TypeLikeFeature(t, i);
+  }
 
 TypeList
   = f:Type w rest:("," w t:Type w {return t})* {return buildList(f, rest, gId())}
