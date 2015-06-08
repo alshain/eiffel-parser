@@ -1,5 +1,18 @@
 // Fixme CONVERT syntax
 {
+  var verbatimContext = "";
+
+  function setVerbatimEnd(b) {
+    if (b === "{") {
+      verbatimContext = "}" + verbatimContext + '"';
+    }
+    else if (b === "[") {
+      verbatimContext = "]" + verbatimContext + '"';
+    }
+    else {
+      throw new Error("Invalid verbatim bracket: " + b);
+    }
+  }
   function allSubsequences(s) {
     var i;
     var j;
@@ -1029,9 +1042,37 @@ Sign
 
 //TODO Verbatim strings
 StringLiteral "string"
+  = VerbatimString
+  / SingleLineString
+
+SingleLineString "string"
   = start:pos '"' chars:DoubleStringCharacter* '"' end:pos {
     return new eiffel.ast.StringLiteral(chars.join(""), start, end);
   }
+
+// TODO remove some whitespace etc...
+VerbatimString
+  = start:pos '"' VerbatimOpener b:("{" / "[")  &{ setVerbatimEnd(b); return true;} s:VerbatimStringCharacter* VerbatimCloser '"' end:pos
+  {
+    return new eiffel.ast.StringLiteral(s.join(""), start, end);
+  }
+
+VerbatimOpener
+  = [^{[ \n\t]*
+  {
+    verbatimContext = text();
+    return text();
+  }
+
+VerbatimCloser
+  = [^"]*
+
+IsEndOfVerbatim
+  = & {var lookAhead = input.substring(offset(), offset() + verbatimContext.length); return lookAhead.startsWith(verbatimContext); }
+
+VerbatimStringCharacter
+  = !IsEndOfVerbatim s:. {return s;}
+
 
 CharLiteral "character"
   = start:pos "'" chars:SingleStringCharacter* "'" end:pos {
