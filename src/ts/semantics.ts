@@ -619,18 +619,23 @@ module eiffel.semantics {
     });
   }
 
-  function initFunctionArgTypes(analysisContext: AnalysisContext) {
+  function initParameters(analysisContext: AnalysisContext) {
     analysisContext.allClasses.forEach(function (classSymbol) {
-      var funcSymbols = <sym.FunctionSymbol[]> classSymbol.allWithPrototype(sym.FunctionSymbol);
-      funcSymbols.forEach(function (funcSymbol) {
-        var ast = <eiffel.ast.Function> funcSymbol.ast;
-        ast.parameters.forEach()
-
-      });
-      classSymbol.declaredFeatures.forEach(function (fSym:eiffel.symbols.FeatureSymbol) {
-        if (!fSym.isAttribute) {
-          fSym.typeInstance = makeTypeInstanceIn(classSymbol, fSym.ast.rawType, analysisContext);
-        }
+      classSymbol.declaredRoutines.forEach(function (routineSym) {
+        var paramNames = new Set<string>();
+        var ast = <eiffel.ast.Routine> routineSym.ast;
+        ast.parameters.forEach(function (varDeclList) {
+          varDeclList.varDecls.forEach(function (varDeclEntry) {
+            var paramName = varDeclEntry.name.name;
+            if (paramNames.has(paramName)) {
+              analysisContext.errors.uncategorized("VREG?? Duplicate argument name");
+            }
+            paramNames.add(paramName);
+            varDeclEntry.sym = new eiffel.symbols.VariableSymbol(paramName, varDeclEntry, makeTypeInstanceIn(classSymbol, varDeclList.rawType, analysisContext));
+            routineSym.parameters.push(varDeclEntry.sym);
+            routineSym.parametersByName.set(paramName, varDeclEntry.sym);
+          });
+        });
       });
     });
   }
@@ -658,7 +663,7 @@ module eiffel.semantics {
     checkCyclicInheritance(analysisContext);
     initParentTypeInstancesAndValidate(analysisContext);
     initReturnTypeTypeInstances(analysisContext);
-    initArgTypeInstances(analysisContext);
+    initParameters(analysisContext);
     // Can now use traverseInheritance
     traverseInheritance(populateAncestorTypes, analysisContext);
     initAdaptions(analysisContext);
