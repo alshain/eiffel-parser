@@ -362,6 +362,10 @@ module eiffel.symbols {
     }
 
     equals(other: TypeInstance) {
+      if (other == null) {
+        return false;
+      }
+      
       if (this.baseType != other.baseType) {
         return false;
       }
