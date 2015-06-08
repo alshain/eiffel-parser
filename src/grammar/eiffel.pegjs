@@ -541,6 +541,7 @@ RoutineBody
 RoutineBodyElement
   = pre:Preconditions
   / l:Locals
+  / a:AliasBlock
   / o:Obsolete
   / e:External
   / e:DeferredBlock
@@ -576,6 +577,12 @@ Obsolete
   = W start:pos ObsoleteToken W e:Expression end:pos
   {
     return new eiffel.ast.Obsolete(e, start, end);
+  }
+
+AliasBlock
+  = W start:pos t:AliasToken W e:Expression end:pos
+  {
+    return new eiffel.ast.AliasBlock(t, e, start, end);
   }
 
 Preconditions
