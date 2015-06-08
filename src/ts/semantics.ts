@@ -30,32 +30,21 @@ module eiffel.semantics {
     });
   };
 
-  var createRoutineParamSymbols = function (allRoutines) {
-    allRoutines.forEach(function (routine:symbols.RoutineSymbol) {
-      routine.ast.parameters.forEach(function (parameterList:eiffel.ast.VarDeclList) {
-        parameterList.varDecls.forEach(function (varDecl) {
-          var varName = varDecl.name.name;
-          var variableSymbol = new symbols.VariableSymbol(varName, varDecl);
-          routine.paramsInOrder.push(variableSymbol);
-          routine.localsAndParamsByName.set(varName, variableSymbol);
-        });
-      });
-    });
-  };
-
   var createRoutineLocalSymbols = function (analysisContext) {
-    analysisContext.allRoutines.forEach(function (routine:symbols.RoutineSymbol) {
-      var localsBlocks:eiffel.ast.LocalsBlock[] = <eiffel.ast.LocalsBlock[]> routine.ast.children.filter(function (child) {
-        return child instanceof eiffel.ast.LocalsBlock;
-      });
+    analysisContext.classSymbols.forEach(function (oneClass) {
+      oneClass.declaredRoutines.forEach(function (routine) {
+        var localsBlocks:eiffel.ast.LocalsBlock[] = <eiffel.ast.LocalsBlock[]> routine.ast.children.filter(function (child) {
+          return child instanceof eiffel.ast.LocalsBlock;
+        });
 
-      localsBlocks.forEach(function (localBlock:eiffel.ast.LocalsBlock) {
-        localBlock.varDeclLists.forEach(function (varsDecl) {
-          varsDecl.varDecls.forEach(function (varDecl) {
-            var varName = varDecl.name.name;
-            var variableSymbol = new symbols.VariableSymbol(varName, varDecl);
-            routine.locals.push(variableSymbol);
-            routine.localsAndParamsByName.set(varName, variableSymbol);
+        localsBlocks.forEach(function (localBlock:eiffel.ast.LocalsBlock) {
+          localBlock.varDeclLists.forEach(function (varsDecl) {
+            varsDecl.varDecls.forEach(function (varDecl) {
+              var varName = varDecl.name.name;
+              var variableSymbol = new symbols.VariableSymbol(varName, varDecl, makeTypeInstanceIn(oneClass, varsDecl.rawType, analysisContext));
+              routine.locals.push(variableSymbol);
+              routine.localsAndParamsByName.set(varName, variableSymbol);
+            });
           });
         });
       });
@@ -658,12 +647,11 @@ module eiffel.semantics {
     initAstDictionary(analysisContext);
     initAstDictionaryByClass(analysisContext);
     createFeatureSymbols(analysisContext);
-    createRoutineParamSymbols(analysisContext.allRoutines);
     createRoutineLocalSymbols(analysisContext);
+    initParameters(analysisContext);
     checkCyclicInheritance(analysisContext);
     initParentTypeInstancesAndValidate(analysisContext);
     initReturnTypeTypeInstances(analysisContext);
-    initParameters(analysisContext);
     // Can now use traverseInheritance
     traverseInheritance(populateAncestorTypes, analysisContext);
     initAdaptions(analysisContext);
