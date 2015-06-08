@@ -864,7 +864,10 @@ module eiffel.semantics {
     classSymbol: symbols.ClassSymbol;
 
     vAttr(attr:eiffel.ast.Attribute, _:any):any {
-      attr.frozenNamesAndAliases.map(function (fna) {
+      attr.frozenNamesAndAliases.forEach(function (fna, i) {
+        var attrClone = attr.deepClone();
+        fna = attrClone.frozenNamesAndAliases[i];
+
         var name = fna.name.name;
         var lcName = name.toLowerCase();
         this.errorOnDuplicateFeature(this.classSymbol, lcName, fna.name);
@@ -873,9 +876,9 @@ module eiffel.semantics {
         if (fna.alias != null) {
           alias = fna.alias.name.value;
         }
-        var attributeSymbol = new symbols.AttributeSymbol(name, alias, fna.frozen, attr);
+        var attributeSymbol = new symbols.AttributeSymbol(name, alias, fna.frozen, attrClone);
 
-        attr.sym = attributeSymbol;
+        attrClone.sym = attributeSymbol;
         this.classSymbol.declaredFeatures.set(lcName, attributeSymbol);
         this.classSymbol.declaredAttributes.set(lcName, attributeSymbol);
       }, this);
@@ -884,7 +887,9 @@ module eiffel.semantics {
     }
 
     vFunction(func:eiffel.ast.Function, _:any):any {
-      func.frozenNamesAndAliases.map(function (fna) {
+      func.frozenNamesAndAliases.forEach(function (fna, i) {
+        var funcClone = func.deepClone();
+        fna = funcClone.frozenNamesAndAliases[i];
         var functionName = fna.name.name;
         var lcFunctionName = functionName.toLowerCase();
         this.errorOnDuplicateFeature(this.classSymbol, lcFunctionName, fna.name);
@@ -893,9 +898,9 @@ module eiffel.semantics {
         if (fna.alias != null) {
           alias = fna.alias.name.value;
         }
-        var sym = new symbols.FunctionSymbol(lcFunctionName, alias, fna.frozen, func);
+        var sym = new symbols.FunctionSymbol(lcFunctionName, alias, fna.frozen, funcClone);
 
-        func.sym = sym;
+        funcClone.sym = sym;
         this.classSymbol.declaredFeatures.set(lcFunctionName, sym);
         this.classSymbol.declaredFunctions.set(lcFunctionName, sym);
         this.classSymbol.declaredRoutines.set(lcFunctionName, sym);
@@ -913,7 +918,9 @@ module eiffel.semantics {
     }
 
     vProcedure(procedure:eiffel.ast.Procedure, _:any):any {
-      procedure.frozenNamesAndAliases.map(function (fna) {
+      procedure.frozenNamesAndAliases.forEach(function (fna, i) {
+        var procClone = procedure.deepClone();
+        fna = procClone.frozenNamesAndAliases[i];
 
         var procedureName = fna.name.name;
         var lcProcedureName = procedureName.toLowerCase();
@@ -923,9 +930,9 @@ module eiffel.semantics {
         if (fna.alias != null) {
           alias = fna.alias.name.value;
         }
-        var sym = new symbols.ProcedureSymbol(procedureName, alias, fna.frozen, procedure);
+        var sym = new symbols.ProcedureSymbol(procedureName, alias, fna.frozen, procClone);
 
-        procedure.sym = sym;
+        procClone.sym = sym;
         this.classSymbol.declaredFeatures.set(lcProcedureName, sym);
         this.classSymbol.declaredProcedures.set(lcProcedureName, sym);
         this.classSymbol.declaredRoutines.set(lcProcedureName, sym);
@@ -936,7 +943,9 @@ module eiffel.semantics {
     }
 
     vConstantAttribute(constantAttribute:eiffel.ast.ConstantAttribute, _:any):any {
-      constantAttribute.frozenNamesAndAliases.map(function (fna) {
+      constantAttribute.frozenNamesAndAliases.forEach(function (fna, i) {
+        var attrClone = constantAttribute.deepClone();
+        fna = attrClone.frozenNamesAndAliases[i];
 
         var name = fna.name.name;
         var lcName = name.toLowerCase();
@@ -946,9 +955,9 @@ module eiffel.semantics {
         if (fna.alias != null) {
           alias = fna.alias.name.value;
         }
-        var attributeSymbol = new symbols.AttributeSymbol(name, alias, fna.frozen, constantAttribute);
+        var attributeSymbol = new symbols.AttributeSymbol(name, alias, fna.frozen, attrClone);
 
-        constantAttribute.sym = attributeSymbol;
+        attrClone.sym = attributeSymbol;
         this.classSymbol.declaredFeatures.set(lcName, attributeSymbol);
         this.classSymbol.declaredAttributes.set(lcName, attributeSymbol);
       }, this);
