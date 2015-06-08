@@ -758,7 +758,7 @@ CreateExpression
   {
     return new eiffel.ast.CreateExpression(
       t,
-      (m ? m.name : "default_create"),
+      (m ? m.name : null),
       m ? optionalList(m.args) : []
     );
   }
@@ -888,7 +888,7 @@ CreateInstr
   {
     return new eiffel.ast.CreateInstruction(
       n,
-      (m ? m.name : "default_create"),
+      (m ? m.name : null),
       m ? optionalList(m.args) : []
     );
   }
