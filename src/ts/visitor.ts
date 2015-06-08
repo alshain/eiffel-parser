@@ -304,5 +304,9 @@ module eiffel.ast {
     vAliasBlock(aliasBlock: AliasBlock, arg:A):R {
       return this.vDefault(aliasBlock, arg);
     }
+
+    vAddress(address: Address, arg:A):R {
+      return this.vExpression(address, arg);
+    }
   }
 }

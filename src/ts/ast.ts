@@ -1605,4 +1605,29 @@ module eiffel.ast {
       return new AliasBlock(deepClone(this.token), deepClone(this.expression), deepClone(this.start), deepClone(this.end));
     }
   }
+
+  export class Address extends AST implements Expression {
+    constructor(variable: eiffel.ast.Identifier, start:eiffel.ast.Pos, end:eiffel.ast.Pos) {
+      super(this);
+      this.variable = variable;
+      this.start = start;
+      this.end = end;
+    }
+
+
+    variable: Identifier;
+
+    start: Pos;
+    end: Pos;
+
+    sym: TypeInstance;
+
+    accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
+      return visitor.vAddress(this, arg);
+    }
+
+    deepClone() {
+      return new Address(deepClone(this.variable), deepClone(this.start), deepClone(this.end));
+    }
+  }
 }
