@@ -300,5 +300,9 @@ module eiffel.ast {
     vTypeLikeCurrent(typeLikeCurrent: TypeLikeCurrent, arg:A):R {
       return this.vDefault(typeLikeCurrent, arg);
     }
+
+    vAliasBlock(aliasBlock: AliasBlock, arg:A):R {
+      return this.vDefault(aliasBlock, arg);
+    }
   }
 }
