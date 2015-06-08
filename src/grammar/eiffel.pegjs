@@ -764,10 +764,14 @@ FirstExpr
   / Address
 
 Address "address"
-  = start:pos "$" i:Identifier
+  = start:pos "$" i:AddressOf
   {
     return new eiffel.ast.Address(i, start, i.end);
   }
+
+AddressOf
+  = Identifier
+  / Current
 
 TupleExpression
   = start:pos "[" w es:ExpressionList w "]" end:pos
