@@ -836,7 +836,7 @@ IllegalAfterKeyword
   / "_"
 
 Type
-  = start:pos detachable:(DetachableToken W {return true} / {return false}) n:Identifier ts:(w "[" w g:TypeList w "]" {return g})? end:pos
+  = start:pos detachable:(DetachableToken W {return true} / {return false}) separate:(SeparateToken W {return true} / {return false}) n:Identifier ts:(w "[" w g:TypeList w "]" {return g})? end:pos
   {
     return new eiffel.ast.Type(
       n,
