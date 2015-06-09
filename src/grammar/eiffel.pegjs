@@ -1090,6 +1090,7 @@ Exponent
 
 Sign
   = "-"
+  / "+"
 
 //TODO Verbatim strings
 StringLiteral "string"
