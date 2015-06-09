@@ -1707,4 +1707,209 @@ module eiffel.ast {
       return new WhenPart(deepClone(this.whenToken), duplicateAll(this.choices), duplicateAll(this.instructions), deepClone(this.start), deepClone(this.end));
     }
   }
+
+  export class Loop extends AST implements Instruction {
+    loopElements: LoopElement[];
+    endToken: Token;
+
+    start: Pos;
+    end: Pos;
+
+    sym: TypeInstance;
+
+
+    constructor(loopElements: eiffel.ast.LoopElement[], endToken: eiffel.ast.Token, start: eiffel.ast.Pos, end: eiffel.ast.Pos) {
+      super(this);
+      this.loopElements = loopElements;
+      this.endToken = endToken;
+      this.start = start;
+      this.end = end;
+
+      Array.prototype.push.apply(this.children, this.loopElements);
+    }
+
+    accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
+      return visitor.vLoop(this, arg);
+    }
+
+    deepClone() {
+      return new Loop(duplicateAll(this.loopElements), deepClone(this.endToken), deepClone(this.start), deepClone(this.end));
+    }
+  }
+
+  export class LoopElement extends AST implements VisitorAcceptor {
+    token: Token;
+
+    start: Pos;
+    end: Pos;
+
+    constructor(token: eiffel.ast.Token, start: eiffel.ast.Pos, end: eiffel.ast.Pos) {
+      super(this);
+      this.token = token;
+      this.start = start;
+      this.end = end;
+    }
+
+    accept<A, R>(visitor: eiffel.ast.Visitor<A, R>, arg:A):R {
+      return visitor.vLoopElement(this, arg);
+    }
+  }
+
+  export class AcrossAs extends LoopElement {
+    asToken: Token;
+    expression: Expression;
+    identifier: Identifier;
+
+
+    constructor(token: eiffel.ast.Token, expression: eiffel.ast.Expression, asToken: eiffel.ast.Token, identifier: eiffel.ast.Identifier, start: eiffel.ast.Pos, end: eiffel.ast.Pos) {
+      super(token, start, end);
+      this.expression = expression;
+      this.asToken = asToken;
+      this.identifier = identifier;
+    }
+
+    accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
+      return visitor.vAcrossAs(this, arg);
+    }
+
+    deepClone() {
+      return new AcrossAs(deepClone(this.token), deepClone(this.expression), deepClone(this.asToken), deepClone(this.identifier), deepClone(this.start), deepClone(this.end));
+    }
+  }
+
+  export class LoopFrom extends LoopElement{
+    instructions: Instruction[];
+
+
+    constructor(token: eiffel.ast.Token, instructions: eiffel.ast.Instruction[], start: eiffel.ast.Pos, end: eiffel.ast.Pos) {
+      super(token, start, end);
+      this.instructions = instructions;
+
+      this.children.push(this.token);
+      Array.prototype.push.apply(this.children, this.instructions);
+    }
+
+    accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
+      return visitor.vLoopFrom(this, arg);
+    }
+
+    deepClone() {
+      return new LoopFrom(deepClone(this.token), duplicateAll(this.instructions), deepClone(this.start), deepClone(this.end));
+    }
+  }
+
+  export class LoopBody extends LoopElement {
+    instructions: Instruction[];
+
+    constructor(token: eiffel.ast.Token, instructions: Instruction[], start: eiffel.ast.Pos, end: eiffel.ast.Pos) {
+      super(token, start, end);
+      this.instructions = instructions;
+
+      this.children.push(this.token);
+      Array.prototype.push.apply(this.children, this.instructions);
+    }
+
+    accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
+      return visitor.vLoopBody(this, arg);
+    }
+
+    deepClone() {
+      return new LoopBody(deepClone(this.token), duplicateAll(this.instructions), deepClone(this.start), deepClone(this.end));
+    }
+  }
+
+  export class AcrossSomeOrAll extends LoopElement{
+    expression: Expression;
+
+
+    constructor(token: eiffel.ast.Token, expression: eiffel.ast.Expression, start: eiffel.ast.Pos, end: eiffel.ast.Pos) {
+      super(token, start, end);
+      this.expression = expression;
+
+      this.children.push(this.expression);
+    }
+
+    accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
+      throw new Error("Called ACrossSomeOrAll.accept directly. This should not happen");
+    }
+  }
+
+  export class AcrossSome extends AcrossSomeOrAll {
+    accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
+      return visitor.vAcrossSome(this, arg);
+    }
+
+    deepClone() {
+      return new AcrossSome(deepClone(this.token), deepClone(this.expression), deepClone(this.start), deepClone(this.end));
+    }
+  }
+
+  export class AcrossAll extends AcrossSomeOrAll {
+    accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
+      return visitor.vAcrossAll(this, arg);
+    }
+
+    deepClone() {
+      return new AcrossAll(deepClone(this.token), deepClone(this.expression), deepClone(this.start), deepClone(this.end));
+    }
+  }
+
+  export class LoopUntil extends LoopElement {
+    expression: Expression;
+
+    constructor(token: eiffel.ast.Token, expression: eiffel.ast.Expression, start: eiffel.ast.Pos, end: eiffel.ast.Pos) {
+      super(token, start, end);
+      this.expression = expression;
+
+      this.children.push(this.token, this.expression);
+    }
+
+    accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
+      return visitor.vLoopUntil(this, arg);
+    }
+
+    deepClone() {
+      return new LoopUntil(deepClone(this.token), deepClone(this.expression), deepClone(this.start), deepClone(this.end));
+    }
+  }
+
+  export class LoopVariant extends LoopElement {
+    expression: Expression;
+
+    constructor(token: eiffel.ast.Token, expression: eiffel.ast.Expression, start: eiffel.ast.Pos, end: eiffel.ast.Pos) {
+      super(token, start, end);
+      this.expression = expression;
+
+      this.children.push(this.token, this.expression);
+    }
+
+    accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
+      return visitor.vLoopVariant(this, arg);
+    }
+
+    deepClone() {
+      return new LoopVariant(deepClone(this.token), deepClone(this.expression), deepClone(this.start), deepClone(this.end));
+    }
+  }
+
+  export class LoopInvariant extends LoopElement {
+    invariants: Invariantcondition[];
+
+
+    constructor(token: eiffel.ast.Token, invariants: eiffel.ast.Invariantcondition[], start: eiffel.ast.Pos, end: eiffel.ast.Pos) {
+      super(token, start, end);
+      this.invariants = invariants;
+
+      this.children.push(token);
+      Array.prototype.push.apply(this.children, this.invariants);
+    }
+
+    accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
+      return visitor.vLoopInvariant(this, arg);
+    }
+
+    deepClone() {
+      return new LoopInvariant(deepClone(this.token), duplicateAll(this.invariants), deepClone(this.start), deepClone(this.end));
+    }
+  }
 }

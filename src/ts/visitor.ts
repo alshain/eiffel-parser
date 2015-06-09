@@ -316,5 +316,49 @@ module eiffel.ast {
     vWhenPart(whenPart: WhenPart, arg:A):R {
       return this.vDefault(whenPart, arg);
     }
+
+    vLoopElement(loopElement: LoopElement, arg:A):R {
+      return this.vDefault(loopElement, arg);
+    }
+
+    vAcrossAs(acrossAs: AcrossAs, arg:A):R {
+      return this.vLoopElement(acrossAs, arg);
+    }
+
+    vAcrossSomeOrAll(acrossSomeOrAll: AcrossSomeOrAll, arg:A):R {
+      return this.vLoopElement(acrossSomeOrAll, arg);
+    }
+
+    vAcrossSome(acrossSome: AcrossSome, arg:A):R {
+      return this.vAcrossSomeOrAll(acrossSome, arg);
+    }
+
+    vAcrossAll(acrossAll: AcrossAll, arg:A):R {
+      return this.vAcrossSomeOrAll(acrossAll, arg);
+    }
+
+    vLoopBody(loopInstructions: LoopBody, arg:A):R {
+      return this.vLoopElement(loopInstructions, arg);
+    }
+
+    vLoopFrom(loopFrom: LoopFrom, arg:A):R {
+      return this.vLoopElement(loopFrom, arg);
+    }
+
+    vLoop(loop: Loop, arg:A):R {
+      return this.vInstruction(loop, arg);
+    }
+
+    vLoopUntil(loopUntil: LoopUntil, arg:A):R {
+      return this.vLoopElement(loopUntil, arg);
+    }
+
+    vLoopVariant(loopVariant: LoopVariant, arg:A):R {
+      return this.vLoopElement(loopVariant, arg);
+    }
+
+    vLoopInvariant(loopInvariant: LoopInvariant, arg:A):R {
+      return this.vLoopElement(loopInvariant, arg);
+    }
   }
 }
