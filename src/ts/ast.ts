@@ -121,7 +121,7 @@ module eiffel.ast {
       expanded: Token,
       note: any, parentGroups: ParentGroup[],
       generics: FormalGenericParameter[],
-      creationClause: Identifier[],
+      creationClauses: CreationClause[],
       featureLists: FeatureList[]
     ) {
       super(this);
@@ -135,8 +135,8 @@ module eiffel.ast {
       this.parentGroups = parentGroups;
       Array.prototype.push.apply(this.children, parentGroups);
 
-      this.creationClause = creationClause;
-      Array.prototype.push.apply(this.children, creationClause);
+      this.creationClauses = creationClauses;
+      Array.prototype.push.apply(this.children, creationClauses);
 
       this.featureLists = featureLists;
       Array.prototype.push.apply(this.children, featureLists);
@@ -152,7 +152,7 @@ module eiffel.ast {
     expanded: Token;
     genericParameters: FormalGenericParameter[];
     parentGroups:ParentGroup[];
-    creationClause:Identifier[];
+    creationClauses:CreationClause[];
     featureLists:FeatureList[];
 
     dictionary: Map<any, eiffel.ast.AST[]>;
@@ -170,9 +170,37 @@ module eiffel.ast {
         deepClone(this.frozen), deepClone(this.expanded), null,
         duplicateAll(this.parentGroups),
         duplicateAll(this.genericParameters),
-        duplicateAll(this.creationClause),
+        duplicateAll(this.creationClauses),
         duplicateAll(this.featureLists)
       );
+    }
+  }
+
+  export class CreationClause extends AST implements VisitorAcceptor {
+    clients: Identifier[];
+    features: Identifier[];
+
+    start: Pos;
+    end: Pos;
+
+    constructor(clients:eiffel.ast.Identifier[], features:eiffel.ast.Identifier[], start:eiffel.ast.Pos, end:eiffel.ast.Pos) {
+      super(this);
+      this.clients = clients;
+      this.features = features;
+      this.start = start;
+      this.end = end;
+
+      Array.prototype.push.apply(this.children, this.clients);
+      Array.prototype.push.apply(this.children, this.features);
+
+    }
+
+    accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
+      return visitor.vCreationClause(this, arg);
+    }
+
+    deepClone() {
+      return new CreationClause(duplicateAll(this.clients), duplicateAll(this.features), deepClone(this.start), deepClone(this.end))
     }
   }
 

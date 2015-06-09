@@ -690,18 +690,21 @@ module eiffel.semantics {
         handDownFeatures(analysisContext);
 
     analysisContext.allClasses.forEach(function (classSymbol) {
-      classSymbol.ast.creationClause.forEach(function (identifier) {
-        var name: string = identifier.name;
-        if (classSymbol.declaredProcedures.has(name)) {
-          classSymbol.creationProcedures.set(name, classSymbol.declaredProcedures.get(name));
-        }
-        else if (classSymbol.declaredFunctions.has(name)) {
-            analysisContext.errors.uncategorized("Functions cannot be used as creation procedures " + name);
-        }
-        else {
-          analysisContext.errors.uncategorized("There is no procedure with name " + name);
-        }
-      })
+      classSymbol.ast.creationClauses.forEach(function (creationClause) {
+
+        creationClause.features.forEach(function (identifier) {
+          var name: string = identifier.name;
+          if (classSymbol.declaredProcedures.has(name)) {
+            classSymbol.creationProcedures.set(name, classSymbol.declaredProcedures.get(name));
+          }
+          else if (classSymbol.declaredFunctions.has(name)) {
+              analysisContext.errors.uncategorized("Functions cannot be used as creation procedures " + name);
+          }
+          else {
+            analysisContext.errors.uncategorized("There is no procedure with name " + name);
+          }
+        });
+      });
     });
 
 

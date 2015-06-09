@@ -223,7 +223,7 @@
 }
 start = class*
 class
-  = w note:Note? deferred:MaybeDeferred frozen:MaybeFrozen expanded:(e:ExpandedToken W {return e})? ClassToken name:ClassName generics:GenericParams? inherit:inherit? create:CreationClause? convert:Convert? featureLists:FeatureList* Invariant? W (Note)? EndToken w
+  = w note:Note? deferred:MaybeDeferred frozen:MaybeFrozen expanded:(e:ExpandedToken W {return e})? ClassToken name:ClassName generics:GenericParams? inherit:inherit? create:CreationClause* convert:Convert? featureLists:FeatureList* Invariant? W (Note)? EndToken w
     {
       return new eiffel.ast.Class(
         name,
@@ -312,13 +312,16 @@ NoteValue
 
 ClassName = W name:Identifier { return name}
 CreationClause
-  = W CreateToken cs:(w Clients)? W first:Identifier rest:("," w id:Identifier { return id})*
+  = W start:pos CreateToken cs:(w cs:Clients { return cs;})? fs:(W fs:IdentifierList {return fs;})? end:pos
   {
-    return buildList(first, rest, gId())
+    return new eiffel.ast.CreationClause(cs, fs, start, end);
   }
 
 Clients
   = "{" w cs:IdentifierList w "}"
+  {
+    return cs;
+  }
 
 inherit = ParentGroup+
 

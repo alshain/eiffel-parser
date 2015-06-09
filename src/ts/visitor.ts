@@ -372,5 +372,9 @@ module eiffel.ast {
     vNonObjectCall(nonObjectCall: NonObjectCall, arg:A):R {
       return this.vExpression(nonObjectCall, arg);
     }
+
+    vCreationClause(creationClause: CreationClause, arg:A):R {
+      return this.vDefault(creationClause, arg);
+    }
   }
 }
