@@ -1372,7 +1372,8 @@ StandardOperator
   / ".."
 
 FreeOperator
-  = os:OperatorSymbol+ & { return isFreeOperator(os.join(""));}
+  = "|..|" // TODO: Fix workaround. Reevaluate free operator recognition
+  / os:OperatorSymbol+ & { return isFreeOperator(os.join(""));}
   {
       return os.join("");
   }
