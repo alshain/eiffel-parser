@@ -519,13 +519,16 @@ Vars
   }
 
 Attribute
-  =  n:NewFeatureList  w ":" w t:Type
+  =  n:NewFeatureList  w ":" w t:Type TransientNote?
   {
     return new eiffel.ast.Attribute(
       n,
       t
     );
   }
+
+TransientNote
+  = W "note" W "option" w ":" w "transient" W "attribute" W "end"
 
 Constant
   = n:NewFeatureList  w ":" w t:Type w "=" w l:Literal
