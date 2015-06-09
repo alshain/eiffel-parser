@@ -661,7 +661,7 @@ Locals = W LocalToken vs:VarLists { return new eiffel.ast.LocalsBlock(vs); }
 VarLists = vs:(W v:VarList {return v;})+ {return vs;}
 
 InstructionSeq
-  = (W i:Instruction rest:(ns:(Indent* LineTerminatorSequence w {return null;} / Indent* n:NoOp Indent* {return n;}) r:Instruction {if(ns) { return [ns, r]} else { return [r]}})* {return merge(i, rest)})?
+  = (W i:Instruction rest:(ns:(Indent* LineTerminatorSequence w {return null;} / Indent+ {return null;} / Indent* n:NoOp Indent* {return n;})+ r:Instruction {if(ns !== null) { return ns.concat([r]);} else { return [r]}})* {return merge(i, rest)})?
   // = (W i:Instruction rest:(ns:(Indent* LineTerminatorSequence w {return null;} / Indent* n:NoOp Indent* {return n;}) r:Instruction {if(ns) { return [ns, r]} else {})* {return buildList(i, rest, gId())})?
 
 pos
@@ -691,9 +691,9 @@ DebugInstruction
     return new eiffel.ast.DebugBlock(a, is, start, end);
   }
 
-NoOp = w ";"
+NoOp = w start:pos ";" end:pos
   {
-    return _n("noop", {});
+    return new eiffel.ast.NoOp(start, end);
   }
 
 

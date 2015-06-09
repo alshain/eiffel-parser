@@ -2022,4 +2022,24 @@ module eiffel.ast {
       return visitor.vManifestConstant(this, arg);
     }
   }
+
+  export class NoOp extends AST implements VisitorAcceptor {
+    start: Pos;
+    end: Pos;
+
+
+    constructor(start:eiffel.ast.Pos, end:eiffel.ast.Pos) {
+      super(this);
+      this.start = start;
+      this.end = end;
+    }
+
+    accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
+      return visitor.vNoOp(this, arg);
+    }
+
+    deepClone() {
+      return new NoOp(deepClone(this.start), deepClone(this.end));
+    }
+  }
 }
