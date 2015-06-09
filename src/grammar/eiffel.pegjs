@@ -588,7 +588,7 @@ OnceBlock
 }
 
 Obsolete
-  = W start:pos ObsoleteToken W e:BasicManifestString end:pos
+  = W start:pos ObsoleteToken W e:Expression end:pos
   {
     return new eiffel.ast.Obsolete(e, start, end);
   }
@@ -1214,7 +1214,7 @@ BasicManifestString "string"
 
 // TODO remove some whitespace etc...
 VerbatimString
-  = start:pos '"' VerbatimOpener b:("{" / "[")  &{ setVerbatimEnd(b); return true;} s:VerbatimStringCharacter* VerbatimCloser '"' end:pos
+  = start:pos '"' VerbatimOpener b:("{" / "[") [ \t]* "\n"  &{ setVerbatimEnd(b); return true;} s:VerbatimStringCharacter* VerbatimCloser '"' end:pos
   {
     return new eiffel.ast.StringLiteral(s.join(""), start, end);
   }
