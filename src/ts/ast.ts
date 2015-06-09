@@ -503,6 +503,28 @@ module eiffel.ast {
     }
   }
 
+  export class NonObjectCall extends AST implements Expression {
+    constructor(rt: eiffel.ast.Type, featureName: Identifier) {
+      super(this);
+      this.rt = rt;
+      this.featureName = featureName;
+
+      this.children.push(this.rt, this.featureName);
+    }
+
+    rt: Type;
+    featureName: Identifier;
+    sym: TypeInstance;
+
+    accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
+      return visitor.vNonObjectCall(this, arg);
+    }
+
+    deepClone() {
+      return new NonObjectCall(deepClone(this.rt), deepClone(this.featureName));
+    }
+  }
+
   export class TypeExpression extends AST implements Expression {
     constructor(rt: eiffel.ast.Type) {
       super(this);
@@ -702,13 +724,13 @@ module eiffel.ast {
   }
 
   export class ConstantAttribute extends VarOrConstAttribute {
-    constructor(frozenNamesAndAliases: FrozenNameAlias[], rawType: eiffel.ast.Type, value: eiffel.ast.Literal<any>) {
+    constructor(frozenNamesAndAliases: FrozenNameAlias[], rawType: eiffel.ast.Type, value: eiffel.ast.ManifestConstant) {
       super(frozenNamesAndAliases, rawType);
       this.value = value;
       this.children.push(value);
     }
 
-    value: Literal<any>
+    value: ManifestConstant;
 
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vConstantAttribute(this, arg);
@@ -1053,7 +1075,6 @@ module eiffel.ast {
     accept<A, R>(visitor: Visitor<A, R>, arg:A):R {
       throw new Error("This should not be called");
     }
-
   }
 
   export class Precondition extends Condition implements VisitorAcceptor {
@@ -1937,6 +1958,33 @@ module eiffel.ast {
 
     deepClone() {
       return new DebugBlock(duplicateAll(this.args), duplicateAll(this.instructions), deepClone(this.start), deepClone(this.end));
+    }
+  }
+
+  export class ManifestConstant extends AST implements VisitorAcceptor {
+    type: Type;
+    value: Literal<any>;
+
+    start: Pos;
+    end: Pos;
+
+
+    constructor(type:eiffel.ast.Type, value:eiffel.ast.Literal<any>, start:eiffel.ast.Pos, end:eiffel.ast.Pos) {
+      super(this);
+      this.type = type;
+      this.value = value;
+      this.start = start;
+      this.end = end;
+
+      this.children.push(type, value);
+    }
+
+    deepClone() {
+      return new ManifestConstant(deepClone(this.type), deepClone(this.value), deepClone(this.start), deepClone(this.end));
+    }
+
+    accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
+      return visitor.vManifestConstant(this, arg);
     }
   }
 }

@@ -755,7 +755,7 @@ Current
 FirstExpr
   = "(" w e:Expression w ")" { return e}
   / Current
-  / TypeExpression
+  / NonObjectCall
   / TupleExpression
   / start:pos ResultToken end:pos
     {
@@ -786,10 +786,10 @@ TupleExpression
   }
 
 // TODO: insert whitespace around type?
-TypeExpression
-  = "{" i:Type "}"
+NonObjectCall
+  = "{" w t:Type w "}" w "." i:Identifier
   {
-    return new eiffel.ast.TypeExpression(i);
+    return new eiffel.ast.NonObjectCall(t, i);
   }
 
 FactorExpr
@@ -799,6 +799,15 @@ FactorExpr
   / Literal
   / AttachedExpression
   / AcrossLoopInstr
+  / TypeExpression
+
+TypeExpression
+  = "{" w t:Type w "}"
+  {
+    return new eiffel.ast.TypeExpression(t);
+  }
+
+
 
 CreateExpression
   = CreateToken !(IllegalAfterKeyword) w t:ExplicitCreationType m:CreationCall?
@@ -1265,12 +1274,26 @@ EscapeCharacter
 
 
 Literal
+  =  start:pos t:ManifestType? v:ManifestValue end:pos
+  {
+    return new eiffel.ast.ManifestConstant(t, v, start, end);
+  }
+
+ManifestType
+  = "{" w t:Type w "}" w
+  {
+    return t;
+  }
+
+
+ManifestValue
   = start:pos r:VoidLiteral    end:pos !IllegalAfterKeyword { return new eiffel.ast.VoidLiteral(start, end);}
   / start:pos r:BooleanLiteral end:pos !IllegalAfterKeyword {return new eiffel.ast.BooleanLiteral(r, start, end);}
   / r:Real_Constant {return r;}
   / r:IntegerLiteral !IllegalAfterKeyword {return r;}
   / r:StringLiteral  !IllegalAfterKeyword {return r;}
   / r:CharLiteral  !IllegalAfterKeyword {return r;}
+// TODO missing Manifest_type? Page 142/162 - 143/163
 
 Letter
   = [a-zA-Z]

@@ -364,5 +364,13 @@ module eiffel.ast {
     vDebugBlock(debugBlock: DebugBlock, arg:A):R {
       return this.vInstruction(debugBlock, arg);
     }
+
+    vManifestConstant(manifestConstant: ManifestConstant, arg:A):R {
+      return this.vDefault(manifestConstant, arg);
+    }
+
+    vNonObjectCall(nonObjectCall: NonObjectCall, arg:A):R {
+      return this.vExpression(nonObjectCall, arg);
+    }
   }
 }
