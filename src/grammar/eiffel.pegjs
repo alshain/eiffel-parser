@@ -27,7 +27,7 @@
 
   function isReserved(name) {
     // TODO reinsert TUPLE
-    return /^(agent|alias|all|and|as|assign|attribute|check|class|convert|create|Current|debug|deferred|do|detachable|else|elseif|end|ensure|expanded|export|external|False|feature|from|frozen|if|implies|inherit|inspect|invariant|like|local|loop|not|note|obsolete|old|once|only|or|Precursor|redefine|rename|require|rescue|Result|retry|select|separate|then|True|undefine|until|variant|Void|when|xor)$/.test(name);
+    return /^(across|agent|alias|all|and|as|assign|attribute|check|class|convert|create|Current|debug|deferred|do|detachable|else|elseif|end|ensure|expanded|export|external|False|feature|from|frozen|if|implies|inherit|inspect|invariant|like|local|loop|not|note|obsolete|old|once|only|or|Precursor|redefine|rename|require|rescue|Result|retry|select|separate|then|True|undefine|until|variant|Void|when|xor)$/.test(name);
   }
 
   function isOperatorSymbol(s) {
@@ -674,7 +674,6 @@ Instruction
   / AssignmentInstr
   / LoopInstr
   / IfInstr
-  / AcrossInstr
   / Expression
   / CheckInstruction
   / InspectInstruction
@@ -792,6 +791,7 @@ FactorExpr
   / CreateExpression
   / Literal
   / AttachedExpression
+  / AcrossLoopInstr
 
 CreateExpression
   = CreateToken !(IllegalAfterKeyword) w t:ExplicitCreationType m:CreationCall?
@@ -873,30 +873,107 @@ TypeList
   = f:Type w rest:("," w t:Type w {return t})* {return buildList(f, rest, gId())}
 
 LoopInstr
-  = fromSeq:LoopFrom until:LoopUntil is:LoopInstructions v:LoopVariant? W EndToken
+  = FromLoopInstr
+  / AcrossLoopInstr
+
+FromLoopInstr
+  = start:pos f:LoopFrom les:FromLoopElement+ e:EndToken end:pos
   {
-    return new eiffel.ast.FromLoop(
-      fromSeq,
-      until,
-      is,
-      v
+    return new eiffel.ast.Loop(
+      [f].concat(les),
+      e,
+      start,
+      end
     );
   }
 
-AcrossInstr
-  = IfInstr
+AcrossLoopInstr
+  = start:pos a:AcrossAs f:LoopFrom? les:FromLoopElement+ e:EndToken end:pos
+  {
+    return new eiffel.ast.Loop(
+      f == null ? [a].concat(les) : [a, f].concat(les),
+      e,
+      start,
+      end
+    );
+  }
+
+FromLoopElement
+  = AcrossSome
+  / AcrossAll
+  / LoopInstructions
+  / LoopUntil
+  / LoopVariant
+  / LoopInvariant
+
+LoopElement
+  = AcrossAs
+  / AcrossSome
+  / AcrossAll
+  / LoopInstructions
+  / LoopUntil
+  / LoopVariant
+  / LoopFrom
+
+AcrossAs
+  = start:pos t:AcrossToken W e:Expression W a:AsToken W i:Identifier end:pos W
+  {
+    return new eiffel.ast.AcrossAs(t, e, a, i, start, end);
+  }
+
+AcrossAll
+  = start:pos t:AllToken W e:Expression end:pos W
+  {
+    return new eiffel.ast.AcrossAll(
+      t,
+      e,
+      start,
+      end
+    );
+  }
+
+AcrossSome
+  = start:pos t:SomeToken W e:Expression end:pos W
+  {
+    return new eiffel.ast.AcrossSome(
+      t,
+      e,
+      start,
+      end
+    );
+  }
+
 
 LoopFrom
-  = FromToken fromSeq:InstructionSeq { return fromSeq; }
+  = start:pos t:FromToken fromSeq:InstructionSeq end:pos W
+  {
+    return new eiffel.ast.LoopFrom(t, fromSeq, start, end);
+  }
 
 LoopUntil
-  = W UntilToken W until:Expression { return until; }
+  = start:pos t:UntilToken W until:Expression end:pos W
+  {
+    return new eiffel.ast.LoopUntil(t, until, start, end);
+  }
 
 LoopInstructions
-  = W LoopToken is:InstructionSeq {return is; }
+  = start:pos t:LoopToken is:InstructionSeq end:pos w
+  {
+    return new eiffel.ast.LoopBody(t, is, start, end);
+  }
 
 LoopVariant
-  = W VariantToken W (ConditionLabel w)? v:Expression {return v;}
+  = start:pos t:VariantToken W (ConditionLabel w)? v:Expression end:pos W
+  {
+    return new eiffel.ast.LoopVariant(t, v, start, end);
+  }
+
+LoopInvariant
+  = start:pos t:InvariantToken invs:Invariantcondition* end:pos W
+  {
+    return new eiffel.ast.LoopInvariant(t, invs, start, end);
+  }
+
 
 IfInstr
   = IfToken W c:Expression W ThenToken is:InstructionSeq ei:ElseIf? e:Else? W EndToken
@@ -1272,7 +1349,8 @@ OperatorSymbol
 
 
 Keyword
-  = AgentToken
+  = AcrossToken
+  / AgentToken
   / AliasToken
   / AllToken
   / AndToken
@@ -1336,6 +1414,7 @@ Keyword
 
 /* Tokens */
 
+AcrossToken = start:pos s:"across" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
 AgentToken = start:pos s:"agent" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
 AliasToken = start:pos s:"alias" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
 AllToken = start:pos s:"all" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
@@ -1388,6 +1467,7 @@ ResultToken = start:pos s:"Result" !IllegalAfterKeyword end:pos { return new eif
 RetryToken = start:pos s:"retry" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
 SelectToken = start:pos s:"select" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
 SeparateToken = start:pos s:"separate" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
+SomeToken = start:pos s:"some" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
 ThenToken = start:pos s:"then" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
 TrueToken = start:pos s:"True" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
 TUPLEToken = start:pos s:"TUPLE" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
