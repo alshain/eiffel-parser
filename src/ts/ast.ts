@@ -22,6 +22,9 @@ module eiffel.ast {
       return null;
     }
     return <E[]> <any> es.map(function (ast) {
+      if (ast == null) {
+        return null;
+      }
       return ast.deepClone();
     });
   }
