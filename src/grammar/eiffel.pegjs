@@ -480,7 +480,7 @@ Procedure
   }
 // FIXME: Synonyms for routines
 RoutineHeader
-  = n:NewFeatureList p:(w "(" w ps:VarList? ")" {return ps;})?
+  = n:NewFeatureList p:(w "(" w ps:VarList? w ")" {return ps;})?
   {
     return {
       namesAndAliases: n,
