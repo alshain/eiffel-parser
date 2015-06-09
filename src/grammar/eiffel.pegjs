@@ -1041,7 +1041,8 @@ Choices
   = f:Choice w rest:("," w t:Choice w {return t})* {return buildList(f, rest, gId())}
 
 Choice
-  = IdentifierAccess
+  // TODO validate in code, 8.17.7
+  = Expression
 
 AssignmentInstr
   = lhs:LeftHandSide w ":=" w rhs:Expression
