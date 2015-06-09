@@ -1385,16 +1385,17 @@ module eiffel.ast {
   }
 
   export class IndexExpression extends AST implements Expression, VisitorAcceptor {
-    constructor(operand: eiffel.ast.Expression, argument: eiffel.ast.Expression) {
+    constructor(operand: eiffel.ast.Expression, arguments: eiffel.ast.Expression[]) {
       super(this);
       this.operand = operand;
-      this.argument = argument;
+      this.arguments = arguments;
 
-      this.children.push(operand, argument);
+      this.children.push(operand);
+      Array.prototype.push.apply(this.children, arguments);
     }
 
     operand: Expression;
-    argument: Expression;
+    arguments: Expression[];
 
     sym: TypeInstance;
 
@@ -1403,7 +1404,7 @@ module eiffel.ast {
     }
 
     deepClone() {
-      return new IndexExpression(deepClone(this.operand), deepClone(this.argument));
+      return new IndexExpression(deepClone(this.operand), duplicateAll(this.arguments));
     }
   }
 
