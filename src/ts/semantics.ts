@@ -752,6 +752,8 @@ module eiffel.semantics {
       var mapping = {
         "integer": "INTEGER_32",
         "character": "CHARACTER_32",
+        "double": "REAL_64",
+        "real": "REAL_32",
       };
       var lowerCaseName = name.toLowerCase();
       if (mapping.hasOwnProperty(lowerCaseName)) {
