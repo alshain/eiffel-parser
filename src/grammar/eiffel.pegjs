@@ -677,6 +677,13 @@ Instruction
   / Expression
   / CheckInstruction
   / InspectInstruction
+  / DebugInstruction
+
+DebugInstruction
+  = start:pos DebugToken a:Args is:InstructionSeq W EndToken end:pos
+  {
+    return new eiffel.ast.DebugBlock(a, is, start, end);
+  }
 
 NoOp = w ";"
   {

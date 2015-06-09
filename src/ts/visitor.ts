@@ -360,5 +360,9 @@ module eiffel.ast {
     vLoopInvariant(loopInvariant: LoopInvariant, arg:A):R {
       return this.vLoopElement(loopInvariant, arg);
     }
+
+    vDebugBlock(debugBlock: DebugBlock, arg:A):R {
+      return this.vInstruction(debugBlock, arg);
+    }
   }
 }

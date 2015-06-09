@@ -1912,4 +1912,31 @@ module eiffel.ast {
       return new LoopInvariant(deepClone(this.token), duplicateAll(this.invariants), deepClone(this.start), deepClone(this.end));
     }
   }
+
+  export class DebugBlock extends AST implements Instruction {
+    args: Expression[];
+    instructions: Instruction[];
+
+    start: Pos;
+    end: Pos;
+
+    sym: TypeInstance;
+
+
+    constructor(args: eiffel.ast.Expression[], instructions: eiffel.ast.Instruction[], start: eiffel.ast.Pos, end: eiffel.ast.Pos) {
+      super(this);
+      this.args = args;
+      this.instructions = instructions;
+      this.start = start;
+      this.end = end;
+    }
+
+    accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
+      return visitor.vDebugBlock(this, arg);
+    }
+
+    deepClone() {
+      return new DebugBlock(duplicateAll(this.args), duplicateAll(this.instructions), deepClone(this.start), deepClone(this.end));
+    }
+  }
 }
