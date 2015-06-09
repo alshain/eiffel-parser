@@ -588,7 +588,7 @@ OnceBlock
 }
 
 Obsolete
-  = W start:pos ObsoleteToken W e:Expression end:pos
+  = W start:pos ObsoleteToken W e:BasicManifestString end:pos
   {
     return new eiffel.ast.Obsolete(e, start, end);
   }
