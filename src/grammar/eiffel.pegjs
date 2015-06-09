@@ -864,9 +864,9 @@ Type
   {
     return new eiffel.ast.TypeLikeCurrent(t, c);
   }
-  / start:pos detachable:(DetachableToken W {return true} / {return false}) t:LikeToken W i:Identifier end:pos
+  / start:pos detachable:(DetachableToken W {return true} / {return false}) t:LikeToken W ti:("{" w ti:Identifier w "}" w "." w {return ti;})? i:Identifier end:pos
   {
-    return new eiffel.ast.TypeLikeFeature(t, i);
+    return new eiffel.ast.TypeLikeFeature(t, ti, i);
   }
 
 TypeList

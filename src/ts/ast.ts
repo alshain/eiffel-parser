@@ -1557,14 +1557,16 @@ module eiffel.ast {
 
   export class TypeLikeFeature extends AST implements VisitorAcceptor{
     token: Token;
+    typeName: Identifier;
     featureName: Identifier;
 
-    constructor(token:eiffel.ast.Token, featureName:eiffel.ast.Identifier) {
+    constructor(token:eiffel.ast.Token, typeName: eiffel.ast.Identifier, featureName:eiffel.ast.Identifier) {
       super(this);
       this.token = token;
+      this.typeName = typeName;
       this.featureName = featureName;
 
-      this.children.push(token, featureName);
+      this.children.push(token, typeName, featureName);
 
       this.start = this.token.start;
       this.end = this.featureName.end;
@@ -1578,7 +1580,7 @@ module eiffel.ast {
     }
 
     deepClone() {
-      return new TypeLikeFeature(deepClone(this.token), deepClone(this.featureName));
+      return new TypeLikeFeature(deepClone(this.token), deepClone(this.typeName), deepClone(this.featureName));
     }
   }
 
