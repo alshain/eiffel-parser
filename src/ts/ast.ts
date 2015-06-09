@@ -1702,22 +1702,25 @@ module eiffel.ast {
   export class WhenPart extends AST implements VisitorAcceptor{
     whenToken: Token;
     choices: Identifier[];
+    thenToken: Token;
     instructions: Instruction[];
 
     start: Pos;
     end: Pos;
 
 
-    constructor(whenToken:eiffel.ast.Token, choices:eiffel.ast.Identifier[], instructions:eiffel.ast.Instruction[], start:eiffel.ast.Pos, end:eiffel.ast.Pos) {
+    constructor(whenToken:eiffel.ast.Token, choices:eiffel.ast.Identifier[], thenToken: Token, instructions:eiffel.ast.Instruction[], start:eiffel.ast.Pos, end:eiffel.ast.Pos) {
       super(this);
       this.whenToken = whenToken;
       this.choices = choices;
+      this.thenToken = thenToken;
       this.instructions = instructions;
       this.start = start;
       this.end = end;
 
       this.children.push(this.whenToken);
       Array.prototype.push.apply(this.children, this.choices);
+      this.children.push(this.thenToken);
       Array.prototype.push.apply(this.children, this.instructions);
     }
 
@@ -1726,7 +1729,7 @@ module eiffel.ast {
     }
 
     deepClone() {
-      return new WhenPart(deepClone(this.whenToken), duplicateAll(this.choices), duplicateAll(this.instructions), deepClone(this.start), deepClone(this.end));
+      return new WhenPart(deepClone(this.whenToken), duplicateAll(this.choices), deepClone(this.thenToken), duplicateAll(this.instructions), deepClone(this.start), deepClone(this.end));
     }
   }
 
