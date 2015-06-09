@@ -760,10 +760,7 @@ FirstExpr
   / Current
   / NonObjectCall
   / TupleExpression
-  / start:pos ResultToken end:pos
-    {
-      return new eiffel.ast.ResultExpression(start, end);
-    }
+  / ResultExpression
   / i:IdentifierAccess a:Args
   {
     return new eiffel.ast.UnqualifiedCallExpression(i, a);
@@ -771,6 +768,12 @@ FirstExpr
   / IdentifierAccess
   / StringLiteral
   / Address
+
+ResultExpression
+  = start:pos ResultToken end:pos
+    {
+      return new eiffel.ast.ResultExpression(start, end);
+    }
 
 Address "address"
   = start:pos "$" i:AddressOf
