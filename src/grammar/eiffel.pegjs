@@ -865,6 +865,18 @@ IllegalAfterKeyword
   / "_"
 
 Type
+  = ClassType
+  // TODO factor out detachable stuff
+  / start:pos detachable:(DetachableToken W {return true} / {return false}) t:LikeToken W c:Current end:pos
+  {
+    return new eiffel.ast.TypeLikeCurrent(t, c);
+  }
+  / start:pos detachable:(DetachableToken W {return true} / {return false}) t:LikeToken W ti:("{" w ti:ClassType w "}" w "." w {return ti;})? i:Identifier end:pos
+  {
+    return new eiffel.ast.TypeLikeFeature(t, ti, i);
+  }
+
+ClassType
   = start:pos detachable:(DetachableToken W {return true} / {return false}) separate:(SeparateToken W {return true} / {return false}) n:Identifier ts:(w "[" w g:TypeList w "]" {return g})? end:pos
   {
     return new eiffel.ast.Type(
@@ -874,15 +886,6 @@ Type
       start,
       end
     );
-  }
-  // TODO factor out detachable stuff
-  / start:pos detachable:(DetachableToken W {return true} / {return false}) t:LikeToken W c:Current end:pos
-  {
-    return new eiffel.ast.TypeLikeCurrent(t, c);
-  }
-  / start:pos detachable:(DetachableToken W {return true} / {return false}) t:LikeToken W ti:("{" w ti:Identifier w "}" w "." w {return ti;})? i:Identifier end:pos
-  {
-    return new eiffel.ast.TypeLikeFeature(t, ti, i);
   }
 
 TypeList

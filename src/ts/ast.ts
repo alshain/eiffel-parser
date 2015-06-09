@@ -1585,10 +1585,10 @@ module eiffel.ast {
 
   export class TypeLikeFeature extends AST implements VisitorAcceptor{
     token: Token;
-    typeName: Identifier;
+    typeName: Type;
     featureName: Identifier;
 
-    constructor(token:eiffel.ast.Token, typeName: eiffel.ast.Identifier, featureName:eiffel.ast.Identifier) {
+    constructor(token:eiffel.ast.Token, typeName: eiffel.ast.Type, featureName:eiffel.ast.Identifier) {
       super(this);
       this.token = token;
       this.typeName = typeName;
