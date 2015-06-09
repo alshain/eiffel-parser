@@ -1025,7 +1025,10 @@ InspectInstruction
   }
 
 WhenPart
-  = W WhenToken W Choices ThenToken is:InstructionSeq
+  = W start:pos t:WhenToken W cs:Choices t2:ThenToken is:InstructionSeq end:pos
+  {
+    return new eiffel.ast.WhenPart(t, cs, t2, is, start, end);
+  }
 
 Choices
   = f:Choice w rest:("," w t:Choice w {return t})* {return buildList(f, rest, gId())}
