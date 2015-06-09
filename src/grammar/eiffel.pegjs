@@ -1202,9 +1202,9 @@ Sign
 //TODO Verbatim strings
 StringLiteral "string"
   = VerbatimString
-  / SingleLineString
+  / BasicManifestString
 
-SingleLineString "string"
+BasicManifestString "string"
   = start:pos '"' chars:DoubleStringCharacter* '"' end:pos {
     return new eiffel.ast.StringLiteral(chars.join(""), start, end);
   }
