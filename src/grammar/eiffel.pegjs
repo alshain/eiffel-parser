@@ -784,6 +784,7 @@ Address "address"
 AddressOf
   = Identifier
   / Current
+  / ResultExpression
 
 TupleExpression
   = start:pos "[" w es:ExpressionList w "]" end:pos
