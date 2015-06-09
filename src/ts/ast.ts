@@ -507,6 +507,8 @@ module eiffel.ast {
     constructor(rt: eiffel.ast.Type) {
       super(this);
       this.rt = rt;
+
+      this.children.push(this.rt);
     }
 
     rt: Type;
@@ -1097,6 +1099,10 @@ module eiffel.ast {
   export class Invariantcondition extends Condition implements VisitorAcceptor {
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vInvariantcondition(this, arg);
+    }
+
+    deepClone() {
+      return new Invariantcondition(deepClone(this.label), deepClone(this.condition));
     }
   }
 
