@@ -1,14 +1,16 @@
 module eiffel.symbols {
   import LookupTable = eiffel.util.LookupTable;
 
-    export class Symbol {
+    export class EiffelSymbol {
 
-      constructor(name: string) {
+      constructor(name: string, fullyQualifiedName: string) {
         this.name = name;
+        this.fullyQualifiedName = fullyQualifiedName;
         this.lowerCaseName = name.toLowerCase();
       }
 
       name: string;
+      fullyQualifiedName: string;
       lowerCaseName: string;
 
       setName(name: string) {
@@ -21,16 +23,16 @@ module eiffel.symbols {
       }
     }
 
-  export class FeatureSymbol extends Symbol {
+  export class FeatureSymbol extends EiffelSymbol {
     constructor(name:string, alias:string, isFrozen:boolean, ast: eiffel.ast.Feature) {
-      super(name);
+      super(name, name);
       this.alias = alias;
       this.isFrozen = isFrozen;
       this.isDeferred = false;
       this.ast = ast;
       this.isCommand = this.ast.rawType == null;
       this.isAttribute = this instanceof AttributeSymbol;
-      this.identity = null;
+      this.substitutions = new Substitution();
     }
 
     ast: eiffel.ast.Feature;
@@ -39,10 +41,10 @@ module eiffel.symbols {
     isDeferred: boolean;
     isCommand: boolean;
     isAttribute: boolean;
+    substitutions: Substitution;
 
     typeInstance: TypeInstance;
 
-    identity: FeatureSymbol = null;
     renamedFrom: FeatureSymbol = null;
     routineId: RoutineId = null;
     routineIds: Set<RoutineId> = new Set<RoutineId>();
@@ -63,13 +65,7 @@ module eiffel.symbols {
     }
 
     hasSameSignature(other: FeatureSymbol) {
-      console.error("Called duplicate on", this);
-      if (true) {
-        debugger;
-        throw new Error("Duplicate has not been implemented");
-      }
 
-      return this;
     }
   }
 
@@ -107,10 +103,8 @@ module eiffel.symbols {
 
     duplicate() {
       var sym = new FunctionSymbol(this.name, this.alias, this.isFrozen, this.ast);
-      sym.identity = this.identity;
 
       sym.typeInstance = this.typeInstance;
-      sym.identity = this.identity;
       sym.renamedFrom = this.renamedFrom;
       sym.routineId = this.routineId;
       sym.routineIds = this.routineIds;
@@ -130,10 +124,8 @@ module eiffel.symbols {
 
     duplicate() {
       var sym = new ProcedureSymbol(this.name, this.alias, this.isFrozen, this.ast);
-      sym.identity = this.identity;
 
       sym.typeInstance = this.typeInstance;
-      sym.identity = this.identity;
       sym.renamedFrom = this.renamedFrom;
       sym.routineId = this.routineId;
       sym.routineIds = this.routineIds;
@@ -163,10 +155,8 @@ module eiffel.symbols {
 
     duplicate() {
       var sym = new AttributeSymbol(this.name, this.alias, this.isFrozen, this.ast);
-      sym.identity = this.identity;
 
       sym.typeInstance = this.typeInstance;
-      sym.identity = this.identity;
       sym.renamedFrom = this.renamedFrom;
       sym.routineId = this.routineId;
       sym.routineIds = this.routineIds;
@@ -177,9 +167,9 @@ module eiffel.symbols {
     }
   }
 
-  export class VariableSymbol extends Symbol {
+  export class VariableSymbol extends EiffelSymbol {
     constructor(name:string, ast:ast.VarDeclEntry, type: TypeInstance) {
-      super(name);
+      super(name, name);
       this.ast = ast;
     }
 
@@ -189,7 +179,7 @@ module eiffel.symbols {
 
   export class ParentSymbol {
 
-    constructor(ast: eiffel.ast.Parent, groupAst:ast.ParentGroup, parentType:eiffel.symbols.TypeInstance) {
+    constructor(ast: eiffel.ast.Parent, groupAst: ast.ParentGroup, parentType: eiffel.symbols.TypeInstance) {
       this.ast = ast;
       this.groupAst = groupAst;
       this.parentType = parentType;
@@ -210,11 +200,20 @@ module eiffel.symbols {
       return "Parent: " + this.ast.rawType;
     }
 
+    inheritFeatures(): FeatureSymbol[] {
+      var result = [];
+      var finalFeatures = this.parentType.baseType.finalFeatures;
+      finalFeatures.forEach(function (featureSymbol, name) {
+
+      });
+      return null;
+    }
+
   }
 
-  export class ClassSymbol extends Symbol {
-    constructor(name:string, ast: ast.Class) {
-      super(name);
+  export class ClassSymbol extends EiffelSymbol {
+    constructor(name:string, fullyQualifiedName: string, ast: ast.Class) {
+      super(name, fullyQualifiedName);
       this.ast = ast;
     }
 
@@ -241,8 +240,8 @@ module eiffel.symbols {
     isFrozen: boolean;
     isDeferred: boolean;
 
-    genericParametersInOrder: ClassSymbol[] = [];
-    genericParametersByName: LookupTable<ClassSymbol> = new Map<string, ClassSymbol>();
+    genericParametersInOrder: GenericParameterSymbol[] = [];
+    genericParametersByName: LookupTable<GenericParameterSymbol> = new Map<string, GenericParameterSymbol>();
 
     genericParameterWithName(name: string) {
       var lcName = name.toLowerCase();
@@ -298,12 +297,177 @@ module eiffel.symbols {
     source: TypeInstance;
   }
 
-  export class TypeInstance {
+  /*export class FeatureInstance {
+    baseFeature: FeatureSymbol;
+    source: TypeInstance;
+    signature: Signature;
 
+
+    constructor(baseFeature:eiffel.symbols.FeatureSymbol, source:eiffel.symbols.TypeInstance, signature:eiffel.symbols.Signature) {
+      this.baseFeature = baseFeature;
+      this.source = source;
+      this.signature = signature;
+
+      var args = baseFeature.parameters.map(x => x.type.substitute(source));
+      var retType = (baseFeature.isCommand) ? null : baseFeature.typeInstance.substitute(source);
+      this.signature = new Signature(args, retType);
+    }
+  }*/
+
+  export class Signature {
+    arguments: TypeInstance[];
+    returnType: TypeInstance;
+    identity: Symbol;
+
+
+    constructor(arguments: eiffel.symbols.TypeInstance[], returnType:eiffel.symbols.TypeInstance) {
+      this.arguments = arguments;
+      this.returnType = returnType;
+      var sigString = this.arguments.map(x => x.toString()).join(", ");
+      if (returnType !== null) {
+        sigString += ": " + returnType.toString();
+      }
+      console.log(sigString);
+      this.identity = Symbol.for(sigString);
+    }
+
+    equals(other: Signature) {
+      var thisHasReturnType = this.returnType !== null;
+      var otherHasReturnType = other.returnType !== null;
+      if (thisHasReturnType !== otherHasReturnType) {
+        return false;
+      }
+
+      if (thisHasReturnType && otherHasReturnType && !this.returnType.equals(other.returnType)) {
+        return false;
+      }
+
+      if (this.arguments.length !== other.arguments.length) {
+        return false;
+      }
+
+      var zipped = eiffel.util.zip(this.arguments, other.arguments);
+      return _.every(zipped, (x_y) => x_y[0].equals(x_y[0]));
+    }
+
+    /**
+     * VNCS, 8.14.4
+     * @param other
+     */
+    conformsTo(other: Signature) {
+      // VNCS_1
+      if (this.arguments.length != other.arguments.length) {
+        return false;
+      }
+
+      var zipped = eiffel.util.zip(this.arguments, other.arguments);
+      var point_2 = true;
+      zipped.forEach(function (t1__t2) {
+        var bi = t1__t2[0];
+        var ai = t1__t2[1];
+        if (!bi.conformsTo(ai)) {
+          point_2 = false;
+        }
+      });
+
+    }
+  }
+
+  /**
+   * Type with kind *
+   * Either a TypeInstance or a GenericParameterSymbol
+   */
+  export interface ActualType {
+    hasFeatureWithName(name: string): boolean;
+    featureWithName(name: string): FeatureInstance;
+
+    canCallFeatureWith(name: string, argType: ActualType[]);
+    callFeatureWith(name: string, argType: ActualType[]): ActualType;
+
+    substitute(substitution: Substitution): ActualType;
+
+  }
+
+  export class GenericParameterSymbol extends EiffelSymbol implements ActualType {
+    substitute(substitution: eiffel.symbols.Substitution):eiffel.symbols.ActualType {
+      return substitution.substituteTypeParam(this);
+    }
+    definingClass: ClassSymbol;
+
+
+    constructor(name: string, fullyQualifiedName: string, definingClass: eiffel.symbols.ClassSymbol) {
+      super(name, fullyQualifiedName);
+      this.definingClass = definingClass;
+    }
+
+    hasFeatureWithName(name:string):boolean {
+      return undefined;
+    }
+
+    featureWithName(name:string):eiffel.symbols.FeatureInstance {
+      return undefined;
+    }
+
+    canCallFeatureWith(name:string, argType:eiffel.symbols.ActualType[]) {
+    }
+
+    callFeatureWith(name:string, argType:eiffel.symbols.ActualType[]):eiffel.symbols.ActualType {
+      return undefined;
+    }
+
+
+  }
+
+
+  export class Substitution {
+    constructor() {
+      this.substitutions = new Map<GenericParameterSymbol, ActualType>();
+    }
+    substitutions: Map<GenericParameterSymbol, ActualType>;
+
+    newSubstituitionWith(modifications: Substitution) {
+      var newSubs = new Map<GenericParameterSymbol, GenericParameterSymbol |TypeInstance>();
+      this.substitutions.forEach(function (v, k) {
+        if (v instanceof GenericParameterSymbol) {
+          if (modifications.substitutions.has(v)) {
+            newSubs.set(k, modifications.substitutions.get(v));
+          }
+          else {
+            // include in new subs without modification
+            newSubs.set(k, v);
+          }
+        }
+        else {
+          // Do nothing, there can't be a replacement for v in modifications
+        }
+      });
+      return new Substitution();
+
+    }
+
+    substituteTypeParam(type: GenericParameterSymbol) {
+      if (this.substitutions.has(type)) {
+        return this.substitutions.get(type);
+      }
+      else {
+        return type;
+      }
+    }
+
+    addSubstitution(genericParam: GenericParameterSymbol, type: ActualType) {
+      this.substitutions.set(genericParam, type);
+    }
+
+    hasSubstitutionFor(genericParam: GenericParameterSymbol): boolean {
+      return
+    }
+  }
+
+  export class TypeInstance implements ActualType {
     toString() {
       return this.repr;
     }
-    constructor(baseType: ClassSymbol, typeParameters: TypeInstance[], sourceClass: ClassSymbol) {
+    constructor(baseType: ClassSymbol, typeParameters: ActualType[], sourceClass: ClassSymbol, substitution: Substitution) {
       this.baseType = baseType;
       this.typeParameters = typeParameters;
       this.typeParameters.forEach(function (typeParam) {
@@ -316,15 +480,20 @@ module eiffel.symbols {
         debugger;
       }
       this.sourceClass = sourceClass;
-      this.repr = this.baseType.name;
+      this.substitutions = substitution;
+
+      this.repr = this.baseType.fullyQualifiedName;
       if (this.typeParameters.length >= 1) {
         this.repr += "[" + _.pluck(this.typeParameters, "repr").join(", ") + "]";
       }
+
     }
 
+
     baseType: ClassSymbol;
-    typeParameters: TypeInstance[];
+    typeParameters: ActualType[];
     sourceClass: ClassSymbol;
+    substitutions: Substitution;
     repr: string;
 
     /**
@@ -332,34 +501,62 @@ module eiffel.symbols {
      *
      * Returns type if it isn't a generic parameter
      */
-    substitute(typeInstance: TypeInstance): TypeInstance {
-      var substSymbol = (symbol: ClassSymbol) => {
-        if (this.baseType.hasGenericParameterWithName(symbol.name)) {
-          var formalGenericParam = this.baseType.genericParameterWithName(symbol.name);
-          var indexOfGenericParam = this.baseType.genericParametersInOrder.indexOf(formalGenericParam);
-          return this.typeParameters[indexOfGenericParam];
-        }
-        else {
-          return symbol;
-        }
-      };
+    substitute(substitution: Substitution): TypeInstance {
+      var substTypeParams = this.typeParameters.map(x => x.substitute(substitution));
 
-      var substBaseSymbol = substSymbol(typeInstance.baseType);
-      var substTypeParams = typeInstance.typeParameters.map(this.substitute, this);
+      return new TypeInstance(this.baseType, <TypeInstance[]> substTypeParams, this.sourceClass, this.substitutions.newSubstituitionWith(substitution));
+    }
 
-      if (substBaseSymbol instanceof TypeInstance) {
-        if (substTypeParams.length >= 1) {
-          throw new Error("Higher order polymorphism detected");
-        }
-        return substBaseSymbol;
+    featureWithName(name: string, client: ClassSymbol) {
+      if (this.hasFeatureWithName(name, client)) {
+        //new FeatureInstance(this.baseType.f)
       }
-      else if (substBaseSymbol instanceof ClassSymbol) {
-        return new TypeInstance(substBaseSymbol, <TypeInstance[]> substTypeParams, this.sourceClass);
+    }
+
+    hasFeatureWithName(name: string, client: ClassSymbol) {
+      if (client === null) {
+        return this.baseType.finalFeatures.has(name);
       }
       else {
-        console.error("This case should not happen", substBaseSymbol);
+        console.error("Client based feature availability not implemented");
         debugger;
       }
+    }
+
+    canCallFeatureWith(name: string, paramTypes: TypeInstance[], client: ClassSymbol) {
+      if (!this.hasFeatureWithName(name, client)) {
+        console.error("Feature " + name + " does not exist on " + this.baseType.fullyQualifiedName + " for client: " + client, client, "this", this);
+        debugger;
+        return false;
+      }
+
+      else {
+
+      }
+    }
+
+    callFeatureWith(name:string, argType:eiffel.symbols.ActualType[]):eiffel.symbols.ActualType {
+      return undefined;
+    }
+
+    typeForCall(name: string): ActualType {
+
+      // this.baseType.finalFeatures.has(name)
+      return null;
+    }
+
+    compatibleWith(other: TypeInstance, currentClass: TypeInstance): boolean {
+      return this.conformsTo(other, currentClass) || this.convertsTo(other, currentClass);
+    }
+
+    conformsTo(other: TypeInstance, currentClass: TypeInstance): boolean {
+      // TODO honor client restrictions
+      return false;
+    }
+
+    convertsTo(other: TypeInstance, currentClass: TypeInstance): boolean {
+      // TODO honor client restrictions
+      return false;
     }
 
     equals(other: TypeInstance) {
@@ -408,12 +605,10 @@ module eiffel.symbols {
       }
     }
 
-    clone() {
-      var clonedParameters = this.typeParameters.map(function (typeParam) {
-        return typeParam.clone();
-      });
+    /*clone() {
+      var clonedParameters = this.typeParameters.map(typeParam => typeParam.clone());
 
       return new TypeInstance(this.baseType, clonedParameters, this.sourceClass);
-    }
+    }*/
   }
 }

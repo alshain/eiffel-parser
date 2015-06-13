@@ -17,7 +17,7 @@ module eiffel.semantics {
       }
 
       var name = ast.name.name;
-      var classSymbol = new symbols.ClassSymbol(name, ast);
+      var classSymbol = new symbols.ClassSymbol(name, name, ast);
 
       analysisContext.classSymbols.set(classSymbol.lowerCaseName, classSymbol);
       analysisContext.allClasses.push(classSymbol);
@@ -53,6 +53,7 @@ module eiffel.semantics {
 
   function makeTypeInstanceIn(sourceClass: sym.ClassSymbol, rawType: eiffel.ast.Type, analysisContext: AnalysisContext) {
     if (!(rawType instanceof eiffel.ast.Type)) {
+      debugger;
       return null;
     }
 
@@ -74,18 +75,23 @@ module eiffel.semantics {
       return null;
     }
     var missingParam = false;
-    var typeParamInstances = rawType.parameters.map(function (rawTypeParameter) {
+    var substitutions = new eiffel.symbols.Substitution();
+    var typeParamInstances = rawType.parameters.map(function (rawTypeParameter, i) {
       var result = makeTypeInstanceIn(sourceClass, rawTypeParameter, analysisContext);
       if (result == null) {
         missingParam = true;
       }
+      else if (baseType instanceof ClassSymbol) {
+        substitutions.addSubstitution(baseType.genericParametersInOrder[i], result);
+      }
+
       return result;
     });
     if (missingParam) {
       return null;
     }
 
-    return new eiffel.symbols.TypeInstance(baseType, typeParamInstances, sourceClass);
+    return new eiffel.symbols.TypeInstance(baseType, typeParamInstances, sourceClass, substitutions);
   }
 
   /**
@@ -257,8 +263,9 @@ module eiffel.semantics {
     analysisContext.allClasses.map(function (oneClass) {
       oneClass.ast.genericParameters.forEach(function (genericParameter: ast.FormalGenericParameter) {
         var name = genericParameter.name.name;
+        var fqName = oneClass.name + "." + genericParameter.name.name;
 
-        var genericParamSym = new eiffel.symbols.ClassSymbol(name, null);
+        var genericParamSym = new eiffel.symbols.GenericParameterSymbol(name, fqName, oneClass);
 
         genericParameter.sym = genericParamSym;
         oneClass.genericParametersInOrder.push(genericParamSym);
@@ -390,11 +397,8 @@ module eiffel.semantics {
   }
 
   export function populateAncestorTypes(oneClass: eiffel.symbols.ClassSymbol) {
-    var genericInstances = oneClass.genericParametersInOrder.map(function (genericParam) {
-      return new eiffel.symbols.TypeInstance(genericParam, [], oneClass);
-    });
 
-    oneClass.ancestorTypes.push(new eiffel.symbols.TypeInstance(oneClass, genericInstances, oneClass));
+    oneClass.ancestorTypes.push(new eiffel.symbols.TypeInstance(oneClass, oneClass.genericParametersInOrder.slice(), oneClass, null));
 
     oneClass.parentSymbols.forEach(function (parentSymbol) {
       var substitutedAncestors = parentSymbol.parentType.baseType.ancestorTypes.map(function (ancestorType) {
@@ -562,7 +566,7 @@ module eiffel.semantics {
       }
     });
 
-    console.log(precursors);
+    // console.log(precursors);
   }
 
   function initAdaptions(context: AnalysisContext) {
@@ -608,7 +612,7 @@ module eiffel.semantics {
     anySym.declaredFeatures.forEach(function initAnyFeature(feature: sym.FeatureSymbol, featureName) {
       anySym.finalFeatures.set(featureName, feature);
       feature.routineId = new eiffel.symbols.RoutineId(anySym, feature);
-      feature.identity = feature;
+      // feature.identity = feature;
     });
   }
 
@@ -629,7 +633,7 @@ module eiffel.semantics {
         var paramNames = new Set<string>();
         var ast = <eiffel.ast.Routine> routineSym.ast;
         ast.parameters.forEach(function (varDeclList) {
-          varDeclList.varDecls.forEach(function (varDeclEntry) {
+          varDeclList.varDecls.forEach(function (varDeclEntry: eiffel.ast.VarDeclEntry) {
             var paramName = varDeclEntry.name.name;
             if (paramNames.has(paramName)) {
               analysisContext.errors.uncategorized("VREG?? Duplicate argument name");

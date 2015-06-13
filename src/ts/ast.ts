@@ -208,7 +208,7 @@ module eiffel.ast {
     name: Identifier;
     constraints: TypeConstraint[];
     creators: Identifier[];
-    sym: eiffel.symbols.ClassSymbol;
+    sym: eiffel.symbols.GenericParameterSymbol;
 
 
     constructor(name:eiffel.ast.Identifier, constraints:eiffel.ast.TypeConstraint[], creators:eiffel.ast.Identifier[]) {
