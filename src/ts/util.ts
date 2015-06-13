@@ -67,4 +67,18 @@ module eiffel.util {
     });
     return result;
   }
+
+  /**
+   * result.length == min(xs.length, ys.length)
+   * @param xs
+   * @param ys
+   */
+  export function zip<X, Y>(xs: X[], ys: Y[]) : [X, Y][] {
+    var result = [];
+    var maxI = Math.min(xs.length, ys.length);
+    for (var i = 0; i < maxI; i++) {
+      result.push([xs[i], ys[i]]);
+    }
+    return result;
+  }
 }
