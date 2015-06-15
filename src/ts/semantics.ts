@@ -51,47 +51,68 @@ module eiffel.semantics {
     });
   };
 
-  function makeTypeInstanceIn(sourceClass: sym.ClassSymbol, rawType: eiffel.ast.Type, analysisContext: AnalysisContext) {
+  function makeActualTypeIn(sourceClass: sym.ClassSymbol, rawType: eiffel.ast.Type, analysisContext: AnalysisContext): sym.ActualType {
+    var baseName = rawType.name.name;
     if (!(rawType instanceof eiffel.ast.Type)) {
       debugger;
       return null;
     }
 
-    var resolveType = function resolveType(identifier: eiffel.ast.Identifier) {
-      var  name = identifier.name;
-      if (sourceClass.hasGenericParameterWithName(name)) {
-        return sourceClass.genericParameterWithName(name);
-      }
-      else if (analysisContext.hasClass(name)){
-        return analysisContext.classWithName(name);
-      }
-      else {
-        analysisContext.errors.unknownClass(identifier);
-        return null;
-      }
+    var isGenericParam = function isGenericParam(name: string): boolean {
+      return sourceClass.hasGenericParameterWithName(name);
     };
-    var baseType = resolveType(rawType.name);
-    if (baseType === null) {
-      return null;
-    }
-    var missingParam = false;
-    var substitutions = new eiffel.symbols.Substitution();
-    var typeParamInstances = rawType.parameters.map(function (rawTypeParameter, i) {
-      var result = makeTypeInstanceIn(sourceClass, rawTypeParameter, analysisContext);
-      if (result == null) {
-        missingParam = true;
-      }
-      else if (baseType instanceof ClassSymbol) {
-        substitutions.addSubstitution(baseType.genericParametersInOrder[i], result);
-      }
 
-      return result;
-    });
-    if (missingParam) {
+    if (isGenericParam(baseName)) {
+      if (rawType.parameters.length !== 0) {
+        analysisContext.errors.uncategorized("You cannot use a generic parameter as the base class of a generic type.");
+      }
+      return sourceClass.genericParameterWithName(name);
+    }
+    else {
+      return makeTypeInstanceIn(sourceClass, rawType, analysisContext);
+    }
+  }
+
+  function makeTypeInstanceIn(sourceClass: sym.ClassSymbol, rawType: eiffel.ast.Type, analysisContext: AnalysisContext): sym.TypeInstance {
+    var baseName = rawType.name.name;
+    if (!(rawType instanceof eiffel.ast.Type)) {
+      debugger;
       return null;
     }
 
-    return new eiffel.symbols.TypeInstance(baseType, typeParamInstances, sourceClass, substitutions);
+    var isGenericParam = function isGenericParam(name: string): boolean {
+      return sourceClass.hasGenericParameterWithName(name);
+    };
+
+    var isClassName = function isClassName(name: string): boolean {
+      return analysisContext.hasClass(name);
+    };
+
+    if (isGenericParam(baseName)) {
+      analysisContext.errors.uncategorized("You must use the name of a class here, you've given the name of a generic parameter however.");
+    }
+    else if (isClassName(baseName)) {
+      var baseType = analysisContext.classWithName(baseName);
+      var missingParam = false;
+      var substitutions = new eiffel.symbols.Substitution();
+      var typeParamInstances = rawType.parameters.map(function (rawTypeParameter, i) {
+        var result = makeActualTypeIn(sourceClass, rawTypeParameter, analysisContext);
+        if (result == null) {
+          missingParam = true;
+        }
+        else if (baseType instanceof eiffel.symbols.ClassSymbol) {
+          substitutions.addSubstitution(baseType.genericParametersInOrder[i], result);
+        }
+
+        return result;
+      });
+
+      return new eiffel.symbols.TypeInstance(baseType, typeParamInstances, sourceClass, substitutions);
+    }
+    else {
+      analysisContext.errors.unknownClass(rawType.name);
+    }
+
   }
 
   /**
@@ -402,7 +423,7 @@ module eiffel.semantics {
 
     oneClass.parentSymbols.forEach(function (parentSymbol) {
       var substitutedAncestors = parentSymbol.parentType.baseType.ancestorTypes.map(function (ancestorType) {
-        return parentSymbol.parentType.substitute(ancestorType);
+        return parentSymbol.parentType;
       });
       Array.prototype.push.apply(oneClass.ancestorTypes, substitutedAncestors);
     });
@@ -621,7 +642,7 @@ module eiffel.semantics {
     analysisContext.allClasses.forEach(function (classSymbol) {
       classSymbol.declaredFeatures.forEach(function (fSym:eiffel.symbols.FeatureSymbol) {
         if (!fSym.isCommand) {
-          fSym.typeInstance = makeTypeInstanceIn(classSymbol, fSym.ast.rawType, analysisContext);
+          fSym.typeInstance = makeActualTypeIn(classSymbol, fSym.ast.rawType, analysisContext);
         }
       });
     });
@@ -639,7 +660,7 @@ module eiffel.semantics {
               analysisContext.errors.uncategorized("VREG?? Duplicate argument name");
             }
             paramNames.add(paramName);
-            varDeclEntry.sym = new eiffel.symbols.VariableSymbol(paramName, varDeclEntry, makeTypeInstanceIn(classSymbol, varDeclList.rawType, analysisContext));
+            varDeclEntry.sym = new eiffel.symbols.VariableSymbol(paramName, varDeclEntry, makeActualTypeIn(classSymbol, varDeclList.rawType, analysisContext));
             routineSym.parameters.push(varDeclEntry.sym);
             routineSym.parametersByName.set(paramName, varDeclEntry.sym);
           });
