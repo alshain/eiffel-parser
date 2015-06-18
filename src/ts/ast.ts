@@ -342,6 +342,7 @@ module eiffel.ast {
       this.frozenNamesAndAliases = frozenNamesAndAliases;
       this.parameters = parameters;
       this.bodyElements = bodyElements;
+      this.rawType = rawType;
 
       Array.prototype.push.apply(this.children, _.pluck(frozenNamesAndAliases, "name"));
       Array.prototype.push.apply(this.children, parameters);
@@ -370,6 +371,9 @@ module eiffel.ast {
       super(this);
       this.linesOfVarDeclLists = linesOfVarDeclLists;
       this.varDeclLists = _.flatten(linesOfVarDeclLists);
+      if (this.varDeclLists === Window) {
+        debugger;
+      }
       Array.prototype.push.apply(this.children, this.varDeclLists);
     }
 
