@@ -81,4 +81,13 @@ module eiffel.util {
     }
     return result;
   }
+
+  function debugAssert(mustBeTrue: boolean, message: string) {
+    if (!mustBeTrue) {
+      console.error(message);
+      debugger;
+      throw new Error(message);
+    }
+  }
+
 }
