@@ -1241,15 +1241,14 @@ CharLiteral "character"
     return new eiffel.ast.StringLiteral(chars.join(""), start, end);
   }
 DoubleStringCharacter
-  = !('"' / "%" / LineTerminator) SourceCharacter { return text(); }
-  / "%" sequence:SourceCharacter { return "%" + sequence; }
-  / LineContinuation
+  = "%" LineTerminatorSequence {return "\n"}
+  / '%"'
+  / !('"' / LineTerminator) SourceCharacter { return text(); }
+
 SingleStringCharacter
-  = !("'" / "%" / LineTerminator) SourceCharacter { return text(); }
-  / "%" sequence:SourceCharacter{ return "%" + sequence; }
-  / LineContinuation
-LineContinuation
-  = "\\" LineTerminatorSequence { return ""; }
+  = "%" LineTerminatorSequence {return "\n"}
+  / "%'"
+  / !("'" / LineTerminator) SourceCharacter { return text(); }
 EscapeSequence
   = CharacterEscapeSequence
   / "0" !DecimalDigit { return "\0"; }
