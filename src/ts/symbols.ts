@@ -38,7 +38,7 @@ module eiffel.symbols {
       this.isFrozen = isFrozen;
       this.isDeferred = false;
       this.ast = ast;
-      this.isCommand = this.ast.rawType == null;
+      this.isCommand = this.ast.rawType === null;
       this.isAttribute = this instanceof AttributeSymbol;
       this.substitutions = new Substitution();
     }
@@ -182,6 +182,7 @@ module eiffel.symbols {
     constructor(name:string, ast:ast.VarDeclEntry, type: ActualType) {
       super(name, name);
       this.ast = ast;
+      this.type = type;
     }
 
     ast: ast.VarDeclEntry;
@@ -211,19 +212,18 @@ module eiffel.symbols {
       return "Parent: " + this.ast.rawType;
     }
 
-    inheritFeatures(): FeatureSymbol[] {
-      var result = [];
+    inheritFeatures(): Map<string, FeatureSymbol> {
+      var result = new Map<string, FeatureSymbol>();
       var finalFeatures = this.parentType.baseType.finalFeatures;
       finalFeatures.forEach(function (featureSymbol: FeatureSymbol, name) {
         var duplicate = featureSymbol.duplicate();
-        featureSymbol.substitutions = this.parentType.substitutions;
-        featureSymbol.typeInstance = featureSymbol.typeInstance.substitute(featureSymbol.substitutions);
-        featureSymbol.signature.substitute(featureSymbol.substitutions);
+        duplicate.substitutions = this.parentType.substitutions;
+        duplicate.typeInstance = duplicate.typeInstance.substitute(duplicate.substitutions);
+        duplicate.signature.substitute(duplicate.substitutions);
+        result.set(name, duplicate);
       });
 
-
-
-      return null;
+      return result;
     }
 
   }
@@ -334,11 +334,11 @@ module eiffel.symbols {
 
   export class Signature {
     arguments: ActualType[];
-    returnType: TypeInstance;
+    returnType: ActualType;
     identity: Symbol;
 
 
-    constructor(arguments: eiffel.symbols.ActualType[], returnType:eiffel.symbols.TypeInstance) {
+    constructor(arguments: eiffel.symbols.ActualType[], returnType:eiffel.symbols.ActualType) {
       this.arguments = arguments;
       this.returnType = returnType;
       var sigString = this.arguments.map(x => x.toString()).join(", ");
@@ -413,6 +413,7 @@ module eiffel.symbols {
 
     substitute(substitution: Substitution): ActualType;
     duplicate(): ActualType;
+    equals(other: ActualType): boolean;
   }
 
   export class GenericParameterSymbol extends EiffelSymbol implements ActualType {
@@ -446,6 +447,10 @@ module eiffel.symbols {
       // This is a symbol whose identity is important.
       // It's basically immutable, so return same instance again.
       return this;
+    }
+
+    equals(other: ActualType) {
+      return this === other;
     }
   }
 

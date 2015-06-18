@@ -51,22 +51,21 @@ module eiffel.semantics {
     });
   };
 
-  function makeActualTypeIn(sourceClass: sym.ClassSymbol, rawType: eiffel.ast.Type, analysisContext: AnalysisContext): sym.ActualType {
-    var baseName = rawType.name.name;
-    if (!(rawType instanceof eiffel.ast.Type)) {
-      debugger;
-      return null;
-    }
-
-    var isGenericParam = function isGenericParam(name: string): boolean {
-      return sourceClass.hasGenericParameterWithName(name);
+  function makeActualTypeIn(sourceClass: sym.ClassSymbol, rawType: eiffel.ast.AST, analysisContext: AnalysisContext): sym.ActualType {
+    var isGenericParam = function isGenericParam(): boolean {
+      if (rawType instanceof eiffel.ast.Type) {
+        return sourceClass.hasGenericParameterWithName(rawType.name.name);
+      }
+      else {
+        return false;
+      }
     };
 
-    if (isGenericParam(baseName)) {
+    if (rawType instanceof eiffel.ast.Type && isGenericParam()) {
       if (rawType.parameters.length !== 0) {
         analysisContext.errors.uncategorized("You cannot use a generic parameter as the base class of a generic type.");
       }
-      return sourceClass.genericParameterWithName(name);
+      return sourceClass.genericParameterWithName(rawType.name.name);
     }
     else {
       return makeTypeInstanceIn(sourceClass, rawType, analysisContext);
@@ -74,6 +73,16 @@ module eiffel.semantics {
   }
 
   function makeTypeInstanceIn(sourceClass: sym.ClassSymbol, rawType: eiffel.ast.Type, analysisContext: AnalysisContext): sym.TypeInstance {
+    if (rawType instanceof eiffel.ast.TypeLikeFeature) {
+      console.warn("Type like feature used, not yet implemented");
+      return null;
+    }
+    else if (rawType instanceof eiffel.ast.TypeLikeCurrent) {
+      if (sourceClass.typeInstance === null) {
+        console.error("sourceClass.typeInstance not initialized");
+      }
+      return sourceClass.typeInstance.duplicate();
+    }
     var baseName = rawType.name.name;
     if (!(rawType instanceof eiffel.ast.Type)) {
       debugger;
@@ -122,6 +131,9 @@ module eiffel.semantics {
    */
   var validateTypeInstance = function validateTypeInstance(instance: eiffel.symbols.TypeInstance, context: AnalysisContext) {
     // TODO implement constraints
+    if (instance instanceof eiffel.symbols.GenericParameterSymbol) {
+      return true;
+    }
 
     var sourceClass = instance.sourceClass;
     var baseType = instance.baseType;
@@ -300,6 +312,12 @@ module eiffel.semantics {
     });
   };
 
+  var initClassSymbolTypeInstances = function initClassSymbolTypeInstances(analysisContext) {
+    analysisContext.allClasses.map(function (oneClass) {
+      oneClass.typeInstance = new eiffel.symbols.TypeInstance(oneClass, oneClass.genericParametersInOrder, oneClass, new eiffel.symbols.Substitution());
+    });
+  };
+
   var handDownFeatures = function handDownFeatures(analysisContext: AnalysisContext) {
     var seen: Set<eiffel.symbols.ClassSymbol> = new Set<sym.ClassSymbol>();
     var process = function process(oneClass: sym.ClassSymbol, descendants: DescendantChain) {
@@ -460,7 +478,7 @@ module eiffel.semantics {
         debugger;
       }
       else {
-        var parentFinalFeatures = parentSymbol.parentType.baseType.finalFeatures;
+        var parentFinalFeatures = parentSymbol.inheritFeatures();
         var featureNames = [];
         parentFinalFeatures.forEach(function extractFinalFeatureName(_, finalFeatureName) {
           featureNames.push(finalFeatureName);
@@ -507,17 +525,14 @@ module eiffel.semantics {
 
 
         parentFinalFeatures.forEach(function (finalFeature, oldFinalFeatureName) {
-          var needsDuplicate = false;
           var finalFeatureName = oldFinalFeatureName;
           var newIsDeferred = finalFeature.isDeferred;
           if (oldNameToNewName.has(oldFinalFeatureName)) {
-            needsDuplicate = true;
             finalFeatureName = oldNameToNewName.get(oldFinalFeatureName)
           }
 
 
           if (undefines.has(oldFinalFeatureName)) {
-            needsDuplicate = true;
             finalFeature.duplicate();
             if (finalFeature.isDeferred) {
               // VDUS_3
@@ -641,12 +656,24 @@ module eiffel.semantics {
   function initReturnTypeTypeInstances(analysisContext) {
     analysisContext.allClasses.forEach(function (classSymbol) {
       classSymbol.declaredFeatures.forEach(function (fSym:eiffel.symbols.FeatureSymbol) {
-        if (!fSym.isCommand) {
+        if (fSym.isCommand) {
+          fSym.typeInstance = null;
+        }
+        else {
           fSym.typeInstance = makeActualTypeIn(classSymbol, fSym.ast.rawType, analysisContext);
         }
       });
     });
   }
+
+  function initSignatures(analysisContext) {
+    analysisContext.allClasses.forEach(function (classSymbol) {
+      classSymbol.declaredFeatures.forEach(function (fSym:eiffel.symbols.FeatureSymbol) {
+        fSym.signature = new eiffel.symbols.Signature(fSym.parameters.map(x => x.type), fSym.typeInstance);
+      });
+    });
+  }
+
 
   function initParameters(analysisContext: AnalysisContext) {
     analysisContext.allClasses.forEach(function (classSymbol) {
@@ -684,14 +711,16 @@ module eiffel.semantics {
     var analysisContext = new AnalysisContext();
     createClassSymbols(asts, analysisContext);
     initGenericParamSyms(analysisContext);
+    initClassSymbolTypeInstances(analysisContext);
     initAstDictionary(analysisContext);
     initAstDictionaryByClass(analysisContext);
     createFeatureSymbols(analysisContext);
     createRoutineLocalSymbols(analysisContext);
-    initParameters(analysisContext);
     checkCyclicInheritance(analysisContext);
     initParentTypeInstancesAndValidate(analysisContext);
+    initParameters(analysisContext);
     initReturnTypeTypeInstances(analysisContext);
+    initSignatures(analysisContext);
     // Can now use traverseInheritance
     traverseInheritance(populateAncestorTypes, analysisContext);
     initAdaptions(analysisContext);
