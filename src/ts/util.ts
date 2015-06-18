@@ -90,4 +90,96 @@ module eiffel.util {
     }
   }
 
+  export class Graph<N, D> {
+    edges: Map<N, Set<N>>;
+    nodes: Set<N>;
+
+    constructor(nodes: N[]) {
+      this.nodes = new Set<N>();
+      this.edges = new Map<N, Set<N>>();
+      nodes.forEach(function (node) {
+        debugAssert(!this.nodes.has(node), "Duplicate node in graph");
+        this.nodes.add(node);
+      }, this);
+    }
+
+    connect(from: N, to: N, debugDuplicate: boolean = false) {
+      debugAssert(from !== null && from !== undefined, "First argument is null or undefiined");
+      debugAssert(to !== null && to !== undefined, "Second argument is null or undefiined");
+      debugAssert(this.nodes.has(from), "Cannot work with nodes that aren't in graph");
+      debugAssert(this.nodes.has(to), "Cannot work with nodes that aren't in graph");
+      debugAssert(from !== to, "self-cycles are not supported");
+
+      var edges = this.edgesFor(from);
+      if (debugDuplicate && edges.has(to)) {
+        debugAssert(true, "Edge already exists in graph");
+      }
+
+      edges.add(to);
+
+      return this;
+    }
+
+    goesTo(from: N, potentialTarget: N): boolean {
+      return this.edgesFor(from).has(potentialTarget);
+    }
+
+    edgesFor(node: N) {
+      debugAssert(this.nodes.has(node), "Node is not in graph");
+      if (!this.edges.has(node)) {
+        this.edges.set(node, new Set<N>());
+      }
+      return this.edges.get(node);
+    }
+
+    tarjan() {
+      var stack: N[] = [];
+      var onStack = new Set<N>();
+      var assignment = new Map<N, number>();
+      var lowLinks = new Map<N, number>();
+      var results = [];
+      var index = 0;
+      var graph = this;
+      function getStronglyConnectedComponent(node: N) {
+        if (assignment.has(node)) {
+          return;
+        }
+        else {
+          stack.push(node);
+          onStack.add(node);
+          console.log(node);
+          assignment.set(node, index);
+          lowLinks.set(node, index);
+          index++;
+        }
+
+        var edges = graph.edgesFor(node);
+        edges.forEach(function (targetNode) {
+          console.log("Visiting edge: ", node, targetNode);
+          if (!assignment.has(targetNode)) {
+            getStronglyConnectedComponent(targetNode);
+            lowLinks.set(node, Math.min(lowLinks.get(node),  lowLinks.get(targetNode)));
+          }
+          else if (onStack.has(targetNode)) {
+            lowLinks.set(node, Math.min(lowLinks.get(node),  lowLinks.get(targetNode)));
+          }
+        });
+
+        if (lowLinks.get(node) === assignment.get(node)) {
+          // All items on Stack are in current component, all reachable from it and have backlinks
+          var component = [];
+          var stackNode;
+          do {
+            stackNode = stack.pop();
+            component.push(stackNode);
+            onStack.delete(stackNode);
+          } while (stackNode !== node);
+          results.push(component);
+        }
+      }
+      debugAssert(stack.length === 0, "Stack is not empty");
+      this.nodes.forEach(getStronglyConnectedComponent);
+      return results;
+    }
+  }
 }
