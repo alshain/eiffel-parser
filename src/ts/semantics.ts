@@ -11,7 +11,7 @@ module eiffel.semantics {
   import pairs = eiffel.util.pairs;
   import group = eiffel.util.group;
   import debugAssert = eiffel.util.debugAssert;
-
+  var started = false;
   export var builtinContext: AnalysisContext;
   var createClassSymbols = function (asts, analysisContext:AnalysisContext) {
     asts.forEach(function (ast:eiffel.ast.Class) {
@@ -850,7 +850,10 @@ module eiffel.semantics {
 
 
   export function analyze(manyAsts: ast.Class[][]): AnalysisResult {
-
+    if (!started) {
+      start();
+    }
+    
     Array.prototype.push.apply(manyAsts);
     var asts: ast.Class[] = Array.prototype.concat.apply([], manyAsts);
     var analysisContext = new AnalysisContext();
@@ -1226,6 +1229,7 @@ module eiffel.semantics {
   }
 
   export function start() {
+    started = true;
     var total = __eiffel_builtin.length;
     var parsed = __eiffel_builtin.map(function(source, i) {
       console.log("Parsing ", source.filename);
