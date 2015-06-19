@@ -1,4 +1,14 @@
-expanded class INTEGER_32 inherit
+note
+  description: "Integer values"
+  external_name: "System.Int32"
+  assembly: "mscorlib"
+  library: "Free implementation of ELKS library"
+  status: "See notice at end of class."
+  legal: "See notice at end of class."
+  date: "$Date: 2012-05-23 21:13:10 -0700 (Wed, 23 May 2012) $"
+  revision: "$Revision: 91981 $"
+
+frozen expanded class INTEGER_32 inherit
 
   INTEGER_32_REF
     redefine
@@ -12,7 +22,7 @@ expanded class INTEGER_32 inherit
       integer_remainder,
       opposite,
       identity,
-      asa_natural_8,
+      as_natural_8,
       as_natural_16,
       as_natural_32,
       as_natural_64,
@@ -36,11 +46,11 @@ create
   default_create,
   make_from_reference
 
--- convert
---   make_from_reference ({INTEGER_32_REF}),
---   to_real: {REAL_32},
---   to_double: {REAL_64},
---   to_integer_64: {INTEGER_64}
+convert
+  make_from_reference ({INTEGER_32_REF}),
+  to_real: {REAL_32},
+  to_double: {REAL_64},
+  to_integer_64: {INTEGER_64}
 
 feature -- Comparison
 
@@ -217,5 +227,16 @@ feature -- Bit operations
     external
       "built_in"
     end
+
+note
+  copyright: "Copyright (c) 1984-2012, Eiffel Software and others"
+  license:   "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
+  source: "[
+      Eiffel Software
+      5949 Hollister Ave., Goleta, CA 93117 USA
+      Telephone 805-685-1006, Fax 805-685-6869
+      Website http://www.eiffel.com
+      Customer support http://support.eiffel.com
+    ]"
 
 end

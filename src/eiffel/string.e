@@ -305,7 +305,7 @@ feature -- Element change
       original_exists: original /= Void
       new_exists: new /= Void
       original_not_empty: not original.is_empty
-    extern
+    external
       "built_in"
     end
 

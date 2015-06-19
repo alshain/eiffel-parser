@@ -43,8 +43,7 @@ create
   make_filled,
   make_from_string,
   make_from_c,
-  make_from_cil,
-  make_from_separate
+  make_from_cil
 
 create {IMMUTABLE_STRING_8}
   make_from_area_and_bounds
