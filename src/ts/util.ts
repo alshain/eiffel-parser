@@ -90,24 +90,52 @@ module eiffel.util {
     }
   }
 
-  export class Graph<N, D> {
+  export interface GraphOptions {
+    autoAdd?: boolean;
+  }
+
+  export class Graph<N> {
     edges: Map<N, Set<N>>;
     nodes: Set<N>;
+    autoAdd: boolean;
 
-    constructor(nodes: N[]) {
+    constructor(nodes: N[], options?: GraphOptions) {
       this.nodes = new Set<N>();
       this.edges = new Map<N, Set<N>>();
+      if (options instanceof Object && options.hasOwnProperty("autoAdd")) {
+        this.autoAdd = options.autoAdd;
+      }
+
       nodes.forEach(function (node) {
         debugAssert(!this.nodes.has(node), "Duplicate node in graph");
         this.nodes.add(node);
       }, this);
     }
 
+    addNode(node: N, ignoreDuplicate: boolean = true): Graph<N> {
+      if (!ignoreDuplicate) {
+        debugAssert(!this.nodes.has(node), "Adding node that is already in graph");
+      }
+      this.nodes.add(node);
+      return this;
+    }
+
     connect(from: N, to: N, debugDuplicate: boolean = false) {
       debugAssert(from !== null && from !== undefined, "First argument is null or undefiined");
       debugAssert(to !== null && to !== undefined, "Second argument is null or undefiined");
-      debugAssert(this.nodes.has(from), "Cannot work with nodes that aren't in graph");
-      debugAssert(this.nodes.has(to), "Cannot work with nodes that aren't in graph");
+      if (this.autoAdd) {
+        if (!this.nodes.has(from)) {
+          this.addNode(from);
+        }
+        if (!this.nodes.has(to)) {
+          this.addNode(to);
+        }
+      }
+      else {
+        debugAssert(this.nodes.has(from), "Cannot work with nodes that aren't in graph");
+        debugAssert(this.nodes.has(to), "Cannot work with nodes that aren't in graph");
+      }
+
       debugAssert(from !== to, "self-cycles are not supported");
 
       var edges = this.edgesFor(from);
@@ -147,7 +175,7 @@ module eiffel.util {
         else {
           stack.push(node);
           onStack.add(node);
-          console.log(node);
+
           assignment.set(node, index);
           lowLinks.set(node, index);
           index++;
@@ -155,7 +183,6 @@ module eiffel.util {
 
         var edges = graph.edgesFor(node);
         edges.forEach(function (targetNode) {
-          console.log("Visiting edge: ", node, targetNode);
           if (!assignment.has(targetNode)) {
             getStronglyConnectedComponent(targetNode);
             lowLinks.set(node, Math.min(lowLinks.get(node),  lowLinks.get(targetNode)));
@@ -181,5 +208,29 @@ module eiffel.util {
       this.nodes.forEach(getStronglyConnectedComponent);
       return results;
     }
+  }
+
+  export function mapToArray<K, V>(map: Map<K, V>): V[] {
+    var result = [];
+    map.forEach(x => result.push(x));
+    return result;
+  }
+
+  export function exactlyOne(...xs: boolean[]): boolean {
+    var one = false;
+    var moreThanOne = false;
+    xs.forEach(x => {
+      if (x && !one) {
+        one = true;
+      }
+      else if (x && one) {
+        moreThanOne = true;
+      }
+    });
+
+    if (moreThanOne) {
+      return false;
+    }
+    return one;
   }
 }

@@ -371,9 +371,6 @@ module eiffel.ast {
       super(this);
       this.linesOfVarDeclLists = linesOfVarDeclLists;
       this.varDeclLists = _.flatten(linesOfVarDeclLists);
-      if (this.varDeclLists === Window) {
-        debugger;
-      }
       Array.prototype.push.apply(this.children, this.varDeclLists);
     }
 
@@ -395,7 +392,7 @@ module eiffel.ast {
       super(this);
       this.varDecls = varDecls;
       this.rawType = rawType;
-      varDecls.forEach(function (varDecl: VarDeclEntry) {
+      varDecls.forEach((varDecl: VarDeclEntry) => {
         varDecl.varDeclList = this;
       });
       Array.prototype.push.apply(this.children, varDecls);
@@ -572,9 +569,15 @@ module eiffel.ast {
 
 
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
-      console.error("Should not call this method, missing override in: " + this.constructor.name);
-      debugger;
-      throw new Error("Should not call this method, missing override in: " + this.constructor.name);
+      // Trick TypeScript compiler into accepting throw
+      if (true) {
+        console.error("Should not call this method, missing override in: " + this.constructor.name);
+        debugger;
+        throw new Error("Should not call this method, missing override in: " + this.constructor.name);
+      }
+      else {
+        return null;
+      }
     }
   }
 
@@ -645,9 +648,15 @@ module eiffel.ast {
     token2: Token;
 
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
-      console.error("Should not call this method, missing override in: " + this.constructor.name);
-      debugger;
-      throw new Error("Should not call this method, missing override in: " + this.constructor.name);
+      // trick TypeScript compiler into accepting throw
+      if (true) {
+        console.error("Should not call this method, missing override in: " + this.constructor.name);
+        debugger;
+        throw new Error("Should not call this method, missing override in: " + this.constructor.name);
+      }
+      else {
+        return null;
+      }
     }
 
   }

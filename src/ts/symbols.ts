@@ -62,6 +62,9 @@ module eiffel.symbols {
     signature: Signature;
     parameters: VariableSymbol[] = [];
     parametersByName: Map<string, VariableSymbol> = new Map<string, VariableSymbol>();
+    locals: VariableSymbol[] = [];
+    localsByName: LookupTable<VariableSymbol> = new Map<string, VariableSymbol>();
+    localsAndParamsByName: LookupTable<VariableSymbol> = new Map<string, VariableSymbol>();
 
 
     duplicate(): FeatureSymbol {
@@ -99,8 +102,6 @@ module eiffel.symbols {
       super(name, alias, frozen, ast);
     }
 
-    locals: VariableSymbol[] = [];
-    localsAndParamsByName: LookupTable<VariableSymbol> = new Map<string, VariableSymbol>();
     ast: ast.Routine;
   }
 
@@ -183,14 +184,16 @@ module eiffel.symbols {
   }
 
   export class VariableSymbol extends EiffelSymbol {
-    constructor(name:string, ast:ast.VarDeclEntry, type: ActualType) {
+    constructor(name:string, ast:ast.VarDeclEntry, rawType: eiffel.ast.Type) {
       super(name, name);
       this.ast = ast;
-      this.type = type;
+      this.type = undefined;
+      this.rawType = rawType;
     }
 
     ast: ast.VarDeclEntry;
     type: ActualType;
+    rawType: eiffel.ast.AST;
   }
 
   export class FinalFeature {
@@ -459,6 +462,8 @@ module eiffel.symbols {
     duplicate(): ActualType;
     equals(other: ActualType): boolean;
 
+    conformsTo(other: ActualType): boolean;
+
     toString(): string;
   }
 
@@ -502,6 +507,10 @@ module eiffel.symbols {
     toString(): string {
       return this.fullyQualifiedName;
     }
+
+    conformsTo(other: ActualType) {
+      return this === other;
+    }
   }
 
 
@@ -512,15 +521,16 @@ module eiffel.symbols {
     substitutions: Map<GenericParameterSymbol, ActualType>;
 
     newSubstituitionWith(modifications: Substitution) {
-      var newSubs = new Map<GenericParameterSymbol, GenericParameterSymbol |TypeInstance>();
+      var newSubs = new Map<GenericParameterSymbol, ActualType>();
       this.substitutions.forEach(function (v, k) {
         if (v instanceof GenericParameterSymbol) {
-          if (modifications.substitutions.has(v)) {
-            newSubs.set(k, modifications.substitutions.get(v));
+          var genParamSym = <GenericParameterSymbol> v; // typescript does not infer v to be a GenericParamSym -.-
+          if (modifications.substitutions.has(genParamSym)) {
+            newSubs.set(k, modifications.substitutions.get(genParamSym));
           }
           else {
             // include in new subs without modification
-            newSubs.set(k, v);
+            newSubs.set(k, genParamSym);
           }
         }
         else {
@@ -531,7 +541,7 @@ module eiffel.symbols {
 
     }
 
-    substituteTypeParam(type: GenericParameterSymbol) {
+    substituteTypeParam(type: GenericParameterSymbol): ActualType {
       if (this.substitutions.has(type)) {
         return this.substitutions.get(type);
       }
@@ -650,7 +660,7 @@ module eiffel.symbols {
       return this.conformsTo(other, currentClass) || this.convertsTo(other, currentClass);
     }
 
-    conformsTo(other: TypeInstance, currentClass: TypeInstance): boolean {
+    conformsTo(other: TypeInstance, currentClass?: TypeInstance): boolean {
       // TODO honor client restrictions
       return false;
     }

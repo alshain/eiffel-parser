@@ -11,6 +11,9 @@ module eiffel.semantics {
   import pairs = eiffel.util.pairs;
   import group = eiffel.util.group;
   import debugAssert = eiffel.util.debugAssert;
+  import mapToArray = eiffel.util.mapToArray;
+  import exactlyOne = eiffel.util.exactlyOne;
+
   var started = false;
   export var builtinContext: AnalysisContext;
   var createClassSymbols = function (asts, analysisContext:AnalysisContext) {
@@ -45,7 +48,7 @@ module eiffel.semantics {
           localBlock.varDeclLists.forEach(function (varsDecl) {
             varsDecl.varDecls.forEach(function (varDecl) {
               var varName = varDecl.name.name;
-              var variableSymbol = new symbols.VariableSymbol(varName, varDecl, makeActualTypeIn(oneClass, varsDecl.rawType, analysisContext));
+              var variableSymbol = new symbols.VariableSymbol(varName, varDecl, varsDecl.rawType);
               routine.locals.push(variableSymbol);
               routine.localsAndParamsByName.set(varName, variableSymbol);
             });
@@ -76,7 +79,7 @@ module eiffel.semantics {
     }
   }
 
-  function makeTypeInstanceIn(sourceClass: sym.ClassSymbol, rawType: eiffel.ast.Type, analysisContext: AnalysisContext): sym.TypeInstance {
+  function makeTypeInstanceIn(sourceClass: sym.ClassSymbol, rawType: eiffel.ast.AST, analysisContext: AnalysisContext): sym.TypeInstance {
     if (rawType instanceof eiffel.ast.TypeLikeFeature) {
       console.warn("Type like feature used, not yet implemented");
       return null;
@@ -87,44 +90,46 @@ module eiffel.semantics {
       }
       return sourceClass.typeInstance.duplicate();
     }
-    var baseName = rawType.name.name;
-    if (!(rawType instanceof eiffel.ast.Type)) {
-      debugger;
-      return null;
-    }
+    if (rawType instanceof eiffel.ast.Type) {
+      var baseName = rawType.name.name;
 
-    var isGenericParam = function isGenericParam(name: string): boolean {
-      return sourceClass.hasGenericParameterWithName(name);
-    };
+      var isGenericParam = function isGenericParam(name:string):boolean {
+        return sourceClass.hasGenericParameterWithName(name);
+      };
 
-    var isClassName = function isClassName(name: string): boolean {
-      return analysisContext.hasClass(name);
-    };
+      var isClassName = function isClassName(name:string):boolean {
+        return analysisContext.hasClass(name);
+      };
 
-    if (isGenericParam(baseName)) {
-      debugger;
-      analysisContext.errors.uncategorized("You must use the name of a class here, you've given the name of a generic parameter however." + baseName);
-    }
-    else if (isClassName(baseName)) {
-      var baseType = analysisContext.classWithName(baseName);
-      var missingParam = false;
-      var substitutions = new eiffel.symbols.Substitution();
-      var typeParamInstances = rawType.parameters.map(function (rawTypeParameter, i) {
-        var result = makeActualTypeIn(sourceClass, rawTypeParameter, analysisContext);
-        if (result == null) {
-          missingParam = true;
-        }
-        else if (baseType instanceof eiffel.symbols.ClassSymbol) {
-          substitutions.addSubstitution(baseType.genericParametersInOrder[i], result);
-        }
+      if (isGenericParam(baseName)) {
+        debugger;
+        analysisContext.errors.uncategorized("You must use the name of a class here, you've given the name of a generic parameter however." + baseName);
+      }
+      else if (isClassName(baseName)) {
+        var baseType = analysisContext.classWithName(baseName);
+        var missingParam = false;
+        var substitutions = new eiffel.symbols.Substitution();
+        var typeParamInstances = rawType.parameters.map(function (rawTypeParameter, i) {
+          var result = makeActualTypeIn(sourceClass, rawTypeParameter, analysisContext);
+          if (result == null) {
+            missingParam = true;
+          }
+          else if (baseType instanceof eiffel.symbols.ClassSymbol) {
+            substitutions.addSubstitution(baseType.genericParametersInOrder[i], result);
+          }
 
-        return result;
-      });
+          return result;
+        });
 
-      return new eiffel.symbols.TypeInstance(baseType, typeParamInstances, sourceClass, substitutions);
+        return new eiffel.symbols.TypeInstance(baseType, typeParamInstances, sourceClass, substitutions);
+      }
+      else {
+        analysisContext.errors.unknownClass(rawType.name);
+      }
     }
     else {
-      analysisContext.errors.unknownClass(rawType.name);
+      console.error(rawType);
+      throw new Error("Invalid AST type for type: ");
     }
 
   }
@@ -323,28 +328,6 @@ module eiffel.semantics {
     });
   };
 
-  var handDownFeatures = function handDownFeatures(analysisContext: AnalysisContext) {
-    var seen: Set<eiffel.symbols.ClassSymbol> = new Set<sym.ClassSymbol>();
-    var process = function process(oneClass: sym.ClassSymbol, descendants: DescendantChain) {
-      if (seen.has(oneClass)) {
-        /**
-         * Already finalized features, don't do anything
-         */
-        return;
-
-      }
-      else {
-        oneClass.ast.parentGroups.forEach(function (parentGroup:eiffel.ast.ParentGroup) {
-          parentGroup.parents.forEach(function (parent:eiffel.ast.Parent) {
-            if (parent.parentSymbol !== null) {
-
-            }
-          })
-        });
-      }
-    }
-  };
-
   var checkValidty_8_6_13_parent_rule = function checkValidty_8_6_13_parent_rule(analysisContext: AnalysisContext) {
     analysisContext.allClasses.forEach(function (oneClass) {
       // For every class
@@ -406,7 +389,7 @@ module eiffel.semantics {
     });
   };
 
-  export function traverseInheritance(f: (sym: sym.ClassSymbol, context?: AnalysisContext) => any, analysisContext: AnalysisContext) {
+  export function traverseInheritance<A>(f: (sym: sym.ClassSymbol, context?: AnalysisContext, a?: A) => any, analysisContext: AnalysisContext, arg?: A) {
     var classes = analysisContext.allClasses;
     var seen = new Set<sym.ClassSymbol>();
 
@@ -432,7 +415,7 @@ module eiffel.semantics {
           })
         });
 
-        f(clazz, analysisContext);
+        f(clazz, analysisContext, arg);
       }
     }
 
@@ -714,6 +697,9 @@ module eiffel.semantics {
 
   function initAdaptions(context: AnalysisContext) {
     var parents = context.astDictionary.get(eiffel.ast.Parent);
+    if (parents === undefined) {
+      return;
+    }
     parents.forEach(function (parent:eiffel.ast.Parent) {
       var parentSymbol = parent.parentSymbol;
       var seen = new Set<any>();
@@ -782,24 +768,24 @@ module eiffel.semantics {
   }
 
 
-  function initParameters(analysisContext: AnalysisContext) {
-    analysisContext.allClasses.forEach(function (classSymbol) {
-      classSymbol.declaredRoutines.forEach(function (routineSym) {
+  function initParameters(oneClass: eiffel.symbols.ClassSymbol, context: AnalysisContext) {
+    oneClass.finalFeatures.forEach(function (featureSym) {
+      if (featureSym instanceof eiffel.symbols.RoutineSymbol) {
         var paramNames = new Set<string>();
-        var ast = <eiffel.ast.Routine> routineSym.ast;
+        var ast = <eiffel.ast.Routine> featureSym.ast;
         ast.parameters.forEach(function (varDeclList) {
           varDeclList.varDecls.forEach(function (varDeclEntry: eiffel.ast.VarDeclEntry) {
             var paramName = varDeclEntry.name.name;
             if (paramNames.has(paramName)) {
-              analysisContext.errors.uncategorized("VREG?? Duplicate argument name");
+              context.errors.uncategorized("VREG?? Duplicate argument name");
             }
             paramNames.add(paramName);
-            varDeclEntry.sym = new eiffel.symbols.VariableSymbol(paramName, varDeclEntry, makeActualTypeIn(classSymbol, varDeclList.rawType, analysisContext));
-            routineSym.parameters.push(varDeclEntry.sym);
-            routineSym.parametersByName.set(paramName, varDeclEntry.sym);
+            varDeclEntry.sym = new eiffel.symbols.VariableSymbol(paramName, varDeclEntry, varDeclList.rawType);
+            featureSym.parameters.push(varDeclEntry.sym);
+            featureSym.parametersByName.set(paramName.toLowerCase(), varDeclEntry.sym);
           });
         });
-      });
+      }
     });
   }
 
@@ -824,7 +810,7 @@ module eiffel.semantics {
         var hasOnce = seenBlockKind.has(eiffel.ast.OnceBlock);
         var hasExternal = seenBlockKind.has(eiffel.ast.ExternalBlock);
 
-        if (hasDeferred ^ hasDo ^ hasExternal ^ hasOnce) {
+        if (exactlyOne(hasDeferred, hasDo, hasExternal, hasOnce)) {
           // okay, exactly one block of those
           if (hasDeferred) {
             routine.isDeferred = true;
@@ -835,6 +821,86 @@ module eiffel.semantics {
         }
 
       });
+    });
+  }
+
+  enum TypeFor {
+    LOCAL,
+    PARAM,
+    FEATURE,
+  }
+
+  function evaluateLikeDependencies(oneClass: eiffel.symbols.ClassSymbol, context: AnalysisContext, depGraph: eiffel.util.Graph<string>) {
+    var features = oneClass.finalFeatures;
+
+    function getDependencies(currentFeature: eiffel.symbols.FeatureSymbol, type: eiffel.ast.AST, typeFor: TypeFor): string[] {
+      if (type instanceof eiffel.ast.TypeLikeCurrent) {
+        return [];
+      }
+      else if (type instanceof eiffel.ast.TypeLikeFeature) {
+        var depTarget = oneClass.lowerCaseName + ".";
+        var lcName = type.featureName.name.toLowerCase();
+        if (type.typeName === null) {
+          if (typeFor === TypeFor.LOCAL && currentFeature.localsByName.has(lcName)) {
+            return [depTarget + currentFeature.lowerCaseName + ".l." + lcName];
+          }
+          if (currentFeature.parametersByName.has(lcName)) {
+            return [depTarget + currentFeature.lowerCaseName + ".p." + lcName];
+          }
+          else {
+            if (oneClass.finalFeatures.has(lcName)) {
+              return [depTarget + lcName];
+            }
+            else {
+              context.errors.uncategorized("Invalid anchored type: a type in the signature of feature " + oneClass.name + "." + currentFeature.name + " depends on '" + lcName + "' which does not exist");
+              return [];
+            }
+          }
+        }
+        else {
+          var depTarget = type.typeName.name.name.toLowerCase();
+          if (context.classWithName(depTarget).finalFeatures.has(lcName)) {
+            return [depTarget + "." + lcName];
+          }
+        }
+      }
+      else if (type instanceof eiffel.ast.Type) {
+        return Array.prototype.concat.apply([], type.parameters.map(x => getDependencies(currentFeature, x, typeFor)));
+      }
+      else {
+        console.error("Unexpected AST type: ", type);
+        debugger;
+        return [];
+      }
+    }
+    var classPrefix = oneClass.lowerCaseName + ".";
+    features.forEach((feature, featureName) => {
+      var prefix = classPrefix + feature.lowerCaseName;
+      feature.locals.forEach((local) => {
+        var rtDepds = getDependencies(feature, local.ast.varDeclList.rawType, TypeFor.PARAM);
+        var fromName = prefix + ".l." + local.lowerCaseName;
+        depGraph.addNode(fromName);
+        rtDepds.forEach((depName) => {
+          depGraph.connect(fromName, depName);
+        });
+      });
+
+      feature.parameters.forEach((parameter) => {
+        var rtDepds = getDependencies(feature, parameter.ast.varDeclList.rawType, TypeFor.PARAM);
+        var fromName = prefix + ".p." + parameter.lowerCaseName;
+        depGraph.addNode(fromName);
+        rtDepds.forEach((depName) => {
+          depGraph.connect(fromName, depName);
+        });
+      });
+
+      if (feature.ast.rawType != null) {
+        depGraph.addNode(prefix);
+        var rtDepds = getDependencies(feature, feature.ast.rawType, TypeFor.FEATURE);
+        rtDepds.forEach((depName) => {
+          depGraph.connect(prefix, depName);
+        });
+      }
     });
   }
 
@@ -853,7 +919,7 @@ module eiffel.semantics {
     if (!started) {
       start();
     }
-    
+
     Array.prototype.push.apply(manyAsts);
     var asts: ast.Class[] = Array.prototype.concat.apply([], manyAsts);
     var analysisContext = new AnalysisContext();
@@ -870,7 +936,6 @@ module eiffel.semantics {
     createRoutineLocalSymbols(analysisContext);
     checkCyclicInheritance(analysisContext);
     initParentTypeInstancesAndValidate(analysisContext);
-    //initParameters(analysisContext);
     //initReturnTypeTypeInstances(analysisContext);
     //initSignatures(analysisContext);
     // Can now use traverseInheritance
@@ -881,6 +946,18 @@ module eiffel.semantics {
       initAny(analysisContext);
     }
     traverseInheritance(inheritFeatures, analysisContext);
+    traverseInheritance(initParameters, analysisContext);
+    var likeDependencyGraph = new eiffel.util.Graph<string>([], {autoAdd: true});
+    traverseInheritance(evaluateLikeDependencies, analysisContext, likeDependencyGraph);
+    console.log("Dependency graph: ", likeDependencyGraph);
+    var topoSort = likeDependencyGraph.tarjan();
+    if (topoSort.length === likeDependencyGraph.nodes.size) {
+      console.log("Anchored type analysis complete: No errors")
+    }
+    else {
+      analysisContext.errors.uncategorized("Cycle in anchored types");
+    }
+
 
 
 
@@ -889,13 +966,11 @@ module eiffel.semantics {
         parentGroup.parents.forEach(function (parent ) {
           validateTypeInstance(parent.parentSymbol.parentType, analysisContext);
         });
-      })
+      });
     });
 
 
 
-
-        handDownFeatures(analysisContext);
 
     analysisContext.allClasses.forEach(function (classSymbol) {
       classSymbol.ast.creationClauses.forEach(function (creationClause) {
