@@ -390,50 +390,6 @@ module eiffel.ast {
   }
 
 
-  export class External extends AST implements VisitorAcceptor {
-    start: eiffel.ast.Pos;
-    end: eiffel.ast.Pos;
-    constructor(expressions: Expression[], start: Pos, end: Pos) {
-      super(this);
-      this.expressions = expressions;
-      this.start = start;
-      this.end = end;
-    }
-
-    expressions: Expression[];
-
-    accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
-      return visitor.vExternal(this, arg);
-    }
-
-    deepClone() {
-      return new External(duplicateAll(this.expressions), deepClone(this.start), deepClone(this.end));
-    }
-
-  }
-
-  export class Obsolete extends AST implements VisitorAcceptor {
-    constructor(expression: Expression, start: Pos, end: Pos) {
-      super(this);
-      this.expression = expression;
-      this.start = start;
-      this.end = end;
-    }
-
-    expression: Expression;
-    start: eiffel.ast.Pos;
-    end: eiffel.ast.Pos;
-
-
-    accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
-      return visitor.vObsolete(this, arg);
-    }
-
-    deepClone() {
-      return new Obsolete(this.expression, deepClone(this.start), deepClone(this.end));
-    }
-  }
-
   export class VarDeclList extends AST implements VisitorAcceptor {
     constructor(varDecls: VarDeclEntry[], rawType: Type)  {
       super(this);
@@ -602,16 +558,23 @@ module eiffel.ast {
   }
 
   export class RoutineInstructions extends AST implements VisitorAcceptor {
-
-    constructor(instructions:eiffel.ast.Expression[]) {
+    constructor(instructions:eiffel.ast.Expression[], start: Pos, end: Pos) {
       super(this);
       this.instructions = instructions;
+      this.start = start;
+      this.end = end;
+      Array.prototype.push.apply(this.children, this.instructions);
     }
 
     instructions: Expression[];
+    start: eiffel.ast.Pos;
+    end: eiffel.ast.Pos;
+
 
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
-      return visitor.vRoutineInstructions(this, arg);
+      console.error("Should not call this method, missing override in: " + this.constructor.name);
+      debugger;
+      throw new Error("Should not call this method, missing override in: " + this.constructor.name);
     }
   }
 
@@ -621,7 +584,7 @@ module eiffel.ast {
     }
 
     deepClone() {
-      return new DoBlock(duplicateAll(this.instructions));
+      return new DoBlock(duplicateAll(this.instructions), deepClone(this.start), deepClone(this.end));
     }
   }
 
@@ -631,7 +594,7 @@ module eiffel.ast {
     }
 
     deepClone() {
-      return new DeferredBlock(duplicateAll(this.instructions));
+      return new DeferredBlock(duplicateAll(this.instructions), deepClone(this.start), deepClone(this.end));
     }
 
   }
@@ -642,9 +605,71 @@ module eiffel.ast {
     }
 
     deepClone() {
-      return new OnceBlock(duplicateAll(this.instructions));
+      return new OnceBlock(duplicateAll(this.instructions), deepClone(this.start), deepClone(this.end));
+    }
+  }
+
+  export class ExternalBlock extends RoutineInstructions {
+    accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
+      return visitor.vExternalBlock(this, arg);
     }
 
+    deepClone() {
+      return new ExternalBlock(duplicateAll(this.instructions), deepClone(this.start), deepClone(this.end));
+    }
+  }
+
+  export class ObsoleteBlock extends RoutineInstructions {
+    accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
+      return visitor.vObsoleteBlock(this, arg);
+    }
+
+    deepClone() {
+      return new ObsoleteBlock(duplicateAll(this.instructions), deepClone(this.start), deepClone(this.end));
+    }
+  }
+
+  export class ConditionBlock extends AST implements VisitorAcceptor {
+    constructor(t1: Token, t2: Token, conditions: eiffel.ast.Condition[], start: Pos, end: Pos) {
+      super(this);
+      this.conditions = conditions;
+      this.start = start;
+      this.end = end;
+      Array.prototype.push.apply(this.children, this.conditions);
+    }
+
+    conditions: Condition[];
+    start: Pos;
+    end: Pos;
+    token: Token;
+    token2: Token;
+
+    accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
+      console.error("Should not call this method, missing override in: " + this.constructor.name);
+      debugger;
+      throw new Error("Should not call this method, missing override in: " + this.constructor.name);
+    }
+
+  }
+
+  export class PostconditionBlock extends ConditionBlock {
+    accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
+      return visitor.vPostconditionBlock(this, arg);
+    }
+
+    deepClone() {
+      return new PostconditionBlock(deepClone(this.token), deepClone(this.token2), duplicateAll(this.conditions), deepClone(this.start), deepClone(this.end));
+    }
+  }
+
+  export class PreconditionBlock extends ConditionBlock {
+    accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
+      return visitor.vPreconditionBlock(this, arg);
+    }
+
+    deepClone() {
+      return new PreconditionBlock(deepClone(this.token), deepClone(this.token2), duplicateAll(this.conditions), deepClone(this.start), deepClone(this.end));
+    }
   }
 
   export class Alias extends AST implements VisitorAcceptor {

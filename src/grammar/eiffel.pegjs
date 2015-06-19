@@ -314,7 +314,7 @@ ClassName = W name:Identifier { return name}
 CreationClause
   = W start:pos CreateToken cs:(w cs:Clients { return cs;})? fs:(W fs:IdentifierList {return fs;})? end:pos
   {
-    return new eiffel.ast.CreationClause(cs, fs, start, end);
+    return new eiffel.ast.CreationClause(cs, optionalList(fs), start, end);
   }
 
 Clients
@@ -549,48 +549,48 @@ EndIsNext
 RoutineBody
   = !EndIsNext bs:RoutineBodyElement+ w EndToken
   {
-    return _.flatten(bs);
+    return bs;
   }
 
 RoutineBodyElement
-  = pre:Preconditions
-  / l:Locals
-  / a:AliasBlock
-  / o:Obsolete
-  / e:External
-  / e:DeferredBlock
+  = Preconditions
+  / Locals
+  / AliasBlock
+  / ObsoleteBlock
+  / ExternalBlock
+  / DeferredBlock
   / OnceBlock
-  / d:DoBlock
-  / post:Postconditions
+  / DoBlock
+  / Postconditions
 
-External
-  = W ExternalToken instructions:InstructionSeq
+ExternalBlock
+  = W start:pos ExternalToken instructions:InstructionSeq end:pos
   {
-    return new eiffel.ast.External(instructions);
+    return new eiffel.ast.ExternalBlock(instructions, start, end);
   }
 
 DeferredBlock
-  = W DeferredToken instructions:InstructionSeq
+  = W start:pos DeferredToken instructions:InstructionSeq end:pos
   {
-    return new eiffel.ast.DeferredBlock(instructions);
+    return new eiffel.ast.DeferredBlock(instructions, start, end);
   }
 
 DoBlock
-  = W DoToken instructions:InstructionSeq
+  = W start:pos DoToken instructions:InstructionSeq end:pos
   {
-    return new eiffel.ast.DoBlock(instructions);
+    return new eiffel.ast.DoBlock(instructions, start, end);
   }
 
 OnceBlock
-= W OnceToken instructions:InstructionSeq
+= W start:pos OnceToken instructions:InstructionSeq end:pos
 {
-  return new eiffel.ast.OnceBlock(instructions);
+  return new eiffel.ast.OnceBlock(instructions, start, end);
 }
 
-Obsolete
-  = W start:pos ObsoleteToken W e:Expression end:pos
+ObsoleteBlock
+  = W start:pos ObsoleteToken instructions:InstructionSeq end:pos
   {
-    return new eiffel.ast.Obsolete(e, start, end);
+    return new eiffel.ast.ObsoleteBlock(instructions, start, end);
   }
 
 AliasBlock
@@ -600,10 +600,16 @@ AliasBlock
   }
 
 Preconditions
-  = W RequireToken (w ElseToken)? c:Precondition* {return c;}
+  = W start:pos t:RequireToken t2:(w ti:ElseToken {return ti;})? c:Precondition* end:pos
+  {
+    return new eiffel.ast.PreconditionBlock(t, t2, c, start, end);
+  }
 
 Postconditions
-  = W EnsureToken (w ThenToken)? c:Postcondition* {return c;}
+  = W start:pos t:EnsureToken t2:(w ti:ThenToken {return ti;})? c:Postcondition* end:pos
+  {
+    return new eiffel.ast.PostconditionBlock(t, t2, c, start, end);
+  }
 
 Invariant
   = W InvariantToken c:Invariantcondition* {return c;}
@@ -877,11 +883,11 @@ IllegalAfterKeyword
 Type
   = ClassType
   // TODO factor out detachable stuff
-  / start:pos detachable:(DetachableToken W {return true} / {return false}) t:LikeToken W c:Current end:pos
+  / start:pos (AttachedToken W {return true} / {return false}) detachable:(DetachableToken W {return true} / {return false}) t:LikeToken W c:Current end:pos
   {
     return new eiffel.ast.TypeLikeCurrent(t, c);
   }
-  / start:pos detachable:(DetachableToken W {return true} / {return false}) t:LikeToken W ti:("{" w ti:ClassType w "}" w "." w {return ti;})? i:Identifier end:pos
+  / start:pos (AttachedToken W {return true} / {return false}) detachable:(DetachableToken W {return true} / {return false}) t:LikeToken W ti:("{" w ti:ClassType w "}" w "." w {return ti;})? i:Identifier end:pos
   {
     return new eiffel.ast.TypeLikeFeature(t, ti, i);
   }
