@@ -50,6 +50,7 @@ module eiffel.symbols {
     isCommand: boolean;
     isAttribute: boolean;
     substitutions: Substitution;
+    pretenders: FeaturePretenders;
 
     typeInstance: ActualType;
 
@@ -113,13 +114,14 @@ module eiffel.symbols {
     duplicate() {
       var sym = new FunctionSymbol(this.name, this.alias, this.isFrozen, this.ast);
 
+      sym.isDeferred = this.isDeferred;
       sym.typeInstance = this.typeInstance;
       sym.renamedFrom = this.renamedFrom;
       sym.routineId = this.routineId;
       sym.routineIds = this.routineIds;
       sym.seeds = this.seeds;
       sym.precursors = this.precursors;
-      sym.signature = this.signature.duplicate();
+      sym.signature = duplicate(this.signature);
 
 
       return sym;
@@ -136,12 +138,14 @@ module eiffel.symbols {
     duplicate() {
       var sym = new ProcedureSymbol(this.name, this.alias, this.isFrozen, this.ast);
 
+      sym.isDeferred = this.isDeferred;
       sym.typeInstance = this.typeInstance;
       sym.renamedFrom = this.renamedFrom;
       sym.routineId = this.routineId;
       sym.routineIds = this.routineIds;
       sym.seeds = this.seeds;
       sym.precursors = this.precursors;
+      sym.signature = duplicate(this.signature);
 
       return sym;
     }
@@ -189,19 +193,64 @@ module eiffel.symbols {
     type: ActualType;
   }
 
+  export class FinalFeature {
+    implementation: FeatureSymbol;
+  }
+
+  export class PretenderSource {
+    parentSymbol: ParentSymbol;
+    feature: FeatureSymbol;
+    wasUndefined: boolean;
+    wasRedefined: boolean;
+    wasSelected: boolean;
+  }
+
+  export class FeaturePretenders {
+    effective: PretenderSource[];
+    deferred: PretenderSource[];
+    redefined: PretenderSource[];
+    selected: PretenderSource[];
+
+
+    constructor() {
+      this.effective = [];
+      this.deferred = [];
+      this.redefined = [];
+      this.selected = [];
+    }
+
+    all() {
+      return this.effective.concat(this.deferred).concat(this.redefined);
+    }
+  }
+
+  export class InheritedFeature {
+    sourceFeature: FinalFeature;
+    renamed: boolean;
+    undefined: boolean;
+    redefined: boolean;
+  }
+
+  export class FeatureCombination {
+    inputs: InheritedFeature[];
+    output: any;
+  }
+
   export class ParentSymbol {
 
-    constructor(ast: eiffel.ast.Parent, groupAst: ast.ParentGroup, parentType: eiffel.symbols.TypeInstance) {
+    constructor(ast: eiffel.ast.Parent, groupAst: ast.ParentGroup, parentType: eiffel.symbols.TypeInstance, owningClass: ClassSymbol) {
       this.ast = ast;
       this.groupAst = groupAst;
       this.parentType = parentType;
       this.isNonConforming = groupAst.conforming != null;
+      this.owningClass = owningClass;
     }
 
     ast: ast.Parent;
     groupAst: ast.ParentGroup;
     isNonConforming: boolean;
     parentType: TypeInstance;
+    owningClass: ClassSymbol;
 
     renames: eiffel.ast.Rename[] = [];
     undefines: eiffel.ast.Identifier[] = [];
@@ -215,12 +264,10 @@ module eiffel.symbols {
     inheritFeatures(): Map<string, FeatureSymbol> {
       var result = new Map<string, FeatureSymbol>();
       var finalFeatures = this.parentType.baseType.finalFeatures;
-      finalFeatures.forEach(function (featureSymbol: FeatureSymbol, name) {
+      finalFeatures.forEach((featureSymbol: FeatureSymbol, name) => {
         var duplicate = featureSymbol.duplicate();
         duplicate.substitutions = this.parentType.substitutions;
-        duplicate.typeInstance = duplicate.typeInstance.substitute(duplicate.substitutions);
-        duplicate.signature.substitute(duplicate.substitutions);
-        result.set(name, duplicate);
+        result.set(name.toLowerCase(), duplicate);
       });
 
       return result;
@@ -242,6 +289,8 @@ module eiffel.symbols {
     declaredAttributes: LookupTable<AttributeSymbol> = new Map<string, AttributeSymbol>();
     creationProcedures: LookupTable<ProcedureSymbol> = new Map<string, ProcedureSymbol>();
     finalFeatures: LookupTable<FeatureSymbol> = new Map<string, FeatureSymbol>();
+    inheritedFeatures: Map<string, FeatureSymbol> = new Map<string, FeatureSymbol>();
+
     typeInstance: TypeInstance;
 
     routineIds: Map<FeatureSymbol, Map<ClassSymbol, FeatureSymbol>> = new Map<FeatureSymbol, Map<ClassSymbol, FeatureSymbol>>();
@@ -249,6 +298,7 @@ module eiffel.symbols {
     ancestorTypes: TypeInstance[] = [];
     ancestorTypesByBaseType: Map<ClassSymbol, TypeInstance[]> = new Map<ClassSymbol, TypeInstance[]>();
     parentSymbols: ParentSymbol[] = [];
+
 
     hasCyclicInheritance: boolean = false;
     inheritsFromCyclicInheritance: boolean = false;
@@ -307,12 +357,6 @@ module eiffel.symbols {
       }
       return repr
     }
-  }
-
-  export class FinalFeature {
-    name: string;
-    originalName: string;
-    source: TypeInstance;
   }
 
   /*export class FeatureInstance {
@@ -414,6 +458,8 @@ module eiffel.symbols {
     substitute(substitution: Substitution): ActualType;
     duplicate(): ActualType;
     equals(other: ActualType): boolean;
+
+    toString(): string;
   }
 
   export class GenericParameterSymbol extends EiffelSymbol implements ActualType {
@@ -451,6 +497,10 @@ module eiffel.symbols {
 
     equals(other: ActualType) {
       return this === other;
+    }
+
+    toString(): string {
+      return this.fullyQualifiedName;
     }
   }
 
@@ -535,7 +585,7 @@ module eiffel.symbols {
 
       this.repr = this.baseType.fullyQualifiedName;
       if (this.typeParameters.length >= 1) {
-        this.repr += "[" + _.pluck(this.typeParameters, "repr").join(", ") + "]";
+        this.repr += "[" + this.typeParameters.map(x => x.toString()).join(", ") + "]";
       }
 
     }

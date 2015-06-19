@@ -82,7 +82,7 @@ module eiffel.util {
     return result;
   }
 
-  function debugAssert(mustBeTrue: boolean, message: string) {
+  export function debugAssert(mustBeTrue: boolean, message: string) {
     if (!mustBeTrue) {
       console.error(message);
       debugger;

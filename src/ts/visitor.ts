@@ -181,8 +181,8 @@ module eiffel.ast {
       return this.vInstruction(checkInstruction, arg);
     }
 
-    vExternal(external: External, arg:A):R {
-      return this.vDefault(external, arg);
+    vExternalBlock(externalBlock: ExternalBlock, arg:A):R {
+      return this.vDefault(externalBlock, arg);
     }
 
     vResultExpression(resultExpression: ResultExpression, arg:A):R {
@@ -197,8 +197,8 @@ module eiffel.ast {
       return this.vExpression(identifierAccess, arg);
     }
 
-    vObsolete(obsolete: Obsolete, arg:A):R {
-      return this.vDefault(obsolete, arg);
+    vObsoleteBlock(obsoleteBlock: ObsoleteBlock, arg:A):R {
+      return this.vRoutineInstructions(obsoleteBlock, arg);
     }
 
     vAttachedExpression(attachedExpression: AttachedExpression, arg:A):R {
@@ -227,6 +227,18 @@ module eiffel.ast {
 
     vDeferredBlock(deferredBlock: DeferredBlock, arg:A):R {
       return this.vRoutineInstructions(deferredBlock, arg);
+    }
+
+    vPreconditionBlock(preconditionBlock: PreconditionBlock, arg:A):R {
+      return this.vConditionBlock(preconditionBlock, arg);
+    }
+
+    vConditionBlock(conditionBlock: ConditionBlock, arg:A):R {
+      return this.vDefault(conditionBlock, arg);
+    }
+
+    vPostconditionBlock(postconditionBlock: PostconditionBlock, arg:A):R {
+      return this.vDefault(postconditionBlock, arg);
     }
 
     vUnqualifiedCallExpression(unqualifiedCallExpression: UnqualifiedCallExpression, arg:A):R {

@@ -8,6 +8,7 @@ module eiffel.semantics {
   import caseIgnoreEquals = eiffel.util.caseIgnoreEquals;
   import pairs = eiffel.util.pairs;
   import group = eiffel.util.group;
+  import debugAssert = eiffel.util.debugAssert;
 
   var createClassSymbols = function (asts, analysisContext:AnalysisContext) {
     asts.forEach(function (ast:eiffel.ast.Class) {
@@ -41,7 +42,7 @@ module eiffel.semantics {
           localBlock.varDeclLists.forEach(function (varsDecl) {
             varsDecl.varDecls.forEach(function (varDecl) {
               var varName = varDecl.name.name;
-              var variableSymbol = new symbols.VariableSymbol(varName, varDecl, makeTypeInstanceIn(oneClass, varsDecl.rawType, analysisContext));
+              var variableSymbol = new symbols.VariableSymbol(varName, varDecl, makeActualTypeIn(oneClass, varsDecl.rawType, analysisContext));
               routine.locals.push(variableSymbol);
               routine.localsAndParamsByName.set(varName, variableSymbol);
             });
@@ -98,7 +99,8 @@ module eiffel.semantics {
     };
 
     if (isGenericParam(baseName)) {
-      analysisContext.errors.uncategorized("You must use the name of a class here, you've given the name of a generic parameter however.");
+      debugger;
+      analysisContext.errors.uncategorized("You must use the name of a class here, you've given the name of a generic parameter however." + baseName);
     }
     else if (isClassName(baseName)) {
       var baseType = analysisContext.classWithName(baseName);
@@ -159,7 +161,7 @@ module eiffel.semantics {
       function processParentGroup(parentGroup: ast.ParentGroup) {
         parentGroup.parents.forEach(function (parent: ast.Parent) {
           var typeInstance = makeTypeInstanceIn(oneClass, parent.rawType, analysisContext);
-          var parentSymbol = new eiffel.symbols.ParentSymbol(parent, parentGroup, typeInstance);
+          var parentSymbol = new eiffel.symbols.ParentSymbol(parent, parentGroup, typeInstance, oneClass);
           parent.parentSymbol = parentSymbol;
           typeInstances.push(parent.parentSymbol.parentType);
           oneClass.parentSymbols.push(parentSymbol);
@@ -461,6 +463,7 @@ module eiffel.semantics {
      */
     var precursors = [];
     var uniqueFeatures = new Map<string, Map<sym.FeatureSymbol, sym.FeatureSymbol>>();
+    var pretenders = new Map<string, eiffel.symbols.FeaturePretenders>();
 
     if (oneClass.lowerCaseName === "any") {
       // ANY is already initialized
@@ -478,129 +481,231 @@ module eiffel.semantics {
         debugger;
       }
       else {
+        var errorPrefix = oneClass.name + " extends " + parentSymbol.parentType.baseType.toString() + ": ";
         var parentFinalFeatures = parentSymbol.inheritFeatures();
-        var featureNames = [];
-        parentFinalFeatures.forEach(function extractFinalFeatureName(_, finalFeatureName) {
-          featureNames.push(finalFeatureName);
-        });
-
-
 
         // RENAME
         var oldNameToNewName = new Map<string, string>();
-
+        function getNewName(name: string): string {
+          if (oldNameToNewName.has(name.toLowerCase())) {
+            return oldNameToNewName.get(name.toLowerCase());
+          }
+          return name;
+        }
         parentSymbol.renames.forEach(function makeRenameMapping(rename:eiffel.ast.Rename) {
           var oldName = rename.oldName.name;
-          if (!parentFinalFeatures.has(oldName)) {
+          var lcOldName = oldName.toLowerCase();
+          if (!parentFinalFeatures.has(lcOldName)) {
             context.errors.unknownOldFeatureInRename(rename, parentSymbol);
           }
           else {
-            if (oldNameToNewName.has(oldName)) {
-              context.errors.alreadyRenamed(rename, oldNameToNewName.get(oldName), parentSymbol);
+            if (oldNameToNewName.has(lcOldName)) {
+              context.errors.alreadyRenamed(rename, oldNameToNewName.get(lcOldName), parentSymbol);
             }
             else {
-              oldNameToNewName.set(oldName, rename.newName.name.name);
+              oldNameToNewName.set(lcOldName, rename.newName.name.name);
             }
           }
         });
+
+        var newNameToOldName = new Map<string, string>();
+        oldNameToNewName.forEach((newName, oldName) => newNameToOldName.set(newName, oldName));
+
+        function getOldName(oldName: string): string {
+          if (newNameToOldName.has(oldName.toLowerCase())) {
+            return newNameToOldName.get(oldName.toLowerCase());
+          }
+          return oldName;
+        }
+
 
         // UNDEFINES
         var undefines = new Set<string>();
         parentSymbol.undefines.forEach(function (identifier) {
           var lcUndefine = identifier.name.toLowerCase();
           // VDUS_1
-          if (!parentFinalFeatures.has(lcUndefine)) {
-            context.errors.uncategorized("VDUS_1, tried undefining feature that does not exist in parent: " + lcUndefine);
+          if (!parentFinalFeatures.has(getOldName(lcUndefine))) {
+            if (parentFinalFeatures.has(lcUndefine)) {
+              context.errors.uncategorized(errorPrefix + "You have tried undefining a feature by its old name, you need to use " + getNewName(lcUndefine) + " instead!");
+            }
+            else {
+              context.errors.uncategorized(errorPrefix + "VDUS_1, tried undefining feature that does not exist in parent: " + lcUndefine);
+            }
           }
 
           // VDUS_4
           if (undefines.has(lcUndefine)) {
-            context.errors.uncategorized("VDUS_4, why undefine the same feature multiple times?" + lcUndefine);
+            context.errors.uncategorized(errorPrefix + "VDUS_4, why undefine the same feature multiple times?" + lcUndefine);
           }
 
           undefines.add(lcUndefine);
         });
 
-
-
-
-        parentFinalFeatures.forEach(function (finalFeature, oldFinalFeatureName) {
-          var finalFeatureName = oldFinalFeatureName;
-          var newIsDeferred = finalFeature.isDeferred;
-          if (oldNameToNewName.has(oldFinalFeatureName)) {
-            finalFeatureName = oldNameToNewName.get(oldFinalFeatureName)
-          }
-
-
-          if (undefines.has(oldFinalFeatureName)) {
-            finalFeature.duplicate();
-            if (finalFeature.isDeferred) {
-              // VDUS_3
-              context.errors.uncategorized("VDUS_3, cannot make deferred feature deferred");
+        var redefines = new Set<string>();
+        parentSymbol.redefines.forEach(function (identifier) {
+          var lcRedefine = identifier.name.toLowerCase();
+          // VDRS_1
+          if (!parentFinalFeatures.has(getOldName(lcRedefine))) {
+            if (parentFinalFeatures.has(lcRedefine)) {
+              context.errors.uncategorized(errorPrefix + "You have tried redefining a feature by its old name, you need to use " + getNewName(lcRedefine) + " instead!");
             }
             else {
-              // VDUS_2
-              if (finalFeature instanceof eiffel.symbols.AttributeSymbol) {
-                context.errors.uncategorized("VDUS_2, cannot undefine attribute");
-              }
-              newIsDeferred = true;
-            }
-
-
-            // VDUS_5
-            // Any redeclaration of f in C specifies a deferred feature.
-            if (oneClass.declaredFeatures.has(finalFeatureName)) {
-              if (!oneClass.declaredFeatures.get(finalFeatureName).isDeferred) {
-                context.errors.uncategorized("VDUS_5, tried effecting a feature that was inherited as undefined: " + finalFeatureName);
-              }
+              context.errors.uncategorized(errorPrefix + "tried redefining feature that does not exist in parent: " + lcRedefine);
             }
           }
 
-          var isUnique = true;
-          if (uniqueFeatures.has(finalFeatureName)) {
-            var uniquesWithSameName = uniqueFeatures.get(finalFeatureName);
-            if (uniquesWithSameName.has(finalFeature.identity)) {
-              isUnique = false;
+          // VDUS_4
+          if (redefines.has(lcRedefine)) {
+            context.errors.uncategorized(errorPrefix + "You don't need to specify redefine for a feature multiple times: " + lcRedefine);
+          }
 
-              // "unique" feature might be marked as deferred because deferred clause is already processed
-              // override deferred state
-              if (!newIsDeferred) {
-                var duplicate = uniquesWithSameName.get(finalFeature.identity);
-                duplicate.isDeferred = false;
-              }
-            }
+          redefines.add(lcRedefine);
+        });
+
+
+
+        parentFinalFeatures.forEach(function (finalFeature, lcOldName) {
+          debugAssert(lcOldName === lcOldName.toLowerCase(), lcOldName + " is not lower case");
+          var finalFeatureName = finalFeature.name;
+
+          if (oldNameToNewName.has(lcOldName)) {
+            finalFeatureName = oldNameToNewName.get(lcOldName);
+            finalFeature.name = finalFeatureName;
+            finalFeature.lowerCaseName = finalFeatureName.toLowerCase();
+          }
+
+          var lcName = finalFeatureName.toLowerCase();
+
+          if (!pretenders.has(lcName)) {
+            pretenders.set(lcName, new eiffel.symbols.FeaturePretenders());
+          }
+
+          var featurePretenders: eiffel.symbols.FeaturePretenders = pretenders.get(lcName);
+          var pretenderSource = new eiffel.symbols.PretenderSource();
+          pretenderSource.feature = finalFeature;
+          pretenderSource.wasUndefined = undefines.has(lcName);
+          pretenderSource.wasRedefined = redefines.has(lcName);
+          pretenderSource.wasSelected = false;
+          pretenderSource.parentSymbol = parentSymbol;
+
+          if (pretenderSource.wasRedefined) {
+            featurePretenders.redefined.push(pretenderSource);
+          }
+          else if (pretenderSource.wasUndefined) {
+            featurePretenders.deferred.push(pretenderSource);
+          }
+          else if (pretenderSource.feature.isDeferred) {
+            featurePretenders.deferred.push(pretenderSource);
           }
           else {
-            uniqueFeatures.set(finalFeatureName, new Map<sym.FeatureSymbol, sym.FeatureSymbol>());
+            featurePretenders.effective.push(pretenderSource);
           }
-
-          if (isUnique) {
-            var finalFeatureRenamedAndDeferred = finalFeature.duplicate();
-            finalFeatureRenamedAndDeferred.name = finalFeatureName;
-            finalFeatureRenamedAndDeferred.isDeferred = newIsDeferred;
-            uniqueFeatures.get(finalFeatureName).set(finalFeature.identity, finalFeatureRenamedAndDeferred);
-            precursors.push(finalFeatureRenamedAndDeferred);
-          }
-
-          //Array.prototype.push.apply(inheritedFeatures, );
         });
       }
     });
 
-    // gathered precursors
-    var precursorsByName = eiffel.util.group(precursors, function(feature: sym.FeatureSymbol) {
-      return feature.name;
-    });
+    pretenders.forEach(function (pretender, lcName) {
+      var errorPrefix = oneClass.name + "." + lcName + ": ";
+      var declaredFeature = oneClass.declaredFeatures.get(lcName);
+      var hasError = false;
+      var hasMultiple = false;
 
-    var mergedPrecursors = new Map<string, sym.FeatureSymbol>();
-    precursorsByName.forEach(function (precursorsWithSameName, name) {
-      if (precursorsWithSameName.length == 1) {
-        mergedPrecursors.set(name, precursorsWithSameName[0]);
+      var hasDeclaredFeature = declaredFeature instanceof eiffel.symbols.FeatureSymbol;
+      var hasDeclaredEffectiveFeature = hasDeclaredFeature && !declaredFeature.isDeferred;
+      var hasDeclaredDeferredFeature = hasDeclaredFeature && declaredFeature.isDeferred;
+      var inheritedFeature: eiffel.symbols.FeatureSymbol = null;
+
+      if (declaredFeature === null) {
+        if (pretender.redefined.length > 1) {
+          context.errors.uncategorized(errorPrefix + "You have told eiffel that you want to redefine the inherited feature " + lcName + " but you didn't provide a new definition for the feature in the class " + oneClass.name);
+          hasError = true;
+        }
+      }
+
+      if (pretender.effective.length == 0) {
+        // everything all right
+
+        if (pretender.redefined.length >= 1) {
+          inheritedFeature = declaredFeature;
+        }
+        else if (pretender.deferred.length >= 1) {
+          inheritedFeature = pretender.deferred[0].feature;
+        }
+
+      }
+      else if (pretender.effective.length >= 1) {
+        if (hasDeclaredFeature) {
+          hasError = true;
+          hasMultiple = true;
+          context.errors.uncategorized(errorPrefix + "You have inherited a feature " + lcName + " as effective. However, you have defined a new feature with the same name, but you cannot have two features with the same name.");
+        }
+        else {
+          if (pretender.effective.length > 1) {
+            var asts = new Set<any>();
+            // merge identical features
+            pretender.effective.forEach(x => asts.add(x.feature.ast));
+            if (asts.size === 1) {
+              // just merge precursors
+            }
+            else {
+              hasError = true;
+              hasMultiple = true;
+              console.error(pretender);
+              debugger;
+              context.errors.uncategorized(errorPrefix + "You have inherited multiple different features under the same name " + lcName + ". You can undefine all but one, or you can rename such that all have different names, or define them into a common version.");
+            }
+          }
+
+          if (!hasMultiple) {
+            if (pretender.redefined.length == 0) {
+              // everything all right
+              inheritedFeature = pretender.effective[0].feature;
+            }
+            else {
+              hasError = true;
+              pretender.redefined.forEach(function (redefined) {
+                if (redefined.wasUndefined) {
+                  context.errors.uncategorized(errorPrefix + "You have inherited one feature as effective. Also, you have marked a different inherited feature as undefined and redefined. You can remove the entry in undefined");
+                }
+                else {
+                  context.errors.uncategorized(errorPrefix + "You have inherited one feature as effetice. Also, you have marked a different inherited feature to be redefined, did you want to undefine that feature instead?")
+                }
+              });
+            }
+          }
+          else {
+            // more than one effective feature, no redefined feature
+          }
+        }
+      }
+
+      if (!hasMultiple) {
+        oneClass.inheritedFeatures.set(lcName, inheritedFeature);
+        inheritedFeature.precursors = new Set<eiffel.symbols.FeatureSymbol>();
+        pretender.all().forEach(function (source: eiffel.symbols.PretenderSource) {
+          source.feature.precursors.forEach(function (precursor) {
+            inheritedFeature.precursors.add(precursor);
+          });
+          if (hasDeclaredFeature) {
+            inheritedFeature.precursors.add(inheritedFeature);
+          }
+        });
+        oneClass.finalFeatures.set(lcName, inheritedFeature);
       }
       else {
+        console.error("Multiple versions for " + lcName + " in class " + oneClass.name, oneClass);
+      }
 
+
+    });
+
+    oneClass.declaredFeatures.forEach(function (declaredFeature, lcName) {
+      if (!oneClass.finalFeatures.has(lcName)) {
+        oneClass.finalFeatures.set(lcName, declaredFeature);
+        declaredFeature.precursors.add(declaredFeature);
       }
     });
+
 
     // console.log(precursors);
   }
@@ -696,6 +801,41 @@ module eiffel.semantics {
     });
   }
 
+  function checkFeatureBlocks(context: AnalysisContext) {
+    context.allClasses.forEach(function (oneClass) {
+      oneClass.declaredRoutines.forEach(function (routine: eiffel.symbols.RoutineSymbol) {
+        var seenBlockKind = new Map<any, eiffel.ast.RoutineInstructions>();
+
+        var errorPrefix = oneClass.name + "." + routine.name + ": ";
+        routine.ast.bodyElements.forEach(function (bodyElement) {
+          if (bodyElement instanceof eiffel.ast.RoutineInstructions) {
+            if (seenBlockKind.has(bodyElement.constructor)) {
+              context.errors.uncategorized("You can only have one " + bodyElement.constructor.name);
+            }
+            seenBlockKind.set(bodyElement.constructor, bodyElement);
+          }
+        });
+
+        var hasDeferred = seenBlockKind.has(eiffel.ast.DeferredBlock);
+        var hasDo = seenBlockKind.has(eiffel.ast.DoBlock);
+        var hasObsolete = seenBlockKind.has(eiffel.ast.ObsoleteBlock);
+        var hasOnce = seenBlockKind.has(eiffel.ast.OnceBlock);
+        var hasExternal = seenBlockKind.has(eiffel.ast.ExternalBlock);
+
+        if (hasDeferred ^ hasDo ^ hasExternal ^ hasOnce) {
+          // okay, exactly one block of those
+          if (hasDeferred) {
+            routine.isDeferred = true;
+          }
+        }
+        else {
+          context.errors.uncategorized(errorPrefix + "You must have exactly one of the following: deferred marker, do block, external marker or once block.");
+        }
+
+      });
+    });
+  }
+
   export function analyze(...manyAsts: ast.Class[][]): AnalysisResult {
     var parse = function parse(builtinSource: BuiltinSource) {
       try {
@@ -715,12 +855,13 @@ module eiffel.semantics {
     initAstDictionary(analysisContext);
     initAstDictionaryByClass(analysisContext);
     createFeatureSymbols(analysisContext);
+    checkFeatureBlocks(analysisContext);
     createRoutineLocalSymbols(analysisContext);
     checkCyclicInheritance(analysisContext);
     initParentTypeInstancesAndValidate(analysisContext);
-    initParameters(analysisContext);
-    initReturnTypeTypeInstances(analysisContext);
-    initSignatures(analysisContext);
+    //initParameters(analysisContext);
+    //initReturnTypeTypeInstances(analysisContext);
+    //initSignatures(analysisContext);
     // Can now use traverseInheritance
     traverseInheritance(populateAncestorTypes, analysisContext);
     initAdaptions(analysisContext);
@@ -748,14 +889,26 @@ module eiffel.semantics {
 
         creationClause.features.forEach(function (identifier) {
           var name: string = identifier.name;
-          if (classSymbol.declaredProcedures.has(name)) {
-            classSymbol.creationProcedures.set(name, classSymbol.declaredProcedures.get(name));
-          }
-          else if (classSymbol.declaredFunctions.has(name)) {
-              analysisContext.errors.uncategorized("Functions cannot be used as creation procedures " + name);
+          var lcName: string = name.toLowerCase();
+          if (classSymbol.finalFeatures.has(lcName)) {
+            var feature = classSymbol.finalFeatures.get(lcName);
+            if (feature instanceof eiffel.symbols.ProcedureSymbol) {
+              // Everything ok
+              classSymbol.creationProcedures.set(lcName, feature);
+            }
+            else if (feature instanceof eiffel.symbols.FunctionSymbol) {
+              analysisContext.errors.uncategorized("Functions cannot be used as creation procedures.");
+            }
+            else if (feature instanceof eiffel.symbols.AttributeSymbol) {
+              analysisContext.errors.uncategorized("Attributes cannot be used as creation procedures.");
+            }
+            else {
+              console.error(feature, creationClause, classSymbol, analysisContext);
+              throw new Error("Unsupported symbol in finalFeatures");
+            }
           }
           else {
-            analysisContext.errors.uncategorized("There is no procedure with name " + name);
+            analysisContext.errors.uncategorized("There is no procedure with name " + name + " in class " + classSymbol.name);
           }
         });
       });
@@ -881,7 +1034,7 @@ module eiffel.semantics {
 
     unknownOldFeatureInRename(rename: eiffel.ast.Rename, parentSymbol: eiffel.symbols.ParentSymbol):void {
       var parentClassName = parentSymbol.parentType.baseType.name;
-      this.add(SemanticErrorKind.UnknownSourceFeatureInRename, parentClassName + " has no feature " + rename.oldName.name + ". You told Eiffel to inherit a feature named '" + rename.oldName.name + "' from a class called '" + parentClassName + "' under a new name.");
+      this.add(SemanticErrorKind.UnknownSourceFeatureInRename, parentClassName + " has no feature " + rename.oldName.name + ". You told Eiffel to inherit a feature named '" + rename.oldName.name + "' from a class called '" + parentClassName + "' under a new name inside class " + parentSymbol.owningClass.name);
     }
 
     alreadyRenamed(rename:eiffel.ast.Rename, oldNewName: string, parentSymbol:eiffel.symbols.ParentSymbol):void {
