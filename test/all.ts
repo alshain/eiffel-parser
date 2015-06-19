@@ -330,7 +330,7 @@ function analyze(...sources: string[]) {
       console.group("Errors");
         analyzed.errors.errors.forEach((error) => {console.log(error)});
       console.groupEnd();
-
+      console.info("Context: ", analyzed);
     console.groupEnd();
   }
   return analyzed;
