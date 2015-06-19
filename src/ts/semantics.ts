@@ -1,8 +1,10 @@
 /// <reference path="visitor.ts" />
 /// <reference path="util.ts" />
+/// <reference path="ast.ts" />
 /// <reference path="fromJS.d.ts" />
 
 module eiffel.semantics {
+
   import sym = eiffel.symbols;
   import LookupTable = eiffel.util.LookupTable;
   import caseIgnoreEquals = eiffel.util.caseIgnoreEquals;
@@ -10,6 +12,7 @@ module eiffel.semantics {
   import group = eiffel.util.group;
   import debugAssert = eiffel.util.debugAssert;
 
+  export var builtinContext: AnalysisContext;
   var createClassSymbols = function (asts, analysisContext:AnalysisContext) {
     asts.forEach(function (ast:eiffel.ast.Class) {
       if (!(ast instanceof eiffel.ast.Class)) {
@@ -685,7 +688,7 @@ module eiffel.semantics {
         pretender.all().forEach(function (source: eiffel.symbols.PretenderSource) {
           source.feature.precursors.forEach(function (precursor) {
             inheritedFeature.precursors.add(precursor);
-          });
+          });// TODO FIX PRECURSOR HANDLING
           if (hasDeclaredFeature) {
             inheritedFeature.precursors.add(inheritedFeature);
           }
@@ -702,7 +705,6 @@ module eiffel.semantics {
     oneClass.declaredFeatures.forEach(function (declaredFeature, lcName) {
       if (!oneClass.finalFeatures.has(lcName)) {
         oneClass.finalFeatures.set(lcName, declaredFeature);
-        declaredFeature.precursors.add(declaredFeature);
       }
     });
 
@@ -836,19 +838,25 @@ module eiffel.semantics {
     });
   }
 
-  export function analyze(...manyAsts: ast.Class[][]): AnalysisResult {
-    var parse = function parse(builtinSource: BuiltinSource) {
-      try {
-        return eiffel.parser.parse(builtinSource.content)
-      }
-      catch (e) {
-        parseError(builtinSource, e);
-        throw e;
-      }
-    };
-    Array.prototype.push.apply(manyAsts, __eiffel_builtin.map(parse));
+  var parse = function parse(builtinSource: BuiltinSource) {
+    try {
+      return eiffel.parser.parse(builtinSource.content)
+    }
+    catch (e) {
+      parseError(builtinSource, e);
+      throw e;
+    }
+  };
+
+
+  export function analyze(manyAsts: ast.Class[][]): AnalysisResult {
+
+    Array.prototype.push.apply(manyAsts);
     var asts: ast.Class[] = Array.prototype.concat.apply([], manyAsts);
     var analysisContext = new AnalysisContext();
+    if (builtinContext != null) {
+      analysisContext.parentContext = builtinContext;
+    }
     createClassSymbols(asts, analysisContext);
     initGenericParamSyms(analysisContext);
     initClassSymbolTypeInstances(analysisContext);
@@ -866,7 +874,9 @@ module eiffel.semantics {
     traverseInheritance(populateAncestorTypes, analysisContext);
     initAdaptions(analysisContext);
     checkValidty_8_6_13_parent_rule(analysisContext);
-    initAny(analysisContext);
+    if (builtinContext == null) {
+      initAny(analysisContext);
+    }
     traverseInheritance(inheritFeatures, analysisContext);
 
 
@@ -913,7 +923,7 @@ module eiffel.semantics {
         });
       });
     });
-
+    console.log(analysisContext);
 
 
     var newVar = {
@@ -932,6 +942,7 @@ module eiffel.semantics {
     allClasses: symbols.ClassSymbol[] = [];
     astDictionary: Map<any, eiffel.ast.AST[]> = new Map<any, eiffel.ast.AST[]>();
     typeInstances: sym.TypeInstance[] = [];
+    parentContext: AnalysisContext;
 
     allWithPrototype(prototype) {
       if (this.astDictionary.has(prototype)) {
@@ -948,6 +959,9 @@ module eiffel.semantics {
       if (this.classSymbols.has(lowerCaseName)) {
         return this.classSymbols.get(lowerCaseName);
       }
+      else if (this.parentContext != null) {
+        return this.parentContext.classWithName(name);
+      }
       else {
         throw new Error("There is no class with name: " + name);
       }
@@ -955,7 +969,12 @@ module eiffel.semantics {
 
     hasClass(name: string): boolean {
       var lowerCaseName = this.redirectToSized(name).toLowerCase();
-      return this.classSymbols.has(lowerCaseName);
+      if (this.parentContext != null) {
+        return this.classSymbols.has(lowerCaseName) || this.parentContext.hasClass(name);
+      }
+      else {
+        return this.classSymbols.has(lowerCaseName)
+      }
     }
 
     redirectToSized(name: string): string {
@@ -1200,9 +1219,19 @@ module eiffel.semantics {
 
 
   }
-      export interface AnalysisResult {
+  export interface AnalysisResult {
     asts: eiffel.ast.Class[];
     errors: ErrorContext;
     context: AnalysisContext;
+  }
+
+  export function start() {
+    var total = __eiffel_builtin.length;
+    var parsed = __eiffel_builtin.map(function(source, i) {
+      console.log("Parsing ", source.filename);
+      console.log("Done: " + Math.round(i / total * 100) + "%");
+      return parse(source);
+    });
+    builtinContext = analyze(parsed).context;
   }
 }
