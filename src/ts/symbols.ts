@@ -32,7 +32,7 @@ module eiffel.symbols {
   }
 
   export class FeatureSymbol extends EiffelSymbol {
-    constructor(name:string, alias:string, isFrozen:boolean, ast: eiffel.ast.Feature) {
+    constructor(name:string, alias:string, isFrozen:boolean, ast: eiffel.ast.Feature, declaredIn: ClassSymbol) {
       super(name, name);
       this.alias = alias;
       this.isFrozen = isFrozen;
@@ -41,6 +41,7 @@ module eiffel.symbols {
       this.isCommand = this.ast.rawType === null;
       this.isAttribute = this instanceof AttributeSymbol;
       this.substitutions = new Substitution();
+      this.declaredIn = declaredIn;
     }
 
     ast: eiffel.ast.Feature;
@@ -51,10 +52,10 @@ module eiffel.symbols {
     isAttribute: boolean;
     substitutions: Substitution;
     pretenders: FeaturePretenders;
+    declaredIn: ClassSymbol;
 
     typeInstance: ActualType;
 
-    renamedFrom: FeatureSymbol = null;
     routineId: RoutineId = null;
     routineIds: Set<RoutineId> = new Set<RoutineId>();
     seeds: Set<FeatureSymbol> = new Set<FeatureSymbol>();
@@ -98,26 +99,25 @@ module eiffel.symbols {
   }
 
   export class RoutineSymbol extends FeatureSymbol {
-    constructor(name: string, alias: string, frozen: boolean, ast:ast.Routine) {
-      super(name, alias, frozen, ast);
+    constructor(name: string, alias: string, frozen: boolean, ast:ast.Routine, declaredIn: ClassSymbol) {
+      super(name, alias, frozen, ast, declaredIn);
     }
 
     ast: ast.Routine;
   }
 
   export class FunctionSymbol extends RoutineSymbol {
-    constructor(name: string, alias: string, frozen: boolean, ast:ast.Function) {
-      super(name, alias, frozen, ast);
+    constructor(name: string, alias: string, frozen: boolean, ast:ast.Function, declaredIn: ClassSymbol) {
+      super(name, alias, frozen, ast, declaredIn);
     }
 
     ast: ast.Function;
 
     duplicate() {
-      var sym = new FunctionSymbol(this.name, this.alias, this.isFrozen, this.ast);
+      var sym = new FunctionSymbol(this.name, this.alias, this.isFrozen, this.ast, this.declaredIn);
 
       sym.isDeferred = this.isDeferred;
       sym.typeInstance = this.typeInstance;
-      sym.renamedFrom = this.renamedFrom;
       sym.routineId = this.routineId;
       sym.routineIds = this.routineIds;
       sym.seeds = this.seeds;
@@ -130,18 +130,17 @@ module eiffel.symbols {
   }
 
   export class ProcedureSymbol extends RoutineSymbol {
-    constructor(name:string, alias: string, frozen: boolean, ast:ast.Procedure) {
-      super(name, alias, frozen, ast);
+    constructor(name:string, alias: string, frozen: boolean, ast:ast.Procedure, declaredIn: ClassSymbol) {
+      super(name, alias, frozen, ast, declaredIn);
     }
 
     ast: ast.Procedure;
 
     duplicate() {
-      var sym = new ProcedureSymbol(this.name, this.alias, this.isFrozen, this.ast);
+      var sym = new ProcedureSymbol(this.name, this.alias, this.isFrozen, this.ast, this.declaredIn);
 
       sym.isDeferred = this.isDeferred;
       sym.typeInstance = this.typeInstance;
-      sym.renamedFrom = this.renamedFrom;
       sym.routineId = this.routineId;
       sym.routineIds = this.routineIds;
       sym.seeds = this.seeds;
@@ -163,17 +162,16 @@ module eiffel.symbols {
 
   export class AttributeSymbol extends FeatureSymbol {
 
-    constructor(name: string, alias: string, frozen: boolean, attr:ast.VarOrConstAttribute) {
-      super(name, alias, frozen, attr);
+    constructor(name: string, alias: string, frozen: boolean, attr:ast.VarOrConstAttribute, declaredIn: ClassSymbol) {
+      super(name, alias, frozen, attr, declaredIn);
     }
 
     ast: ast.VarOrConstAttribute;
 
     duplicate() {
-      var sym = new AttributeSymbol(this.name, this.alias, this.isFrozen, this.ast);
+      var sym = new AttributeSymbol(this.name, this.alias, this.isFrozen, this.ast, this.declaredIn);
 
       sym.typeInstance = this.typeInstance;
-      sym.renamedFrom = this.renamedFrom;
       sym.routineId = this.routineId;
       sym.routineIds = this.routineIds;
       sym.seeds = this.seeds;
@@ -462,6 +460,8 @@ module eiffel.symbols {
     duplicate(): ActualType;
     equals(other: ActualType): boolean;
 
+    typeForCall(name: string): ActualType;
+
     conformsTo(other: ActualType): boolean;
 
     toString(): string;
@@ -510,6 +510,12 @@ module eiffel.symbols {
 
     conformsTo(other: ActualType) {
       return this === other;
+    }
+
+    typeForCall(name: string): ActualType {
+      console.error("Unsupported typeForCall on generic param: " + this.fullyQualifiedName + "." + name);
+      debugger;
+      return null;
     }
   }
 
@@ -651,9 +657,7 @@ module eiffel.symbols {
     }
 
     typeForCall(name: string): ActualType {
-
-      // this.baseType.finalFeatures.has(name)
-      return null;
+      return this.baseType.finalFeatures.get(name.toLowerCase()).typeInstance.substitute(this.substitutions);
     }
 
     compatibleWith(other: TypeInstance, currentClass: TypeInstance): boolean {

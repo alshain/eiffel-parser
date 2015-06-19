@@ -48,9 +48,11 @@ module eiffel.semantics {
           localBlock.varDeclLists.forEach(function (varsDecl) {
             varsDecl.varDecls.forEach(function (varDecl) {
               var varName = varDecl.name.name;
+              var lcName = varName.toLowerCase();
               var variableSymbol = new symbols.VariableSymbol(varName, varDecl, varsDecl.rawType);
               routine.locals.push(variableSymbol);
-              routine.localsAndParamsByName.set(varName, variableSymbol);
+              routine.localsByName.set(lcName, variableSymbol);
+              routine.localsAndParamsByName.set(lcName, variableSymbol);
             });
           });
         });
@@ -58,7 +60,7 @@ module eiffel.semantics {
     });
   };
 
-  function makeActualTypeIn(sourceClass: sym.ClassSymbol, rawType: eiffel.ast.AST, analysisContext: AnalysisContext): sym.ActualType {
+  function makeActualTypeIn(sourceClass: sym.ClassSymbol, rawType: eiffel.ast.AST, analysisContext: AnalysisContext, likeInClass?: sym.ClassSymbol, inFeature?: eiffel.symbols.FeatureSymbol, typeFor?: TypeFor): sym.ActualType {
     var isGenericParam = function isGenericParam(): boolean {
       if (rawType instanceof eiffel.ast.Type) {
         return sourceClass.hasGenericParameterWithName(rawType.name.name);
@@ -67,19 +69,38 @@ module eiffel.semantics {
         return false;
       }
     };
-
-    if (rawType instanceof eiffel.ast.Type && isGenericParam()) {
+    if (rawType instanceof eiffel.ast.TypeLikeFeature) {
+      if (rawType.typeName !== null) {
+        return makeActualTypeIn(sourceClass, rawType.typeName, analysisContext).typeForCall(rawType.featureName.name);
+      }
+      else {
+        var lcName = rawType.featureName.name.toLowerCase();
+        if (typeFor === TypeFor.LOCAL && inFeature.localsByName.has(lcName)) {
+          return inFeature.localsByName.get(lcName).type.duplicate();
+        }
+        else if (inFeature.parametersByName.has(lcName)) {
+          return inFeature.parametersByName.get(lcName).type.duplicate();
+        }
+        else if (likeInClass.finalFeatures.has(lcName)) {
+          return likeInClass.finalFeatures.get(lcName).typeInstance.duplicate();
+        }
+        else {
+          console.error("Invalid case", lcName, sourceClass, rawType);
+        }
+      }
+    }
+    else if (rawType instanceof eiffel.ast.Type && isGenericParam()) {
       if (rawType.parameters.length !== 0) {
         analysisContext.errors.uncategorized("You cannot use a generic parameter as the base class of a generic type.");
       }
       return sourceClass.genericParameterWithName(rawType.name.name);
     }
     else {
-      return makeTypeInstanceIn(sourceClass, rawType, analysisContext);
+      return makeTypeInstanceIn(sourceClass, rawType, analysisContext, likeInClass, inFeature, typeFor);
     }
   }
 
-  function makeTypeInstanceIn(sourceClass: sym.ClassSymbol, rawType: eiffel.ast.AST, analysisContext: AnalysisContext): sym.TypeInstance {
+  function makeTypeInstanceIn(sourceClass: sym.ClassSymbol, rawType: eiffel.ast.AST, analysisContext: AnalysisContext, likeInClass?: sym.ClassSymbol, inFeature?: eiffel.symbols.FeatureSymbol, typeFor?: TypeFor): sym.TypeInstance {
     if (rawType instanceof eiffel.ast.TypeLikeFeature) {
       console.warn("Type like feature used, not yet implemented");
       return null;
@@ -110,7 +131,7 @@ module eiffel.semantics {
         var missingParam = false;
         var substitutions = new eiffel.symbols.Substitution();
         var typeParamInstances = rawType.parameters.map(function (rawTypeParameter, i) {
-          var result = makeActualTypeIn(sourceClass, rawTypeParameter, analysisContext);
+          var result = makeActualTypeIn(sourceClass, rawTypeParameter, analysisContext, likeInClass, inFeature, typeFor);
           if (result == null) {
             missingParam = true;
           }
@@ -548,6 +569,27 @@ module eiffel.semantics {
           redefines.add(lcRedefine);
         });
 
+        var selected = new Set<string>();
+        parentSymbol.selects.forEach(function (identifier) {
+          var lcSelected = identifier.name.toLowerCase();
+          // VDRS_1
+          if (!parentFinalFeatures.has(getOldName(lcSelected))) {
+            if (parentFinalFeatures.has(lcSelected)) {
+              context.errors.uncategorized(errorPrefix + "You have tried selecting a feature by its old name, you need to use " + getNewName(lcSelected) + " instead!");
+            }
+            else {
+              context.errors.uncategorized(errorPrefix + "tried selecting feature that does not exist in parent: " + lcSelected);
+            }
+          }
+
+          // VDUS_4
+          if (selected.has(lcSelected)) {
+            context.errors.uncategorized(errorPrefix + "You don't need to specify select for a feature multiple times: " + lcSelected);
+          }
+
+          selected.add(lcSelected);
+        });
+
 
 
         parentFinalFeatures.forEach(function (finalFeature, lcOldName) {
@@ -571,7 +613,7 @@ module eiffel.semantics {
           pretenderSource.feature = finalFeature;
           pretenderSource.wasUndefined = undefines.has(lcName);
           pretenderSource.wasRedefined = redefines.has(lcName);
-          pretenderSource.wasSelected = false;
+          pretenderSource.wasSelected = selected.has(lcName);
           pretenderSource.parentSymbol = parentSymbol;
 
           if (pretenderSource.wasRedefined) {
@@ -767,6 +809,10 @@ module eiffel.semantics {
     });
   }
 
+  function setupRoutineIds(oneClass: eiffel.symbols.ClassSymbol, context: AnalysisContext) {
+
+  }
+
 
   function initParameters(oneClass: eiffel.symbols.ClassSymbol, context: AnalysisContext) {
     oneClass.finalFeatures.forEach(function (featureSym) {
@@ -842,6 +888,7 @@ module eiffel.semantics {
         var lcName = type.featureName.name.toLowerCase();
         if (type.typeName === null) {
           if (typeFor === TypeFor.LOCAL && currentFeature.localsByName.has(lcName)) {
+            context.errors.uncategorized("You cannot use 'like' to refer to the type of another variable");
             return [depTarget + currentFeature.lowerCaseName + ".l." + lcName];
           }
           if (currentFeature.parametersByName.has(lcName)) {
@@ -914,6 +961,51 @@ module eiffel.semantics {
     }
   };
 
+  function initializeAllTypes(likeDependencyGraph: eiffel.util.Graph<string>, context: AnalysisContext) {
+    console.log("Dependency graph: ", likeDependencyGraph);
+    var topoSort = likeDependencyGraph.tarjan();
+    if (topoSort.length === likeDependencyGraph.nodes.size) {
+      console.log("Anchored type analysis complete: No errors")
+    }
+    else {
+      context.errors.uncategorized("Cycle in anchored types");
+      return;
+    }
+
+    var localOrParamLength = "class.feature.p.paramName".split(".").length;
+
+    topoSort.forEach(stronglyConnectedComponent => {
+      debugAssert(stronglyConnectedComponent.length ===1, "More than one node in t he componenet");
+      var typeLocation = stronglyConnectedComponent[0];
+      var splitted = typeLocation.split(".");
+      debugAssert(splitted.length >= 2, "Need to have format CLASS.FEATURE at the very least");
+
+      var classSym = context.classWithName(splitted[0]);
+      var fSym = classSym.finalFeatures.get(splitted[1]);
+
+      if (splitted.length === localOrParamLength) {
+        if (splitted[2] === "p") {
+          var paramSym = fSym.parametersByName.get(splitted[3]);
+          paramSym.type = makeActualTypeIn(fSym.declaredIn, paramSym.rawType, context, classSym, fSym, TypeFor.PARAM);
+        }
+        else if (splitted[2] ===  "l") {
+          var localSym = fSym.localsByName.get(splitted[3]);
+          localSym.type = makeActualTypeIn(fSym.declaredIn, localSym.rawType, context, classSym, fSym, TypeFor.LOCAL);
+        }
+        else {
+          console.error("Invalid splitted[2]: ", splitted[2], splitted, typeLocation);
+          debugger;
+        }
+      }
+      else if (splitted.length === 2) {
+        fSym.typeInstance = makeActualTypeIn(fSym.declaredIn, fSym.ast.rawType, context, classSym, fSym, TypeFor.FEATURE);
+      }
+      else {
+        console.warn("Unsupported splitted.length: ", splitted, typeLocation);
+      }
+    });
+  }
+
 
   export function analyze(manyAsts: ast.Class[][]): AnalysisResult {
     if (!started) {
@@ -946,17 +1038,11 @@ module eiffel.semantics {
       initAny(analysisContext);
     }
     traverseInheritance(inheritFeatures, analysisContext);
+    traverseInheritance(setupRoutineIds, analysisContext);
     traverseInheritance(initParameters, analysisContext);
     var likeDependencyGraph = new eiffel.util.Graph<string>([], {autoAdd: true});
     traverseInheritance(evaluateLikeDependencies, analysisContext, likeDependencyGraph);
-    console.log("Dependency graph: ", likeDependencyGraph);
-    var topoSort = likeDependencyGraph.tarjan();
-    if (topoSort.length === likeDependencyGraph.nodes.size) {
-      console.log("Anchored type analysis complete: No errors")
-    }
-    else {
-      analysisContext.errors.uncategorized("Cycle in anchored types");
-    }
+    initializeAllTypes(likeDependencyGraph, analysisContext);
 
 
 
@@ -1189,7 +1275,7 @@ module eiffel.semantics {
         if (fna.alias != null) {
           alias = fna.alias.name.value;
         }
-        var attributeSymbol = new symbols.AttributeSymbol(name, alias, fna.frozen, attrClone);
+        var attributeSymbol = new symbols.AttributeSymbol(name, alias, fna.frozen, attrClone, this.classSymbol);
 
         attrClone.sym = attributeSymbol;
         this.classSymbol.declaredFeatures.set(lcName, attributeSymbol);
@@ -1211,7 +1297,7 @@ module eiffel.semantics {
         if (fna.alias != null) {
           alias = fna.alias.name.value;
         }
-        var sym = new symbols.FunctionSymbol(lcFunctionName, alias, fna.frozen, funcClone);
+        var sym = new symbols.FunctionSymbol(lcFunctionName, alias, fna.frozen, funcClone, this.classSymbol);
 
         funcClone.sym = sym;
         this.classSymbol.declaredFeatures.set(lcFunctionName, sym);
@@ -1243,7 +1329,7 @@ module eiffel.semantics {
         if (fna.alias != null) {
           alias = fna.alias.name.value;
         }
-        var sym = new symbols.ProcedureSymbol(procedureName, alias, fna.frozen, procClone);
+        var sym = new symbols.ProcedureSymbol(procedureName, alias, fna.frozen, procClone, this.classSymbol);
 
         procClone.sym = sym;
         this.classSymbol.declaredFeatures.set(lcProcedureName, sym);
@@ -1268,7 +1354,7 @@ module eiffel.semantics {
         if (fna.alias != null) {
           alias = fna.alias.name.value;
         }
-        var attributeSymbol = new symbols.AttributeSymbol(name, alias, fna.frozen, attrClone);
+        var attributeSymbol = new symbols.AttributeSymbol(name, alias, fna.frozen, attrClone, this.classSymbol);
 
         attrClone.sym = attributeSymbol;
         this.classSymbol.declaredFeatures.set(lcName, attributeSymbol);
