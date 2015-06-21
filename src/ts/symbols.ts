@@ -207,9 +207,16 @@ module eiffel.symbols {
   }
 
   export class FeaturePretenders {
+    /**
+     * The following three contain all precursors, every element can only occur in one of those lists
+     */
     effective: PretenderSource[];
     deferred: PretenderSource[];
     redefined: PretenderSource[];
+    /**
+     * This should contain only one element
+     * all pretenders are features inherited under the same name, can only select one of those from those effective
+     */
     selected: PretenderSource[];
 
 
