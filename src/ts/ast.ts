@@ -1276,6 +1276,34 @@ module eiffel.ast {
     deepClone: () => Expression;
   }
 
+  export class AgentCall extends AST implements Expression {
+
+    constructor(token: Token, callExpression: eiffel.ast.Expression, start: Pos, end: Pos) {
+      super(this);
+      this.token = token;
+      this.callExpression = callExpression;
+      this.start = start;
+      this.end = end;
+
+      this.children.push(callExpression);
+    }
+
+    token: Token;
+    callExpression: Expression;
+    sym: TypeInstance;
+
+    start: Pos;
+    end: Pos;
+
+    accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
+      return visitor.vAgentCall(this, arg);
+    }
+
+    deepClone() {
+      return new AgentCall(this.token, deepClone(this.callExpression), deepClone(this.start), deepClone(this.end));
+    }
+  }
+
   export class UnaryOp extends AST implements Expression {
 
     constructor(operator:eiffel.ast.UnaryOperator, operand:eiffel.ast.Expression, start: Pos, end: Pos) {

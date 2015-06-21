@@ -392,5 +392,9 @@ module eiffel.ast {
     vCreationClause(creationClause: CreationClause, arg:A):R {
       return this.vDefault(creationClause, arg);
     }
+
+    vAgentCall(agentCall: AgentCall, arg:A):R {
+      return this.vExpression(agentCall, arg);
+    }
   }
 }
