@@ -96,6 +96,7 @@ module eiffel.util {
 
   export class Graph<N> {
     edges: Map<N, Set<N>>;
+    incomingEdges: Map<N, Set<N>>;
     nodes: Set<N>;
     autoAdd: boolean;
 
@@ -142,8 +143,40 @@ module eiffel.util {
       if (debugDuplicate && edges.has(to)) {
         debugAssert(true, "Edge already exists in graph");
       }
+      var incomingEdges = this.edgesTo(to);
 
       edges.add(to);
+      incomingEdges.add(from);
+
+      return this;
+    }
+
+    disconnect(from: N, to: N, debugMissing: boolean = false) {
+      debugAssert(from !== null && from !== undefined, "First argument is null or undefiined");
+      debugAssert(to !== null && to !== undefined, "Second argument is null or undefiined");
+      if (this.autoAdd) {
+        if (!this.nodes.has(from)) {
+          this.addNode(from);
+        }
+        if (!this.nodes.has(to)) {
+          this.addNode(to);
+        }
+      }
+      else {
+        debugAssert(this.nodes.has(from), "Cannot work with nodes that aren't in graph");
+        debugAssert(this.nodes.has(to), "Cannot work with nodes that aren't in graph");
+      }
+
+      debugAssert(from !== to, "self-cycles are not supported");
+
+      var edges = this.edgesFor(from);
+      if (debugMissing && !edges.has(to)) {
+        debugAssert(true, "Edge to be removed does not exist");
+      }
+      var incomingEdges = this.edgesTo(to);
+
+      edges.delete(to);
+      incomingEdges.delete(from);
 
       return this;
     }
@@ -158,6 +191,14 @@ module eiffel.util {
         this.edges.set(node, new Set<N>());
       }
       return this.edges.get(node);
+    }
+
+    edgesTo(node: N) {
+      debugAssert(this.nodes.has(node), "Node is not in graph");
+      if (!this.incomingEdges.has(node)) {
+        this.incomingEdges.set(node, new Set<N>());
+      }
+      return this.incomingEdges.get(node);
     }
 
     tarjan() {
