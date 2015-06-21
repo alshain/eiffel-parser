@@ -816,6 +816,7 @@ FactorExpr
   / AttachedExpression
   / AcrossLoopInstr
   / TypeExpression
+  / Agent
 
 TypeExpression
   = "{" w t:Type w "}"
@@ -874,6 +875,19 @@ IdentifierAccess
   {
     return new eiffel.ast.IdentifierAccess(i);
   }
+
+Agent
+  = CallAgent
+  / InlineAgent
+
+CallAgent
+  = start:pos t:AgentToken W e:Expression end:pos
+  {
+    return new eiffel.ast.AgentCall(t, e, start, end);
+  }
+
+InlineAgent
+  = "not implemented"
 
 IllegalAfterKeyword
   = Letter
@@ -1067,7 +1081,7 @@ LeftHandSide
   = Expression
 
 CreateInstr
-  = CreateToken !(IllegalAfterKeyword) w t:ExplicitCreationType? n:(Identifier / ResultToken) m:CreationCall?
+  = CreateToken !(IllegalAfterKeyword) w t:ExplicitCreationType? w n:(Identifier / ResultToken) m:CreationCall?
   {
     return new eiffel.ast.CreateInstruction(
       n,
@@ -1318,7 +1332,7 @@ ManifestValue
 // TODO missing Manifest_type? Page 142/162 - 143/163
 
 Letter
-  = [a-zA-Z]
+  = [a-zA-Z\?]
 
 IdentifierName "identifier"
   = start:pos first:IdentifierStart rest:IdentifierPart* end:pos {
