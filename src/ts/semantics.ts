@@ -628,6 +628,10 @@ module eiffel.semantics {
           else {
             featurePretenders.effective.push(pretenderSource);
           }
+
+          if (pretenderSource.wasSelected) {
+            featurePretenders.selected.push(pretenderSource);
+          }
         });
       }
     });
