@@ -814,7 +814,13 @@ module eiffel.semantics {
   }
 
   function setupRoutineIds(oneClass: eiffel.symbols.ClassSymbol, context: AnalysisContext) {
+    var seedToFeatureGraph = new eiffel.util.Graph<eiffel.symbols.FeatureSymbol>([], {autoAdd: true});
 
+    oneClass.inheritedFeatures.forEach(function (feature, lcName) {
+      feature.pretenders.all().forEach(function (pretenderSource) {
+        console.log(pretenderSource.feature.seeds);
+      })
+    });
   }
 
 
