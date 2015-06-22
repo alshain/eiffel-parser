@@ -1,108 +1,27 @@
 var gulp = require('gulp');
 module.exports = gulp;
-var plumber = require('gulp-plumber');
 var watch = require('gulp-watch');
 var del = require('del');
 var sourcemaps = require('gulp-sourcemaps');
 var babel = require('gulp-babel');
 var concat = require('gulp-concat');
-var merge = require('event-stream').merge;
-var intercept = require('gulp-intercept');
 var ts = require('gulp-typescript');
-var peg = require('gulp-peg');
-var rename = require("gulp-rename");
 var browserSync = require('browser-sync');
 var reload      = browserSync.reload;
 
 var argv = require('yargs').argv;
 var spawn = require('child_process').spawn;
 
+var parseTest = require("./gulp/util/parseTest");
+
 // FIXME Remove absolute paths
+var requireDir = require('require-dir');
 
-var paths = {
-  "vees": [
-    'src/_intro.js',
-    'src/main.js',
-    'src/_outro.js',
-  ],
-  "builtin": [
-    'src/eiffel/**/*.e',
-  ],
-  "typescript": [
-    'src/ts/**/*.ts',
-  ],
-  "typescriptTests": [
-    'test/**/*.ts',
-  ],
-  "peg": [
-    "src/grammar/eiffel.pegjs",
-  ]
+// Require all tasks in gulp/tasks, including subfolders
+requireDir('./gulp/tasks', { recurse: true });
 
-};
-
-var allowedStartRules = [
-  "start",
-  "Expression",
-  "Type",
-  "ParentGroup",
-];
-
-gulp.task("clean", ["cleanCollected", "cleanTypescript", "cleanParser", "cleanBuiltin", "cleanVees"], function(cb) {
-  del(["dist", "test/tmp", ".tmp"], cb);
-});
-
-gulp.task("cleanPeg", function(cb) {
-  del(["dist/parser.js"], cb);
-});
-
-gulp.task("cleanTypescript", function(cb) {
-  del(["dist/typescript.js"], cb);
-});
-
-gulp.task("cleanTypescriptTests", function(cb) {
-  del(["test/all.js"], cb);
-});
-
-gulp.task("cleanParser", function(cb) {
-  del(["dist/parser.js"], cb);
-});
-
-gulp.task("cleanBuiltin", function(cb) {
-  del(["dist/builtin.js"], cb);
-});
-
-gulp.task("cleanVees", function(cb) {
-  del(["dist/builtin.js"], cb);
-});
-
-
-gulp.task("cleanCollected", function(cb) {
-  del(["test/tmp"], cb);
-});
-
-
-// gulp.task('default', ["clean"], function () {
-//     return gulp.src('src/**/*.js')
-//         .pipe(sourcemaps.init())
-//         .pipe(babel())
-//         .pipe(concat('all.js'))
-//         .pipe(sourcemaps.write('.'))
-//         .pipe(gulp.dest('dist'));
-// });
-
-
-
-gulp.task("peg", ["cleanPeg"], function() {
-  gulp.src("src/grammar/eiffel.pegjs")
-    .pipe(plumber())
-    .pipe(peg({
-        allowedStartRules: allowedStartRules,
-        exportVar: "eiffel.parser",
-      }))
-    .pipe(rename("parser.js"))
-    .pipe(gulp.dest("./dist"))
-    .pipe(reload({stream: true}))
-});
+var config = require("./gulp/config");
+var paths = config.paths;
 
 gulp.task('typescript', ["cleanTypescript"], function() {
    var tsResult = gulp.src(['src/ts/**/*.ts', '!test'])
@@ -173,34 +92,10 @@ gulp.task('build', ["peg", "typescript", "typescriptTests", "collectTests", "vee
     .pipe(gulp.dest("dist"));
 });
 
-function parseTest(varName) {
-  var firstTest = "var " + varName  + " = [];\n";
-  return intercept(function(file) {
-    file.contents = new Buffer(firstTest + varName + ".push(" + JSON.stringify({filename: file.relative, content:file.contents.toString()}) + ");");
-    firstTest = "";
-    return file;
-  });
-}
-
-gulp.task('collectTests', ["cleanCollected"], function() {
-  return merge(
-      gulp.src("test/tests/parsing/**/*.ok.e")
-      .pipe(sourcemaps.init())
-      .pipe(parseTest("okTests"))
-    ,
-      gulp.src("test/tests/parsing/**/*.nok.e")
-      .pipe(parseTest("nokTests"))
-    )
-    .pipe(concat('test/tmp/collected.js'))
-    .pipe(sourcemaps.write())
-    .pipe(gulp.dest('./'))
-    .pipe(reload({stream: true}));
-});
-
 gulp.task('default', ["all", "serve"]);
 
 gulp.task("serve", function() {
- browserSync({
+ browserSync.create().init({
       open: false,
       server: "./",
       startPath: "test/all.html",
@@ -231,19 +126,3 @@ gulp.task("serve", function() {
     gulp.start("collectTests");
   });
 });
-
-//
-//gulp.task('auto-reload', function() {
-//  var p;
-//
-//  gulp.watch('gulpfile.js', spawnChildren);
-//  spawnChildren();
-//
-//  function spawnChildren(e) {
-//    // kill previous spawned process
-//    if(p) { p.kill(); }
-//
-//    // `spawn` a child `gulp` process linked to the parent `stdio`
-//    p = spawn('gulp', [argv.task], {stdio: 'inherit'});
-//  }
-//});
