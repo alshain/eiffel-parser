@@ -1016,14 +1016,19 @@ module eiffel.semantics {
     });
   }
 
+  interface ParsedFile {
+    filename: string;
+    asts: ast.Class[];
+  }
 
-  export function analyze(manyAsts: ast.Class[][]): AnalysisResult {
+
+  export function analyze(manyAsts: ParsedFile[]): AnalysisResult {
     if (!started) {
       start();
     }
 
-    Array.prototype.push.apply(manyAsts);
-    var asts: ast.Class[] = Array.prototype.concat.apply([], manyAsts);
+    var asts: ast.Class[] = [];
+    manyAsts.forEach(x => Array.prototype.push.apply(asts, x.asts));
     var analysisContext = new AnalysisContext();
     if (builtinContext != null) {
       analysisContext.parentContext = builtinContext;
@@ -1399,14 +1404,47 @@ module eiffel.semantics {
     context: AnalysisContext;
   }
 
-  export function start() {
+  export function start(p?: (percentage: number) => void, done?: (context: AnalysisContext) => void, error?: (e: Error) => void) {
     started = true;
+    var nextAst = 0;
+    var parsed = [];
+
     var total = __eiffel_builtin.length;
-    var parsed = __eiffel_builtin.map(function(source, i) {
-      console.log("Parsing ", source.filename);
-      console.log("Done: " + Math.round(i / total * 100) + "%");
-      return parse(source);
-    });
-    builtinContext = analyze(parsed).context;
+
+    function parseOne() {
+      try {
+        var source = __eiffel_builtin[nextAst];
+        var percentage = Math.round(nextAst / total * 100);
+        if (p) {
+          p(percentage);
+        }
+        else {
+          console.log("Parsing ", source.filename);
+          console.log("Done: " + percentage + "%");
+        }
+        parsed.push({
+          filename: source.filename,
+          asts: parse(source),
+        });
+        nextAst++;
+        parseNext();
+      }
+      catch (e) {
+        error(e);
+      }
+    }
+
+    function parseNext() {
+      if (nextAst < __eiffel_builtin.length) {
+        setTimeout(parseOne, 50);
+      }
+      else {
+        builtinContext = analyze(parsed).context;
+        if (done) {
+          done(builtinContext);
+        }
+      }
+    }
+    parseNext();
   }
 }
