@@ -1,4 +1,6 @@
 let React = require('react');
+let mui = require('material-ui');
+let LinearProgress = mui.LinearProgress;
 var FileDragAndDrop = require('react-file-drag-and-drop');
 
 var Example = React.createClass({
@@ -18,20 +20,22 @@ var Example = React.createClass({
   },
 
   render: function () {
-    var style = {
-      width: '100px',
-      height: '100px'
+    var model = this.props.model;
+
+    let containerStyle = {
+      textAlign: 'center',
+      paddingTop: '200px'
     };
 
     return (
-      <div>
-        <h1>Please drop your files</h1>
-        <div style={style}>
-          <FileDragAndDrop onDrop={this.handleDrop}>
-            Drop files here...
-          </FileDragAndDrop>
-        </div>
-      </div>
+    <div style={containerStyle}>
+      <h1>eiffel-parser</h1>
+      <h2>getting things ready...</h2>
+      {
+        <LinearProgress mode="determinate" value={model.loadingProgress} />
+      }
+    </div>
+
     );
   }
 });

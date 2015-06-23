@@ -15,6 +15,12 @@
 
   // Render the main app react component into the document body.
   // For more details see: https://facebook.github.io/react/docs/top-level-api.html#react.render
-  React.render(<DragDrop />, document.body);
+  var model = new eiffel.app.Model();
+  function render() {
+    React.render(<Main model={model} />, document.getElementById("reactTarget"));
+  }
+  render();
+  model.subscribe(render);
+
 
 })();

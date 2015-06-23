@@ -2,10 +2,19 @@
 
 let React = require('react');
 let mui = require('material-ui');
+let LoadingScreen = require('./loading.jsx');
+let Welcome = require('./welcome.jsx');
+let ToolbarGroup = mui.ToolbarGroup;
+let Toolbar = mui.Toolbar;
 let RaisedButton = mui.RaisedButton;
+let ToolbarSeparator = mui.ToolbarSeparator;
+let Tabs = mui.Tabs;
+let Tab = mui.Tab;
+let Button = mui.Button;
 let ThemeManager = new mui.Styles.ThemeManager();
 let Colors = mui.Styles.Colors;
-
+let Editor = require('./editor.jsx');
+var  i = 1;
 let Main = React.createClass({
 
   childContextTypes: {
@@ -25,22 +34,30 @@ let Main = React.createClass({
   },
 
   render: function() {
+    var model = this.props.model;
 
-    let containerStyle = {
-      textAlign: 'center',
-      paddingTop: '200px'
-    };
 
-    return (
-      <div style={containerStyle}>
+    var mainContent;
+    if (true || model.isInitialized) {
+      return (
+        <div>
+          <Toolbar>
+            <ToolbarGroup key={0} float="left">
 
-        <h1>material-ui</h1>
-        <h2>example project</h2>
-
-        <RaisedButton label="Super Secret Password" primary={true} onTouchTap={this._handleTouchTap} />
-
+            </ToolbarGroup>
+            <ToolbarGroup key={1} float="right">
+              <ToolbarSeparator />
+              <RaisedButton label="Import Files" style={{margin: 0}} />
+              <RaisedButton label="New Workspace" />
+            </ToolbarGroup>
+          </Toolbar>
+          <Welcome />
       </div>
-    );
+      );
+    }
+    else {
+      return <LoadingScreen model={model} />;
+    }
   },
 
   _handleTouchTap: function() {
