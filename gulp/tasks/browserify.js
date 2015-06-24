@@ -15,6 +15,7 @@ var source       = require('vinyl-source-stream');
 var config       = require('../config').browserify;
 var state        = require('../config').state;
 var babelify     = require('babelify');
+var reload       = require('browser-sync').reload;
 
 gulp.task('browserify', function(callback) {
 
@@ -73,7 +74,7 @@ gulp.task('browserify', function(callback) {
       }
     };
 
-    return bundle();
+    return bundle().pipe(reload({stream: true}));
   };
 
   // Start bundling with Browserify for each bundleConfig specified

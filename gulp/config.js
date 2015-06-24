@@ -36,9 +36,6 @@ module.exports = {
       // for sass sourcemap linking
       baseDir: [dest, src]
     },
-    files: [
-      dest + '/**'
-    ]
   },
   markup: {
     src: src + "/react/www/**",

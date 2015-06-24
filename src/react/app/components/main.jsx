@@ -4,21 +4,22 @@ let React = require('react');
 let mui = require('material-ui');
 let LoadingScreen = require('./loading.jsx');
 let Welcome = require('./welcome.jsx');
-let ToolbarGroup = mui.ToolbarGroup;
-let Toolbar = mui.Toolbar;
-let RaisedButton = mui.RaisedButton;
-let ToolbarSeparator = mui.ToolbarSeparator;
-let Tabs = mui.Tabs;
-let Tab = mui.Tab;
-let Button = mui.Button;
+let {ToolbarGroup, Toolbar, RaisedButton, ToolbarSeparator, Dialog } = mui;
 let ThemeManager = new mui.Styles.ThemeManager();
 let Colors = mui.Styles.Colors;
-let Editor = require('./editor.jsx');
+import ImportButton from './importButton.jsx';
+let Workspace = require('./workspace.jsx');
 var  i = 1;
 let Main = React.createClass({
 
   childContextTypes: {
     muiTheme: React.PropTypes.object
+  },
+
+  getInitialState : function() {
+    return {
+      showTutorial: true,
+    };
   },
 
   getChildContext: function() {
@@ -38,20 +39,33 @@ let Main = React.createClass({
 
 
     var mainContent;
-    if (true || model.isInitialized) {
+    if (eiffel.app.debug || model.isInitialized) {
+      let errorDialogue = undefined;
+      let tutorialDialogue = undefined;
+      if (window.location.protocol === 'file:') {
+        errorDialogue = <Dialog actionFocus="ok" title="Import unavailable" openImmediately={true} modal={true} actions={[{text: 'Ok', ref: 'ok'}]}>
+          Sorry, but you cannot import files when accessing this web page directly from your local hard drive.
+        </Dialog>;
+      }
+      if (this.state.showTutorial) {
+      }
+
       return (
         <div>
+          { errorDialogue }
           <Toolbar>
             <ToolbarGroup key={0} float="left">
 
             </ToolbarGroup>
             <ToolbarGroup key={1} float="right">
               <ToolbarSeparator />
-              <RaisedButton label="Import Files" style={{margin: 0}} />
+              <ImportButton model={model} importFile={model.activeWorkspace.importFile.bind(model.activeWorkspace)} />
               <RaisedButton label="New Workspace" />
             </ToolbarGroup>
           </Toolbar>
-          <Welcome />
+          {
+            model.workspaces.map(w => <Workspace workspace={w} />)
+          }
       </div>
       );
     }

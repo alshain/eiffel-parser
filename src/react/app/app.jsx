@@ -21,6 +21,11 @@
   }
   render();
   model.subscribe(render);
+  /**
+  window.onbeforeunload = function (event) {
+    return "Rebooting this app will take some time.";
+  }
+   */
 
 
 })();
