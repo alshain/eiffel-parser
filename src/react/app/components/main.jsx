@@ -23,12 +23,14 @@ let Main = React.createClass({
   },
 
   getChildContext: function() {
+    // Required for material-ui
     return {
       muiTheme: ThemeManager.getCurrentTheme()
     };
   },
 
   componentWillMount: function() {
+    // Required for material-ui
     ThemeManager.setPalette({
       accent1Color: Colors.deepOrange500
     });
