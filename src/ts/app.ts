@@ -116,6 +116,9 @@ module eiffel.app {
     constructor(filename: string, content: string) {
       this.filename = filename;
       this.code = content;
+      this.onActivate.subscribe((cm) => {
+        setTimeout(() => cm.refresh(), 100);
+      });
     }
 
     filename: string;
@@ -124,6 +127,7 @@ module eiffel.app {
     code: string;
     onError: any;
     onParseSuccessful: any;
+    isActive: boolean;
 
     timeout: any;
     parse() {
@@ -146,6 +150,10 @@ module eiffel.app {
 
       }, 500);
     }
+
+    onActivate: Event = new Event("onActivate");
+
+
   }
 
   export class EditorTab {
