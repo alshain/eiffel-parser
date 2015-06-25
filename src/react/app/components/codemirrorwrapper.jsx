@@ -19,7 +19,9 @@ var Wrapper = React.createClass({
 
   render: function () {
     return (
-        <Codemirror ref="cm" {...this.props} />
+        <div style={this.props.style}>
+          <Codemirror ref="cm" {...this.props} />
+        </div>
     );
 
   }

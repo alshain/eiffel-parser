@@ -73,7 +73,7 @@ let Main = React.createClass({
             </ToolbarGroup>
           </Toolbar>
           {
-            model.workspaces.map(w => <Workspace style={{flex: 2, overflow:'auto'}} workspace={w} />)
+            model.workspaces.map(w => <Workspace style={{flex: 2, overflow:'auto', display: 'flex'}} workspace={w} />)
           }
       </div>
       );

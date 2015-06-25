@@ -15,11 +15,10 @@ var Workspace = React.createClass({
 
     return (
       <div style={this.props.style}>
-        <Tabs contentContainerStyle={{display: 'flex'}}>
+        <Tabs flexContent={true}>
           {
             workspace.files.map(x => <Tab  label={x.filename}>
-              <Editor workspace={workspace} file={x} initialCode={x.code} updateCode={x.updateCode.bind(x)} />
-
+              <Editor style={{display: 'flex', flex: '1', flexDirection: 'column'}} workspace={workspace} file={x} initialCode={x.code} updateCode={x.updateCode.bind(x)} />
             </Tab>)
           }
         </Tabs>

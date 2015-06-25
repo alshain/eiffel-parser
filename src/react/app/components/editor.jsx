@@ -51,8 +51,10 @@ var Editor = React.createClass({
     }
 
     return (
-      <div>
-        <Wrapper ref="cm" value={this.state.code} onChange={this.props.updateCode} options={options} />
+      <div style={this.props.style}>
+        <div style={{flex: '1', position: 'relative'}}>
+          <Wrapper style={{position: 'absolute', height: '100%', width: '100%'}} ref="cm" value={this.state.code} onChange={this.props.updateCode} options={options} />
+        </div>
         <Paper>
           {statusContent}
         </Paper>
