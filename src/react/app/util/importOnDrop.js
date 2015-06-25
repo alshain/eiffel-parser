@@ -1,4 +1,4 @@
-function attachToNode(node, importFile, {dragOver, beforeDrop, afterDrop} = {}) {
+function attachToNode(node, importFile, {dragOver, dragLeave, beforeDrop, afterDrop} = {}) {
   var ignoredDirectories = [".git", ".svn", "EIFGENs"];
 
   node.addEventListener('dragover', function (e) {
