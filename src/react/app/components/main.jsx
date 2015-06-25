@@ -60,7 +60,7 @@ let Main = React.createClass({
       }
 
       return (
-        <div>
+        <div style={{display: 'flex', height: '100%', 'flex-flow': 'column'}}>
           { errorDialogue }
           <Toolbar>
             <ToolbarGroup key={0} float="left">
@@ -73,7 +73,7 @@ let Main = React.createClass({
             </ToolbarGroup>
           </Toolbar>
           {
-            model.workspaces.map(w => <Workspace workspace={w} />)
+            model.workspaces.map(w => <Workspace style={{flex: 2, overflow:'auto'}} workspace={w} />)
           }
       </div>
       );

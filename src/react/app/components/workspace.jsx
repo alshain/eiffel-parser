@@ -6,19 +6,24 @@ let Editor = require('./editor.jsx');
 var FileDragAndDrop = require('react-file-drag-and-drop');
 
 var Workspace = React.createClass({
+  propTypes: {
+    style: React.PropTypes.object,
+  },
   render: function () {
     var workspace: eiffel.app.Workspace = this.props.workspace;
 
+
     return (
-      <Tabs>
-        {
-          workspace.files.map(x => <Tab label={x.filename}>
-            <Editor workspace={workspace} file={x} initialCode={x.code} updateCode={x.updateCode.bind(x)} />
+      <div style={this.props.style}>
+        <Tabs contentContainerStyle={{display: 'flex'}}>
+          {
+            workspace.files.map(x => <Tab  label={x.filename}>
+              <Editor workspace={workspace} file={x} initialCode={x.code} updateCode={x.updateCode.bind(x)} />
 
-          </Tab>)
-        }
-      </Tabs>
-
+            </Tab>)
+          }
+        </Tabs>
+      </div>
     );
   }
 });
