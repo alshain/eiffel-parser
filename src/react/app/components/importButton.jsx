@@ -29,7 +29,7 @@ var ImportButton = React.createClass({
   render: function () {
     return (
       <RaisedButton onClick={this._click} style={{float: 'left', margin: '10px 24px', 'marginRight': '0'}} {...this.props} ref="button" label="Import Files" >
-        <form ><input onChange={this._onChange} ref="fileInput" type="file" multiple style={{display: 'none'}} /></form>
+        <input onChange={this._onChange} ref="fileInput" type="file" multiple style={{display: 'none'}} />
       </RaisedButton>
     );
 
