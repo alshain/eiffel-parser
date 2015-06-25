@@ -16,12 +16,11 @@ var ImportButton = React.createClass({
   },
 
   _onChange: function(e) {
-    var self = this;
     console.log(e.target.files);
     Array.prototype.forEach.call(e.target.files, file => {
       var reader = new FileReader();
-      reader.onload = function (e) {
-        self.props.onFileRead(file.name, e.target.result);
+      reader.onload = (e) => {
+        this.props.onFileRead(file.name, e.target.result);
       };
       reader.readAsText(file);
     });
