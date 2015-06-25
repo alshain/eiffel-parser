@@ -68,3 +68,11 @@ h2 {
   font-weight: 400;
   line-height: 2.5;
 }
+
+.CodeMirror {
+  height: inherit;
+}
+
+#reactTarget {
+  height: 100vh;
+}
