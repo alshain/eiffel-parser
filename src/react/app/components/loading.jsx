@@ -20,7 +20,6 @@ var Loading = React.createClass({
         <LinearProgress mode="determinate" value={model.loadingProgress} />
       }
     </div>
-
     );
   }
 });
