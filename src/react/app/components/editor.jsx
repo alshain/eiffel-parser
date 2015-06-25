@@ -51,7 +51,7 @@ var Editor = React.createClass({
     }
 
     return (
-      <div>Filename: {this.props.name}
+      <div>
         <Wrapper ref="cm" value={this.state.code} onChange={this.props.updateCode} options={options} />
         <Paper>
           {statusContent}
