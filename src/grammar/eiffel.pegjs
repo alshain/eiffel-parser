@@ -1109,7 +1109,7 @@ ExpressionList
   = first:Expression w rest:("," w r:Expression w {return r})* { return buildList(first, rest, gId())}
 
 ExplicitCreationType
-  = "{" w t:Identifier w "}"
+  = "{" w t:Type w "}"
   { return t }
 
 
