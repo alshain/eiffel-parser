@@ -8,7 +8,7 @@ function attachToNode(node, importFile, {dragOver, beforeDrop, afterDrop} = {}) 
 
   node.addEventListener('dragleave', function (e) {
     e.preventDefault();
-    options.dragLeave && options.dragLeave(e);
+    dragLeave && dragLeave(e);
   });
 
   node.addEventListener('drop', function (e) {
