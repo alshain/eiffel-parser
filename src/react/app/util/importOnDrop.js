@@ -1,3 +1,5 @@
+let eol = require('eol');
+
 function attachToNode(node, importFile, {dragOver, dragLeave, beforeDrop, afterDrop} = {}) {
   var ignoredDirectories = [".git", ".svn", "EIFGENs"];
 
@@ -67,7 +69,7 @@ function attachToNode(node, importFile, {dragOver, dragLeave, beforeDrop, afterD
   function appendTextFile(path, file) {
     var reader = new FileReader();
     reader.onload = function (e) {
-      importFile(path + file.name, e.target.result);
+      importFile(path + file.name, eol.lf(e.target.result));
     };
     reader.readAsText(file);
   }

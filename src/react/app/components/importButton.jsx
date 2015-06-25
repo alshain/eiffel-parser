@@ -2,8 +2,9 @@ let React = require('react');
 let mui = require('material-ui');
 import {RaisedButton, Tab} from 'material-ui';
 let InlineCss = require('react-inline-css');
-var FileDragAndDrop = require('react-file-drag-and-drop');
-var Codemirror = require('react-codemirror');
+let FileDragAndDrop = require('react-file-drag-and-drop');
+let Codemirror = require('react-codemirror');
+let eol = require('eol');
 
 var ImportButton = React.createClass({
   componentDidMount: function() {
@@ -20,7 +21,7 @@ var ImportButton = React.createClass({
     Array.prototype.forEach.call(e.target.files, file => {
       var reader = new FileReader();
       reader.onload = (e) => {
-        this.props.onFileRead(file.name, e.target.result);
+        this.props.onFileRead(file.name, eol.lf(e.target.result));
       };
       reader.readAsText(file);
     });
