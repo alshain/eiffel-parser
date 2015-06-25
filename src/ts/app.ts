@@ -20,11 +20,16 @@ module eiffel.app {
       if (!debug) {
         this.start();
       }
+      else {
+        this.finishInitialization();
+      }
       console.log(this);
     }
 
     isInitialized: boolean = false;
     loadingProgress: number = 0;
+
+    onInitialized = new OneOffEvent("onInitialized");
 
 
     subscribers: ModelSubscriber[] = [];
@@ -43,17 +48,21 @@ module eiffel.app {
       }
 
       function done() {
-        that.isInitialized = true;
-        that.update();
+        that.finishInitialization();
       }
 
       function error(e) {
         console.error("Error", e);
-        that.isInitialized = true;
-        that.update();
+        that.finishInitialization();
       }
 
       eiffel.semantics.start(parseUpdate, done, error);
+    }
+
+    private finishInitialization() {
+      this.isInitialized = true;
+      this.onInitialized.trigger();
+      this.update();
     }
 
     update() {
