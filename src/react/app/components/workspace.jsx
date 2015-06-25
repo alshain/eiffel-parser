@@ -3,6 +3,8 @@ let mui = require('material-ui');
 let LinearProgress = mui.LinearProgress;
 import {Tabs, Tab} from 'material-ui';
 let Editor = require('./editor.jsx');
+let Statusbar = require('./statusbar.jsx');
+let Sidebar = require('./sidebar.jsx');
 var FileDragAndDrop = require('react-file-drag-and-drop');
 
 var Workspace = React.createClass({
@@ -17,8 +19,12 @@ var Workspace = React.createClass({
       <div style={this.props.style}>
         <Tabs flexContent={true}>
           {
-            workspace.files.map(x => <Tab  label={x.filename}>
-              <Editor style={{display: 'flex', flex: '1', flexDirection: 'column'}} workspace={workspace} file={x} initialCode={x.code} updateCode={x.updateCode.bind(x)} />
+            workspace.files.map((x, i) => <Tab onActive={() => x.onActivate.trigger(this.refs["tab" + i].codeMirror)} label={x.filename}>
+              <div className="eiffel-tab">
+                <Editor ref={"tab" + i} style={{display: 'flex', flex: '1', flexDirection: 'column'}} workspace={workspace} file={x} initialCode={x.code} updateCode={x.updateCode.bind(x)} />
+                <Sidebar />
+              </div>
+              <Statusbar />
             </Tab>)
           }
         </Tabs>
