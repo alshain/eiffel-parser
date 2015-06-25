@@ -9,7 +9,9 @@ let ThemeManager = new mui.Styles.ThemeManager();
 let Colors = mui.Styles.Colors;
 import ImportButton from './importButton.jsx';
 let Workspace = require('./workspace.jsx');
-var  i = 1;
+
+let importOnDrop = require('../util/importOnDrop');
+
 let Main = React.createClass({
 
   childContextTypes: {
@@ -34,6 +36,11 @@ let Main = React.createClass({
     ThemeManager.setPalette({
       accent1Color: Colors.deepOrange500
     });
+
+    this.model = this.props.model;
+    this.model.onInitialized.subscribe(() => {
+      importOnDrop(document, this.model.activeWorkspace.importFile.bind(this.model.activeWorkspace));
+    })
   },
 
   render: function() {
