@@ -143,5 +143,77 @@ module eiffel.app {
 
   }
 
+  export class Event {
+    constructor(name:string) {
+      this.name = name;
+    }
+
+    debugFlag: boolean;
+    name: string;
+    subscribed: Set<any> = new Set<any>();
+    subscribe(f) {
+      this.subscribed.add(f);
+    }
+
+    trigger(data) {
+      if (this.debugFlag) {
+        console.debug("Triggering: " + this.name + " with data ", data);
+        debugger;
+      }
+      this.subscribed.forEach(f => {
+        if (this.debugFlag) {
+          console.debug("Executing callback: ", f);
+          debugger;
+        }
+        f(data)
+      });
+    }
+
+    unsubscribe(f) {
+      this.subscribed.delete(f);
+    }
+
+    debug(falseForDisable) {
+      if (falseForDisable === false) {
+        this.debugFlag = false;
+      }
+      else {
+        this.debugFlag = true;
+      }
+    }
+  }
+
+  export class OneOffEvent extends Event {
+    executed: boolean = false;
+    executedData: any = undefined;
+
+    trigger(data?) {
+      if (this.executed) {
+        console.error("Invalid state: Event already triggered");
+        debugger;
+      }
+      else {
+        // do this before triggering, maybe prevent race conditions?
+        this.executedData = data;
+        this.executed = true;
+        super.trigger(data);
+      }
+    }
+
+    subscribe(f) {
+      if (this.executed) {
+        f(this.executedData);
+      }
+      else {
+        super.subscribe(f);
+      }
+    }
+
+    reset() {
+      this.executed = false;
+      this.executedData = undefined;
+    }
+  }
+
 
 }
