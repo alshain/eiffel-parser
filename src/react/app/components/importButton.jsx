@@ -22,6 +22,7 @@ var ImportButton = React.createClass({
       var reader = new FileReader();
       reader.onload = (e) => {
         this.props.onFileRead(file.name, eol.lf(e.target.result));
+        React.findDOMNode(this.refs.form).reset();
       };
       reader.readAsText(file);
     });
@@ -30,7 +31,7 @@ var ImportButton = React.createClass({
   render: function () {
     return (
       <RaisedButton onClick={this._click} style={{float: 'left', margin: '10px 24px', 'marginRight': '0'}} {...this.props} ref="button" label="Import Files" >
-        <input onChange={this._onChange} ref="fileInput" type="file" multiple style={{display: 'none'}} />
+        <form ref="form"><input onChange={this._onChange} ref="fileInput" type="file" multiple style={{display: 'none'}} /></form>
       </RaisedButton>
     );
 
