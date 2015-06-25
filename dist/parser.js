@@ -9932,7 +9932,7 @@ eiffel.parser = (function() {
       if (s1 !== peg$FAILED) {
         s2 = peg$parsew();
         if (s2 !== peg$FAILED) {
-          s3 = peg$parseIdentifier();
+          s3 = peg$parseType();
           if (s3 !== peg$FAILED) {
             s4 = peg$parsew();
             if (s4 !== peg$FAILED) {
