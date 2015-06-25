@@ -68,7 +68,7 @@ let Main = React.createClass({
             </ToolbarGroup>
             <ToolbarGroup key={1} float="right">
               <ToolbarSeparator />
-              <ImportButton model={model} importFile={model.activeWorkspace.importFile.bind(model.activeWorkspace)} />
+              <ImportButton model={model} onFileRead={model.activeWorkspace.importFile.bind(model.activeWorkspace)} />
               <RaisedButton label="New Workspace" />
             </ToolbarGroup>
           </Toolbar>
