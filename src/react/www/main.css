@@ -77,3 +77,19 @@ h2 {
 #reactTarget {
   height: 100vh;
 }
+
+.eiffel-tab {
+  display: flex;
+  flex-direction: row;
+  flex: 1;
+}
+
+.eiffel-sidebar {
+  width: 300px;
+}
+
+.eiffel-statusbar {
+  height: 100px;
+}
+
+
