@@ -1,9 +1,9 @@
-function attachToNode(node, importFile, options) {
+function attachToNode(node, importFile, {dragOver, beforeDrop, afterDrop} = {}) {
   var ignoredDirectories = [".git", ".svn", "EIFGENs"];
 
   node.addEventListener('dragover', function (e) {
     e.preventDefault();
-    options.dragOver && options.dragOver(e);
+    dragOver && dragOver(e);
   });
 
   node.addEventListener('dragleave', function (e) {
@@ -12,7 +12,7 @@ function attachToNode(node, importFile, options) {
   });
 
   node.addEventListener('drop', function (e) {
-    options.beforeDrop && options.beforeDrop(e);
+    beforeDrop && beforeDrop(e);
     e.preventDefault();
 
     var length = e.dataTransfer.items.length;
@@ -23,7 +23,7 @@ function attachToNode(node, importFile, options) {
       readDirectory(entries, "");
     }
 
-    options.afterDrop && options.afterDrop(e);
+    afterDrop && afterDrop(e);
   });
 
 
