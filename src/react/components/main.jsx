@@ -4,7 +4,7 @@ let React = require('react');
 let mui = require('material-ui');
 let LoadingScreen = require('./loading.jsx');
 let Welcome = require('./welcome.jsx');
-let {ToolbarGroup, Toolbar, RaisedButton, ToolbarSeparator, Dialog } = mui;
+let {ToolbarGroup, Toolbar, RaisedButton, ToolbarSeparator, Dialog, FontIcon } = mui;
 let ThemeManager = new mui.Styles.ThemeManager();
 let Colors = mui.Styles.Colors;
 import ImportButton from './importButton.jsx';
@@ -76,6 +76,9 @@ let Main = React.createClass({
             </ToolbarGroup>
             <ToolbarGroup key={1} float="right">
               <ToolbarSeparator />
+              <RaisedButton label="Examples" style={{display: 'hidden'}}>
+                <FontIcon className="muidocs-icon-custom-sort"/>
+              </RaisedButton>
               <ImportButton model={model} onFileRead={(...args) => model.activeWorkspace.importFile(...args)} />
               <RaisedButton label="New Workspace" onClick={model.addWorkspace.bind(model)} />
             </ToolbarGroup>
