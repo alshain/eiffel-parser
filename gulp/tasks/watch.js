@@ -8,6 +8,7 @@ var gulp   = require('gulp');
 var config = require('../config');
 
 gulp.task('watch-react', ['setWatch', 'browserSync'], function() {
-  gulp.watch("./src/react/app/**/*", ['build-react']);
+  gulp.watch("./src/react/**/*", ['build-react']);
   gulp.watch(config.markup.src, ['markup']);
+  gulp.watch(config.sass.src, ['sass']);
 });

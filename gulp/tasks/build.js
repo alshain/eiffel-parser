@@ -1,3 +1,3 @@
 var gulp = require('gulp');
 
-gulp.task('build-react', ['browserify', 'markup']);
+gulp.task('build-react', ['browserify', 'markup', 'codemirror', 'assets', 'sass']);

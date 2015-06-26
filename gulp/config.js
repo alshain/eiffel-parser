@@ -1,6 +1,7 @@
 var dest = './dist',
   src = './src',
-  mui = './node_modules/material-ui/src';
+  mui = './node_modules/material-ui/src',
+  codemirror = './node_modules/react-codemirror/node_modules/codemirror';
 
 module.exports = {
   paths: {
@@ -38,7 +39,7 @@ module.exports = {
     },
   },
   markup: {
-    src: src + "/react/www/**",
+    src: src + "/www/**",
     dest: dest
   },
   browserify: {
@@ -47,11 +48,23 @@ module.exports = {
     // A separate bundle will be generated for each
     // bundle config in the list below
     bundleConfigs: [{
-      entries: src + '/react/app/app.jsx',
+      entries: src + '/react/app.jsx',
       dest: dest,
       outputName: 'browserify.js'
     }]
   },
+  sass: {
+    src: src + "/css/**/*.scss",
+    dest: dest + "/css",
+  },
+  assets: {
+    src: "./assets/",
+    dest: dest + "/assets",
+  },
+  codemirror: [
+    [codemirror + "/theme/neat.css", dest + "/codemirror"],
+    [codemirror + "/lib/codemirror.css", dest + "/codemirror"],
+  ],
   state: {
     isWatching: false,
   }
