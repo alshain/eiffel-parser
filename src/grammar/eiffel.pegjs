@@ -196,10 +196,12 @@
     return Array.prototype.reduce.call(rest, function(xs, x) { return xs.concat(x);}, result);
   }
 
-  function buildIndexArgTree(first, rest) {
+  function buildIndexArgTree(first, rest, start, end) {
     return rest.reduce(
       function(operand, operator) {
+        operator.start = start;
         operator.operand = operand;
+        operator.children.push(operand);
         return operator;
       },
       first
@@ -223,7 +225,7 @@
 }
 start = class*
 class
-  = w note:Note? deferred:MaybeDeferred frozen:MaybeFrozen expanded:(e:ExpandedToken W {return e})? ClassToken name:ClassName generics:GenericParams? inherit:inherit? create:CreationClause* convert:Convert? featureLists:FeatureList* Invariant? W (Note)? EndToken w
+  = w start:pos note:Note? deferred:MaybeDeferred frozen:MaybeFrozen expanded:(e:ExpandedToken W {return e})? ClassToken name:ClassName generics:GenericParams? inherit:inherit? create:CreationClause* convert:Convert? featureLists:FeatureList* Invariant? W (Note)? EndToken end:pos w
     {
       return new eiffel.ast.Class(
         name,
@@ -234,7 +236,9 @@ class
         optionalList(inherit),
         optionalList(generics),
         (create == null) ? [] : create,
-        featureLists
+        featureLists,
+        start,
+        end
       );
     }
 
@@ -419,10 +423,12 @@ ConversionProcedure = Identifier w "(" w "{" w TypeList w "}" w ")"
 ConversionQuery = Identifier w ":" w "{" TypeList w "}"
 
 FeatureList
-  = W FeatureToken access:(w acc:AccessSpecifier { return acc })? fs:Feature*
+  = W start:pos FeatureToken access:(w acc:AccessSpecifier { return acc })? fs:Feature* end:pos
     { return new eiffel.ast.FeatureList(
         optionalList(access),
-        fs
+        fs,
+        start,
+        end
       );
     }
 
@@ -464,7 +470,9 @@ Function
       h.namesAndAliases,
       h.params,
       rt,
-      b
+      b,
+      start,
+      end
     );
   }
 
@@ -478,7 +486,9 @@ Procedure
       h.namesAndAliases,
       h.params,
       null,
-      b
+      b,
+      start,
+      end
     );
   }
 // FIXME: Synonyms for routines
@@ -522,11 +532,13 @@ Vars
   }
 
 Attribute
-  =  n:NewFeatureList  w ":" w t:Type TransientNote?
+  =  start:pos n:NewFeatureList  w ":" w t:Type TransientNote? end:pos
   {
     return new eiffel.ast.Attribute(
       n,
-      t
+      t,
+      start,
+      end
     );
   }
 
@@ -534,12 +546,14 @@ TransientNote
   = W "note" W "option" w ":" w "transient" W "attribute" W "end"
 
 Constant
-  = n:NewFeatureList  w ":" w t:Type w "=" w l:Literal
+  = start:pos n:NewFeatureList  w ":" w t:Type w "=" w l:Literal end:pos
   {
     return new eiffel.ast.ConstantAttribute(
       n,
       t,
-      l
+      l,
+      start,
+      end
     );
   }
 
@@ -663,7 +677,7 @@ LabelledCondition
 
 ConditionLabel = i:Identifier w ":" w {return i;}
 
-Locals = W LocalToken vs:VarLists { return new eiffel.ast.LocalsBlock(vs); }
+Locals = W t:LocalToken vs:VarLists { return new eiffel.ast.LocalsBlock(t, vs); }
 VarLists = vs:(W v:VarList {return v;})+ {return vs;}
 
 InstructionSeq
@@ -752,7 +766,7 @@ UnaryExpr
       return new eiffel.ast.UnaryOp(
         o,
         u,
-        end,
+        start,
         end
       );
     }
@@ -803,13 +817,13 @@ TupleExpression
 
 // TODO: insert whitespace around type?
 NonObjectCall
-  = "{" w t:Type w "}" w "." i:Identifier
+  = start:pos "{" w t:Type w "}" w "." i:Identifier end:pos
   {
-    return new eiffel.ast.NonObjectCall(t, i);
+    return new eiffel.ast.NonObjectCall(t, i,  start, end);
   }
 
 FactorExpr
-  = f:FirstExpr ops:(Index / Call)* { return buildIndexArgTree(f, ops)}
+  = start:pos f:FirstExpr ops:(Index / Call)* end:pos { return buildIndexArgTree(f, ops, start, end)}
   / Precursor
   / CreateExpression
   / Literal
@@ -827,12 +841,14 @@ TypeExpression
 
 
 CreateExpression
-  = CreateToken !(IllegalAfterKeyword) w t:ExplicitCreationType m:CreationCall?
+  = start:pos CreateToken !(IllegalAfterKeyword) w t:ExplicitCreationType m:CreationCall? end:pos
   {
     return new eiffel.ast.CreateExpression(
       t,
       (m ? m.name : null),
-      m ? optionalList(m.args) : []
+      m ? optionalList(m.args) : [],
+      start,
+      end
     );
   }
 
@@ -852,21 +868,25 @@ AttachedExpression
   }
 
 Index
-  = w "[" w a:ArgList w "]"
+  = w "[" w a:ArgList w "]" end:pos
   {
     return new eiffel.ast.IndexExpression(
       undefined,
-      optionalList(a)
+      optionalList(a),
+      null,
+      end
     );
   }
 
 Call
-  = w "." w i:Identifier a:Args?
+  = w "." w i:Identifier a:Args? end:pos
   {
     return new eiffel.ast.CallExpression(
       undefined,
       i,
-      optionalList(a)
+      optionalList(a),
+      null,
+      end
     );
   }
 
