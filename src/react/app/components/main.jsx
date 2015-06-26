@@ -65,7 +65,16 @@ let Main = React.createClass({
           { errorDialogue }
           <Toolbar>
             <ToolbarGroup key={0} float="left">
-              {model.workspaces.map((w, i) => <RaisedButton label={"Set " + i + ""} onTouchTap={() => w.setActive()} />)}
+              {model.workspaces.map((w, i) => {
+                var props = {};
+                if (!w.active) {
+                  props.backgroundColor = w.hasError ? '#FF8A80' : '#4CAF50';
+                }
+                else {
+                  props.secondary = true;
+                }
+                return <RaisedButton label={"Set " + i + ""} {...props} onTouchTap={() => w.setActive()} />
+              })}
             </ToolbarGroup>
             <ToolbarGroup key={1} float="right">
               <ToolbarSeparator />

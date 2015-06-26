@@ -17,9 +17,9 @@ var Workspace = React.createClass({
 
     return (
       <div style={this.props.style}>
-        <Tabs flexContent={true}>
+        <Tabs flexContent={true} tabItemContainerStyle={{backgroundColor: workspace.hasError? '#37474F' : '#37474F'}}>
           {
-            workspace.files.map((x, i) => <Tab onActive={() => x.onActivate.trigger(this.refs["tab" + i].codeMirror)} label={x.filename}>
+            workspace.files.map((x, i) => <Tab style={{backgroundColor: x.hasError ? '#C62828': '#607D8B'}} onActive={() => x.onActivate.trigger(this.refs["tab" + i].codeMirror)} label={x.filename}>
               <div className="eiffel-tab">
                 <Editor ref={"tab" + i} style={{display: 'flex', flex: '1', flexDirection: 'column'}} workspace={workspace} file={x} initialCode={x.code} updateCode={x.updateCode.bind(x)} />
                 <Sidebar />
