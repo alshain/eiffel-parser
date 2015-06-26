@@ -21,6 +21,7 @@ let Main = React.createClass({
   getInitialState : function() {
     return {
       showTutorial: true,
+      activeWorkspace: 0,
     };
   },
 
@@ -39,7 +40,7 @@ let Main = React.createClass({
 
     this.model = this.props.model;
     this.model.onInitialized.subscribe(() => {
-      importOnDrop(document, this.model.activeWorkspace.importFile.bind(this.model.activeWorkspace));
+      importOnDrop(document, (...args) => this.model.activeWorkspace.importFile(...args));
     })
   },
 
@@ -60,20 +61,20 @@ let Main = React.createClass({
       }
 
       return (
-        <div style={{display: 'flex', height: '100%', 'flex-flow': 'column'}}>
+        <div style={{display: 'flex', height: '100%', 'flexFlow': 'column'}}>
           { errorDialogue }
           <Toolbar>
             <ToolbarGroup key={0} float="left">
-
+              {model.workspaces.map((w, i) => <RaisedButton label={"Set " + i + ""} onTouchTap={() => w.setActive()} />)}
             </ToolbarGroup>
             <ToolbarGroup key={1} float="right">
               <ToolbarSeparator />
-              <ImportButton model={model} onFileRead={model.activeWorkspace.importFile.bind(model.activeWorkspace)} />
-              <RaisedButton label="New Workspace" />
+              <ImportButton model={model} onFileRead={(...args) => model.activeWorkspace.importFile(...args)} />
+              <RaisedButton label="New Workspace" onClick={model.addWorkspace.bind(model)} />
             </ToolbarGroup>
           </Toolbar>
           {
-            model.workspaces.map(w => <Workspace style={{flex: 2, overflow:'auto', display: 'flex'}} workspace={w} />)
+            model.workspaces.map(w => <Workspace style={{flex: 2, overflow:'auto', display: w.active ? 'flex' : 'none'}} workspace={w} />)
           }
       </div>
       );
