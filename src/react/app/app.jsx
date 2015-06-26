@@ -3,6 +3,8 @@
   let injectTapEventPlugin = require('react-tap-event-plugin');
   let Main = require('./components/main.jsx'); // Our custom react component
   let DragDrop = require('./components/loading.jsx');
+  let sTree = require('s-tree');
+  window.sTree = sTree;
 
   //Needed for React Developer Tools
   window.React = React;
