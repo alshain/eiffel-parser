@@ -122,7 +122,9 @@ module eiffel.ast {
       note: any, parentGroups: ParentGroup[],
       generics: FormalGenericParameter[],
       creationClauses: CreationClause[],
-      featureLists: FeatureList[]
+      featureLists: FeatureList[],
+      start,
+      end
     ) {
       super(this);
       this.name = name;
@@ -144,6 +146,9 @@ module eiffel.ast {
       Array.prototype.push.apply(this.children, featureLists);
 
       this.dictionary = new Map<any, eiffel.ast.AST[]>();
+
+      this.start = start;
+      this.end = end;
     }
 
     children:AST[];
@@ -159,6 +164,9 @@ module eiffel.ast {
 
     dictionary: Map<any, eiffel.ast.AST[]>;
 
+    start: Pos;
+    end: Pos;
+
     byType<T extends AST>(prototype: {new(): T;}): T[] {
       return <T[]> this.dictionary.get(prototype);
     }
@@ -173,7 +181,9 @@ module eiffel.ast {
         duplicateAll(this.parentGroups),
         duplicateAll(this.genericParameters),
         duplicateAll(this.creationClauses),
-        duplicateAll(this.featureLists)
+        duplicateAll(this.featureLists),
+        deepClone(this.start),
+        deepClone(this.end)
       );
     }
   }
@@ -256,23 +266,29 @@ module eiffel.ast {
   }
 
   export class FeatureList extends AST implements VisitorAcceptor {
-    constructor(exports: Identifier[], features: Feature[]) {
+    constructor(exports: Identifier[], features: Feature[], start: Pos, end: Pos) {
       super(this);
       this.exports = exports;
       Array.prototype.push.apply(this.children, exports);
       this.features = features;
       Array.prototype.push.apply(this.children, features);
+
+      this.start = start;
+      this.end = end;
     }
 
     exports:Identifier[];
     features:Feature[];
+
+    start: Pos;
+    end: Pos;
 
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vFeatureList(this, arg);
     }
 
     deepClone() {
-      return new FeatureList(duplicateAll(this.exports), duplicateAll(this.features));
+      return new FeatureList(duplicateAll(this.exports), duplicateAll(this.features), deepClone(this.start), deepClone(this.end));
     }
   }
 
@@ -325,6 +341,8 @@ module eiffel.ast {
     }
   }
 
+  // TODO Missing children for frozen and missing token
+  // TOdo missing start & end
   export class FrozenNameAlias extends ExtendedFeatureName {
     constructor(name: eiffel.ast.Identifier, alias: eiffel.ast.Alias, frozen: boolean) {
       super(name, alias);
@@ -339,7 +357,7 @@ module eiffel.ast {
   }
 
   export class Routine extends AST implements Feature {
-    constructor(frozenNamesAndAliases: FrozenNameAlias[], parameters: VarDeclList[], rawType: Type, bodyElements: AST[]) {
+    constructor(frozenNamesAndAliases: FrozenNameAlias[], parameters: VarDeclList[], rawType: Type, bodyElements: AST[], start: Pos, end: Pos) {
       super(this);
       this.frozenNamesAndAliases = frozenNamesAndAliases;
       this.parameters = parameters;
@@ -349,7 +367,11 @@ module eiffel.ast {
       Array.prototype.push.apply(this.children, _.pluck(frozenNamesAndAliases, "name"));
       Array.prototype.push.apply(this.children, parameters);
       Array.prototype.push.apply(this.children, this.aliases);
+      this.children.push(this.rawType);
       Array.prototype.push.apply(this.children, bodyElements);
+
+      this.start = start;
+      this.end = end;
     }
 
     rawType:eiffel.ast.Type;
@@ -359,23 +381,29 @@ module eiffel.ast {
     aliases: Alias[];
     bodyElements: AST[];
 
+    start: Pos;
+    end: Pos;
+
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vRoutine(this, arg);
     }
 
     deepClone() {
-      return new Routine(duplicateAll(this.frozenNamesAndAliases), duplicateAll(this.parameters), deepClone(this.rawType), duplicateAll(this.bodyElements));
+      return new Routine(duplicateAll(this.frozenNamesAndAliases), duplicateAll(this.parameters), deepClone(this.rawType), duplicateAll(this.bodyElements), deepClone(this.start), deepClone(this.end));
     }
   }
 
   export class LocalsBlock extends AST implements VisitorAcceptor {
-    constructor(linesOfVarDeclLists: VarDeclList[][]) {
+    constructor(localToken: Token, linesOfVarDeclLists: VarDeclList[][]) {
       super(this);
+      this.localToken = localToken;
+      this.children.push(this.localToken);
       this.linesOfVarDeclLists = linesOfVarDeclLists;
       this.varDeclLists = _.flatten(linesOfVarDeclLists);
       Array.prototype.push.apply(this.children, this.varDeclLists);
     }
 
+    localToken: Token;
     varDeclLists: VarDeclList[];
     linesOfVarDeclLists: VarDeclList[][];
 
@@ -384,7 +412,7 @@ module eiffel.ast {
     }
 
     deepClone() {
-      return new LocalsBlock(this.linesOfVarDeclLists.map(duplicateAll));
+      return new LocalsBlock(deepClone(this.localToken), this.linesOfVarDeclLists.map(duplicateAll));
     }
   }
 
@@ -494,24 +522,30 @@ module eiffel.ast {
   }
 
   export class NonObjectCall extends AST implements Expression {
-    constructor(rt: eiffel.ast.Type, featureName: Identifier) {
+    constructor(rt: eiffel.ast.Type, featureName: Identifier, start: Pos, end: Pos) {
       super(this);
       this.rt = rt;
       this.featureName = featureName;
 
       this.children.push(this.rt, this.featureName);
+
+      this.start = start;
+      this.end = end;
     }
 
     rt: Type;
     featureName: Identifier;
     sym: TypeInstance;
 
+    start: Pos;
+    end: Pos;
+
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vNonObjectCall(this, arg);
     }
 
     deepClone() {
-      return new NonObjectCall(deepClone(this.rt), deepClone(this.featureName));
+      return new NonObjectCall(deepClone(this.rt), deepClone(this.featureName), deepClone(this.start), deepClone(this.end));
     }
   }
 
@@ -542,7 +576,7 @@ module eiffel.ast {
     }
 
     deepClone() {
-      return new Function(duplicateAll(this.frozenNamesAndAliases), duplicateAll(this.parameters), deepClone(this.rawType), duplicateAll(this.bodyElements));
+      return new Function(duplicateAll(this.frozenNamesAndAliases), duplicateAll(this.parameters), deepClone(this.rawType), duplicateAll(this.bodyElements), deepClone(this.start), deepClone(this.end));
     }
   }
 
@@ -552,7 +586,7 @@ module eiffel.ast {
     }
 
     deepClone() {
-      return new Procedure(duplicateAll(this.frozenNamesAndAliases), duplicateAll(this.parameters), null, duplicateAll(this.bodyElements));
+      return new Procedure(duplicateAll(this.frozenNamesAndAliases), duplicateAll(this.parameters), null, duplicateAll(this.bodyElements), deepClone(this.start), deepClone(this.end));
     }
   }
 
@@ -767,24 +801,31 @@ module eiffel.ast {
 
 
   export class VarOrConstAttribute extends AST implements Feature {
-    constructor(frozenNamesAndAliases: FrozenNameAlias[], rawType: Type) {
+    constructor(frozenNamesAndAliases: FrozenNameAlias[], rawType: Type, start: Pos, end: Pos) {
       super(this);
       this.frozenNamesAndAliases = frozenNamesAndAliases;
       this.rawType = rawType;
       Array.prototype.push.apply(this.children, _.pluck(frozenNamesAndAliases, "name"));
       this.children.push(rawType);
+
+      this.start = start;
+      this.end = end;
     }
+
 
     frozenNamesAndAliases: FrozenNameAlias[];
     rawType: eiffel.ast.Type;
     sym: eiffel.symbols.AttributeSymbol;
+
+    start: Pos;
+    end: Pos;
 
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vVarOrConstAttribute(this, arg);
     }
 
     deepClone() {
-      return new VarOrConstAttribute(duplicateAll(this.frozenNamesAndAliases), deepClone(this.rawType));
+      return new VarOrConstAttribute(duplicateAll(this.frozenNamesAndAliases), deepClone(this.rawType), deepClone(this.start), deepClone(this.end));
     }
   }
 
@@ -795,8 +836,8 @@ module eiffel.ast {
   }
 
   export class ConstantAttribute extends VarOrConstAttribute {
-    constructor(frozenNamesAndAliases: FrozenNameAlias[], rawType: eiffel.ast.Type, value: eiffel.ast.ManifestConstant) {
-      super(frozenNamesAndAliases, rawType);
+    constructor(frozenNamesAndAliases: FrozenNameAlias[], rawType: eiffel.ast.Type, value: eiffel.ast.ManifestConstant, start: Pos, end: Pos) {
+      super(frozenNamesAndAliases, rawType, start, end);
       this.value = value;
       this.children.push(value);
     }
@@ -808,7 +849,7 @@ module eiffel.ast {
     }
 
     deepClone() {
-      return new ConstantAttribute(duplicateAll(this.frozenNamesAndAliases), deepClone(this.rawType), deepClone(this.value));
+      return new ConstantAttribute(duplicateAll(this.frozenNamesAndAliases), deepClone(this.rawType), deepClone(this.value), deepClone(this.start), deepClone(this.end));
     }
   }
 
@@ -1249,7 +1290,7 @@ module eiffel.ast {
 
   export class CreateExpression extends AST implements Instruction {
 
-    constructor(rawType: Type, method:eiffel.ast.Identifier, arguments:eiffel.ast.Expression[]) {
+    constructor(rawType: Type, method:eiffel.ast.Identifier, arguments:eiffel.ast.Expression[], start: Pos, end: Pos) {
       super(this);
       this.rawType = rawType;
       this.method = method;
@@ -1257,6 +1298,9 @@ module eiffel.ast {
 
       this.children.push(rawType, method);
       Array.prototype.push.apply(this.children, arguments);
+
+      this.start = start;
+      this.end = end;
     }
 
     rawType: Type;
@@ -1264,12 +1308,15 @@ module eiffel.ast {
     arguments: Expression[];
     sym:TypeInstance;
 
+    start: Pos;
+    end: Pos;
+
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vCreateExpression(this, arg);
     }
 
     deepClone() {
-      return new CreateExpression(deepClone(this.rawType), deepClone(this.method), duplicateAll(this.arguments));
+      return new CreateExpression(deepClone(this.rawType), deepClone(this.method), duplicateAll(this.arguments), deepClone(this.start), deepClone(this.end));
     }
   }
 
@@ -1432,15 +1479,23 @@ module eiffel.ast {
   ]);
 
   export class CallExpression extends AST implements Expression, VisitorAcceptor {
-    constructor(operand:eiffel.ast.Expression, name:eiffel.ast.Identifier, parameters:eiffel.ast.Expression[]) {
+    constructor(operand:eiffel.ast.Expression, name:eiffel.ast.Identifier, parameters:eiffel.ast.Expression[], start: Pos, end: Pos) {
       super(this);
       this.operand = operand;
       this.name = name;
       this.parameters = parameters;
 
-      this.children.push(operand, name);
+      this.children.push(name);
       Array.prototype.push.apply(this.children, parameters);
 
+      // This is undefined when constructed by parser, because nesting is done after object initialization
+      // Manually inserted in buildIndexArgTree
+      if (operand) {
+        this.children.push(operand);
+      }
+
+      this.start = start;
+      this.end = end;
     }
 
     sym: TypeInstance;
@@ -1449,12 +1504,15 @@ module eiffel.ast {
     name: Identifier;
     parameters: Expression[];
 
+    start: Pos;
+    end: Pos;
+
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vCallExpression(this, arg);
     }
 
     deepClone() {
-      return new CallExpression(deepClone(this.operand), deepClone(this.name), duplicateAll(this.parameters));
+      return new CallExpression(deepClone(this.operand), deepClone(this.name), duplicateAll(this.parameters), deepClone(this.start), deepClone(this.end));
     }
   }
 
@@ -1484,13 +1542,16 @@ module eiffel.ast {
   }
 
   export class IndexExpression extends AST implements Expression, VisitorAcceptor {
-    constructor(operand: eiffel.ast.Expression, arguments: eiffel.ast.Expression[]) {
+    constructor(operand: eiffel.ast.Expression, arguments: eiffel.ast.Expression[], start: Pos, end: Pos) {
       super(this);
       this.operand = operand;
       this.arguments = arguments;
 
       this.children.push(operand);
       Array.prototype.push.apply(this.children, arguments);
+
+      this.start = start;
+      this.end = end;
     }
 
     operand: Expression;
@@ -1498,12 +1559,15 @@ module eiffel.ast {
 
     sym: TypeInstance;
 
+    start: Pos;
+    end: Pos;
+
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vIndexExpression(this, arg);
     }
 
     deepClone() {
-      return new IndexExpression(deepClone(this.operand), duplicateAll(this.arguments));
+      return new IndexExpression(deepClone(this.operand), duplicateAll(this.arguments), deepClone(this.start), deepClone(this.end));
     }
   }
 
