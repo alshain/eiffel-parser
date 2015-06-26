@@ -90,6 +90,16 @@ h2 {
 
 .eiffel-statusbar {
   height: 100px;
+  font-size: 2em;
+  transition: all 0.2s;
+}
+
+.eiffel-statusbar--error {
+  background-color: #B71C1C;
+}
+
+.eiffel-statusbar--ok {
+  background-color: #558B2F;
 }
 
 
