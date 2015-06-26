@@ -85,7 +85,8 @@ h2 {
 }
 
 .eiffel-sidebar {
-  width: 300px;
+  min-width: 300px;
+  width: 40%;
 }
 
 .eiffel-statusbar {
@@ -101,5 +102,3 @@ h2 {
 .eiffel-statusbar--ok {
   background-color: #558B2F;
 }
-
-
