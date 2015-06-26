@@ -147,13 +147,14 @@ module eiffel.app {
         this.asts = eiffel.parser.parse(this.code);
         console.info("Parsing successful: " + this.filename);
         this.hasError = false;
-        this.onParseSuccessful && this.onParseSuccessful.trigger(this);
+        this.onParseSuccessful.trigger(this);
       }
       catch(e) {
         if (!this.hasError) {
           setTimeout(() => this.codeMirror.refresh(), 100);
         }
-        this.onError && this.onError.trigger(e.line, e.column, e);
+        this.hasError = true;
+        this.onError.trigger(e.line, e.column, e);
         console.error("Parse error: ", e);
       }
     }
