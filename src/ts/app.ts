@@ -172,14 +172,45 @@ module eiffel.app {
             var astMapping = this.astMapping;
             var offset = cm.indexFromPos(cm.getCursor());
             astMapping.query({point: offset}, (interval) => {
-              console.log(interval.sort());
+
+              // sort by length and get data, i.e. corresponding AST node
+              var sorted = interval.sort(sortIntervalsByLengthDescending).map(x => x.data);
+              if (this.differentAstHierarchies(this.astHierarchy, sorted)) {
+                this.astHierarchy = sorted;
+                this.onAstHierarchyChange.trigger(sorted);
+                console.log(sorted);
+              }
             });
             //sTree.matches(astMapping, )
           }
         })
       });
+    }
 
-
+    differentAstHierarchies(one, other) {
+      if (one === other) {
+        return false;
+      }
+      if (!!one !== !!other) {
+        // Exactly one is null or undefined
+        return true;
+      }
+      // both are not null or undefined
+      if (one.length === other.length) {
+        for (var i = 0; i < other.length; i++) {
+          var obj = other[i];
+          if (obj === one[i]) {
+            continue;
+          }
+          else {
+            return true;
+          }
+        }
+        return false;
+      }
+      else {
+        return true;
+      }
     }
 
     filename: string;
@@ -189,9 +220,12 @@ module eiffel.app {
     onError: Event = new Event("Editor.onParseError");
     onParseSuccessful: Event = new Event("Editor.onParseSuccessful");
     onSetCodeMirror: OneOffEvent = new OneOffEvent("Editor.onSetCodeMirror");
+    onAstHierarchyChange: Event = new Event("Editor.onAstHierarchyChange");
     isActive: boolean;
     codeMirror: any;
     astMapping: any;
+
+    astHierarchy: eiffel.ast.AST[];
 
     timeout: any;
     parse() {
