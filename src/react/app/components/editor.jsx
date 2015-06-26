@@ -20,8 +20,8 @@ var Editor = React.createClass({
 
   componentDidMount: function() {
     this.codeMirror = this.refs.cm.codeMirror;
-    this.props.file.onError = this._showError;
-    this.props.file.onParseSuccessful = this._parseSuccessful;
+    this.props.file.onError.subscribe( this._showError);
+    this.props.file.onParseSuccessful.subscribe(this._parseSuccessful);
 
     this.props.file.parse();
   },

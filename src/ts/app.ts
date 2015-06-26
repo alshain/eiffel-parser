@@ -90,6 +90,7 @@ module eiffel.app {
     active: boolean;
     analysis: eiffel.semantics.AnalysisResult;
     files: EiffelFile[] = [];
+    hasError: boolean;
 
     analyze() {
       var astsArray = this.files.map((f) => {return {filename: f.filename, asts: f.asts}});
@@ -106,7 +107,17 @@ module eiffel.app {
     }
 
     importFile(filename: string, content: string) {
-      this.files.push(new EiffelFile(filename, content));
+      var file = new EiffelFile(filename, content);
+      this.files.push(file);
+      file.onError.subscribe(() => {
+        this.hasError = true;
+        this.model.update();
+      });
+
+      file.onParseSuccessful.subscribe(() => {
+        this.hasError = this.files.some(f => f.hasError);
+        this.model.update();
+      });
       this.model.update();
     }
   }
@@ -123,21 +134,22 @@ module eiffel.app {
 
     filename: string;
     asts: eiffel.ast.Class[];
-    error: boolean;
+    hasError: boolean;
     code: string;
-    onError: any;
-    onParseSuccessful: any;
+    onError: Event = new Event("Editor.onParseError");
+    onParseSuccessful: Event = new Event("Editor.onParseSuccessful");
     isActive: boolean;
+    codeMirror: any;
 
     timeout: any;
     parse() {
       try {
         this.asts = eiffel.parser.parse(this.code);
         console.info("Parsing successful: " + this.filename);
-        this.onParseSuccessful && this.onParseSuccessful();
+        this.onParseSuccessful && this.onParseSuccessful.trigger(this);
       }
       catch(e) {
-        this.onError && this.onError(e.line, e.column, e);
+        this.onError && this.onError.trigger(e.line, e.column, e);
         console.error("Parse error: ", e);
       }
     }
@@ -172,7 +184,7 @@ module eiffel.app {
       this.subscribed.add(f);
     }
 
-    trigger(data) {
+    trigger(...data) {
       if (this.debugFlag) {
         console.debug("Triggering: " + this.name + " with data ", data);
         debugger;
@@ -182,7 +194,7 @@ module eiffel.app {
           console.debug("Executing callback: ", f);
           debugger;
         }
-        f(data)
+        f.apply(window, data);
       });
     }
 
