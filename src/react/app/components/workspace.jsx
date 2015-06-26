@@ -22,7 +22,7 @@ var Workspace = React.createClass({
             workspace.files.map((x, i) => <Tab style={{backgroundColor: x.hasError ? '#C62828': '#607D8B'}} onActive={() => x.onActivate.trigger(this.refs["tab" + i].codeMirror)} label={x.filename}>
               <div className="eiffel-tab">
                 <Editor ref={"tab" + i} style={{display: 'flex', flex: '1', flexDirection: 'column'}} workspace={workspace} file={x} initialCode={x.code} updateCode={x.updateCode.bind(x)} />
-                <Sidebar />
+                <Sidebar editor={x} />
               </div>
               <Statusbar hasError={workspace.hasError} message={workspace.hasError ? "Error :(" : "All Good :)" } />
             </Tab>)

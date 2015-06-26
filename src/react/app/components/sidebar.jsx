@@ -4,11 +4,24 @@ let LinearProgress = mui.LinearProgress;
 var FileDragAndDrop = require('react-file-drag-and-drop');
 
 var Sidebar = React.createClass({
+  getInitialState: function() {
+    return {
+      hierarchy: undefined,
+    };
+  },
+  componentDidMount: function() {
+    console.log("here");
+    this.props.editor.onAstHierarchyChange.subscribe((hierarchy) => {
+      console.log("here");
+      this.setState({hierarchy});
+    });
+  },
   render: function () {
     var model = this.props.model;
 
     return (
       <div className="eiffel-sidebar">
+        {this.state.hierarchy ? this.state.hierarchy.map(ast => <div>{ast.constructor.name}</div>) : ""}
        Sidebar with explanations
       </div>
     );
