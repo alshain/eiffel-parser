@@ -9,7 +9,7 @@ var Sidebar = React.createClass({
 
     return (
       <div className="eiffel-sidebar">
-       Sidebar
+       Sidebar with explanations
       </div>
     );
   }
