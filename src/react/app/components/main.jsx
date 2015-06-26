@@ -48,10 +48,8 @@ let Main = React.createClass({
     var model = this.props.model;
 
 
-    var mainContent;
     if (eiffel.app.debug || model.isInitialized) {
       let errorDialogue = undefined;
-      let tutorialDialogue = undefined;
       if (window.location.protocol === 'file:') {
         errorDialogue = <Dialog actionFocus="ok" title="Import unavailable" openImmediately={true} modal={true} actions={[{text: 'Ok', ref: 'ok'}]}>
           Sorry, but you cannot import files when accessing this web page directly from your local hard drive.
@@ -92,11 +90,6 @@ let Main = React.createClass({
       return <LoadingScreen model={model} />;
     }
   },
-
-  _handleTouchTap: function() {
-    alert('1-2-3-4-5');
-  }
-
 });
 
 module.exports = Main;
