@@ -1,8 +1,9 @@
 /// <reference path="visitor.ts" />
 /// <reference path="util.ts" />
 /// <reference path="ast.ts" />
+/// <reference path="explain.ts" />
 /// <reference path="fromJS.d.ts" />
-
+declare var sTree;
 
 module eiffel.app {
   export var debug = true;
@@ -133,8 +134,52 @@ module eiffel.app {
       this.filename = filename;
       this.code = content;
       this.onActivate.subscribe((cm) => {
+        this.isActive = true;
         setTimeout(() => cm.refresh(), 100);
       });
+
+      this.onParseSuccessful.subscribe((_, asts) => {
+        var ranges = new eiffel.explain.RangeGatherer();
+        asts.map(ast => ast.accept(ranges, null));
+        console.log(ranges);
+        var segmentTree = null;
+        sTree(function(tree) {
+          segmentTree = tree;
+          ranges.ranges.forEach((range) => {
+            tree.push(range.start, range.end, range.id);
+          });
+          tree.build();
+        });
+
+        this.astMapping = segmentTree;
+      });
+
+      this.onError.subscribe(() => {
+        this.astMapping = undefined;
+      });
+
+      this.onSetCodeMirror.subscribe(() => {
+        this.codeMirror.on("cursorActivity", (cm) => {
+          if (this.hasError) {
+            // Do nothing
+          }
+          else {
+            function sortIntervalsByLengthDescending(i_a, i_b) {
+              var lengthA = i_a.end - i_a.start;
+              var lengthB = i_b.end - i_b.start;
+              return lengthB - lengthA;
+            }
+            var astMapping = this.astMapping;
+            var offset = cm.indexFromPos(cm.getCursor());
+            astMapping.query({point: offset}, (interval) => {
+              console.log(interval.sort());
+            });
+            //sTree.matches(astMapping, )
+          }
+        })
+      });
+
+
     }
 
     filename: string;
@@ -143,8 +188,10 @@ module eiffel.app {
     code: string;
     onError: Event = new Event("Editor.onParseError");
     onParseSuccessful: Event = new Event("Editor.onParseSuccessful");
+    onSetCodeMirror: OneOffEvent = new OneOffEvent("Editor.onSetCodeMirror");
     isActive: boolean;
     codeMirror: any;
+    astMapping: any;
 
     timeout: any;
     parse() {
@@ -152,7 +199,7 @@ module eiffel.app {
         this.asts = eiffel.parser.parse(this.code);
         console.info("Parsing successful: " + this.filename);
         this.hasError = false;
-        this.onParseSuccessful.trigger(this);
+        this.onParseSuccessful.trigger(this, this.asts);
       }
       catch(e) {
         if (!this.hasError) {
@@ -186,8 +233,6 @@ module eiffel.app {
     constructor(name:string) {
       this.name = name;
     }
-
-
 
     debugFlag: boolean;
     name: string;
