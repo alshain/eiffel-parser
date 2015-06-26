@@ -180,7 +180,7 @@
           left,
           kind__right.right,
           start,
-          kind__right.end
+          kind__right.right.end
         );
       },
       left
@@ -1101,12 +1101,14 @@ LeftHandSide
   = Expression
 
 CreateInstr
-  = CreateToken !(IllegalAfterKeyword) w t:ExplicitCreationType? w n:(Identifier / ResultToken) m:CreationCall?
+  = start:pos CreateToken !(IllegalAfterKeyword) w t:ExplicitCreationType? w n:(Identifier / ResultToken) m:CreationCall? end:pos
   {
     return new eiffel.ast.CreateInstruction(
       n,
       (m ? m.name : null),
-      m ? optionalList(m.args) : []
+      m ? optionalList(m.args) : [],
+      start,
+      end
     );
   }
 

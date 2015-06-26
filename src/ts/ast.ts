@@ -1264,7 +1264,7 @@ module eiffel.ast {
 
   export class CreateInstruction extends AST implements Instruction {
 
-    constructor(target:eiffel.ast.Identifier, method:eiffel.ast.Identifier, arguments:eiffel.ast.Expression[]) {
+    constructor(target:eiffel.ast.Identifier, method:eiffel.ast.Identifier, arguments:eiffel.ast.Expression[], start: Pos, end: Pos) {
       super(this);
       this.target = target;
       this.method = method;
@@ -1272,6 +1272,9 @@ module eiffel.ast {
 
       this.children.push(target, method);
       Array.prototype.push.apply(this.children, arguments);
+
+      this.start = start;
+      this.end = end;
     }
 
     target:Identifier;
@@ -1279,12 +1282,15 @@ module eiffel.ast {
     arguments: Expression[];
     sym:TypeInstance;
 
+    start: Pos;
+    end: Pos;
+
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vCreateInstruction(this, arg);
     }
 
     deepClone() {
-      return new CreateInstruction(deepClone(this.target), deepClone(this.method), duplicateAll(this.arguments));
+      return new CreateInstruction(deepClone(this.target), deepClone(this.method), duplicateAll(this.arguments), deepClone(this.start), deepClone(this.end));
     }
   }
 
