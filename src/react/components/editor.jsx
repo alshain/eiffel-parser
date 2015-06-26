@@ -6,8 +6,7 @@ var Codemirror = require('react-codemirror');
 let {Paper} = mui;
 let Wrapper = require('./codemirrorwrapper.jsx');
 
-require('../../../../node_modules/react-codemirror/node_modules/codemirror/mode/eiffel/eiffel');
-
+require('../../../node_modules/react-codemirror/node_modules/codemirror/mode/eiffel/eiffel');
 
 var Editor = React.createClass({
   getInitialState: function() {
