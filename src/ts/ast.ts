@@ -129,11 +129,13 @@ module eiffel.ast {
       this.deferred = deferred;
       this.frozen = frozen;
       this.expanded = expanded;
-      this.children.push(name);
+      this.children.push(name, deferred, frozen, expanded);
 
-      this.genericParameters = generics;
       this.parentGroups = parentGroups;
       Array.prototype.push.apply(this.children, parentGroups);
+
+      this.genericParameters = generics;
+      Array.prototype.push.apply(this.children, generics);
 
       this.creationClauses = creationClauses;
       Array.prototype.push.apply(this.children, creationClauses);
