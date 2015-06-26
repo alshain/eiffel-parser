@@ -5,7 +5,7 @@
 
 
 module eiffel.app {
-  export var debug = false;
+  export var debug = true;
 
   interface ModelSubscriber {
     (model: Model): void;
@@ -13,10 +13,7 @@ module eiffel.app {
 
   export class Model {
     constructor() {
-      var workspace = new Workspace(this);
-      this.workspaces.push(workspace);
-      workspace.setActive();
-      this.update();
+      this.addWorkspace();
       if (!debug) {
         this.start();
       }
@@ -57,6 +54,13 @@ module eiffel.app {
       }
 
       eiffel.semantics.start(parseUpdate, done, error);
+    }
+
+    addWorkspace() {
+      var workspace = new Workspace(this);
+      this.workspaces.push(workspace);
+      workspace.setActive();
+      this.update();
     }
 
     private finishInitialization() {
@@ -103,7 +107,8 @@ module eiffel.app {
       }
 
       this.model.activeWorkspace = this;
-      this.active = false;
+      this.active = true;
+      this.model.update();
     }
 
     importFile(filename: string, content: string) {
@@ -181,6 +186,8 @@ module eiffel.app {
     constructor(name:string) {
       this.name = name;
     }
+
+
 
     debugFlag: boolean;
     name: string;
