@@ -1099,9 +1099,10 @@ AssignmentInstr
   / InvalidAssignment
 
 SetterAssignment
-  = start:pos lhs:AssignmentTarget w ":=" w rhs:Expression end:pos
+  = start:pos lhs:AssignmentTarget w t:AssignSymbolToken w rhs:Expression end:pos
   {
     return new eiffel.ast.SetterAssignment(
+      t,
       lhs,
       rhs,
       start,
@@ -1113,9 +1114,10 @@ AssignmentTarget
   = start:pos f:FirstExpr ops:(Index / Call)+ end:pos { return buildIndexArgTree(f, ops, start, end)}
 
 InvalidAssignment
-  = start:pos lhs:LeftHandSide w ":=" w rhs:Expression end:pos
+  = start:pos lhs:LeftHandSide w t:AssignSymbolToken w rhs:Expression end:pos
   {
     return new eiffel.ast.InvalidAssignment(
+      t,
       lhs,
       rhs,
       start,
@@ -1124,9 +1126,10 @@ InvalidAssignment
   }
 
 SimpleAssignment
-  = start:pos lhs:Identifier w ":=" w rhs:Expression end:pos
+  = start:pos lhs:Identifier w t:AssignSymbolToken w rhs:Expression end:pos
   {
     return new eiffel.ast.SimpleAssignment(
+      t,
       lhs,
       rhs,
       start,
@@ -1556,6 +1559,7 @@ AliasToken = start:pos s:"alias" !IllegalAfterKeyword end:pos { return new eiffe
 AllToken = start:pos s:"all" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
 AndToken = start:pos s:"and" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
 AssignToken = start:pos s:"assign" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
+AssignSymbolToken = start:pos s:":=" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
 AsToken = start:pos s:"as" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
 AttachedToken = start:pos s:"attached" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }
 AttributeToken = start:pos s:"attribute" !IllegalAfterKeyword end:pos { return new eiffel.ast.Token(s, start, end); }

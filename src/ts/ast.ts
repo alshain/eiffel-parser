@@ -1273,8 +1273,11 @@ module eiffel.ast {
 
 
   export class SetterAssignment extends AST implements Instruction {
-    constructor(left:eiffel.ast.Expression, right:eiffel.ast.Expression, start: Pos, end: Pos) {
+    constructor(token: Token, left:eiffel.ast.Expression, right:eiffel.ast.Expression, start: Pos, end: Pos) {
       super(this);
+      this.token = token;
+      this.children.push(token);
+
       this.left = left;
       this.right = right;
       this.children.push(left, right);
@@ -1282,6 +1285,8 @@ module eiffel.ast {
       this.start = start;
       this.end = end;
     }
+
+    token: Token;
 
     left:Expression;
     right:Expression;
@@ -1295,13 +1300,16 @@ module eiffel.ast {
     }
 
     deepClone() {
-      return new SetterAssignment(deepClone(this.left), deepClone(this.right), deepClone(this.start), deepClone(this.end));
+      return new SetterAssignment(deepClone(this.token), deepClone(this.left), deepClone(this.right), deepClone(this.start), deepClone(this.end));
     }
   }
 
   export class SimpleAssignment extends AST implements Instruction {
-    constructor(left:eiffel.ast.Identifier, right:eiffel.ast.Expression, start: Pos, end: Pos) {
+    constructor(token: Token, left:eiffel.ast.Identifier, right:eiffel.ast.Expression, start: Pos, end: Pos) {
       super(this);
+      this.token = token;
+      this.children.push(token);
+
       this.left = left;
       this.right = right;
       this.children.push(left, right);
@@ -1309,6 +1317,8 @@ module eiffel.ast {
       this.start = start;
       this.end = end;
     }
+
+    token: Token;
 
     left: Identifier;
     right:Expression;
@@ -1322,13 +1332,16 @@ module eiffel.ast {
     }
 
     deepClone() {
-      return new SimpleAssignment(deepClone(this.left), deepClone(this.right), deepClone(this.start), deepClone(this.end));
+      return new SimpleAssignment(deepClone(this.token), deepClone(this.left), deepClone(this.right), deepClone(this.start), deepClone(this.end));
     }
   }
 
   export class InvalidAssignment extends AST implements Instruction {
-    constructor(left:eiffel.ast.Expression, right:eiffel.ast.Expression, start: Pos, end: Pos) {
+    constructor(token: Token, left:eiffel.ast.Expression, right:eiffel.ast.Expression, start: Pos, end: Pos) {
       super(this);
+      this.token = token;
+      this.children.push(token);
+
       this.left = left;
       this.right = right;
       this.children.push(left, right);
@@ -1336,6 +1349,8 @@ module eiffel.ast {
       this.start = start;
       this.end = end;
     }
+
+    token: Token;
 
     left: Expression;
     right:Expression;
@@ -1349,7 +1364,7 @@ module eiffel.ast {
     }
 
     deepClone() {
-      return new InvalidAssignment(deepClone(this.left), deepClone(this.right), deepClone(this.start), deepClone(this.end));
+      return new InvalidAssignment(deepClone(this.token), deepClone(this.left), deepClone(this.right), deepClone(this.start), deepClone(this.end));
     }
   }
 
