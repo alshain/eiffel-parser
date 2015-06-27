@@ -24,10 +24,10 @@ var Workspace = React.createClass({
                 <Editor ref={"tab" + i} style={{display: 'flex', flex: '1', flexDirection: 'column'}} workspace={workspace} file={x} initialCode={x.code} updateCode={x.updateCode.bind(x)} />
                 <Sidebar editor={x} />
               </div>
-              <Statusbar hasError={workspace.hasError} message={workspace.hasError ? "Error :(" : "All Good :)" } />
             </Tab>)
           }
         </Tabs>
+        <Statusbar hasError={workspace.hasError} message={workspace.hasError ? "Error :(" : "All Good :)" } />
       </div>
     );
   }
