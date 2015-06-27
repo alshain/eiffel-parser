@@ -66,8 +66,16 @@ module eiffel.ast {
       return this.vInstruction(createInstruction, arg);
     }
 
-    vAssignment(assignment:Assignment, arg:A) {
+    vSetterAssignment(assignment:SetterAssignment, arg:A) {
       return this.vInstruction(assignment, arg);
+    }
+
+    vSimpleAssignment(simpleAssignment: SimpleAssignment, arg:A):R {
+      return this.vInstruction(simpleAssignment, arg);
+    }
+
+    vInvalidAssignment(invalidAssignment: InvalidAssignment, arg:A):R {
+      return this.vInstruction(invalidAssignment, arg);
     }
 
     vExportChangeset(exportChangeset:ExportChangeset, arg:A):R {
@@ -298,7 +306,7 @@ module eiffel.ast {
     }
 
     vFrozenNameAlias(frozenNameAlias: FrozenNameAlias, arg:A):R {
-      return this.vDefault(frozenNameAlias, arg);
+      return this.vExtendedFeatureName(frozenNameAlias, arg);
     }
 
     vPrecursorCall(precursorCall: PrecursorCall, arg:A):R {

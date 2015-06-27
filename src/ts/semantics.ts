@@ -1290,7 +1290,7 @@ module eiffel.semantics {
         if (fna.alias != null) {
           alias = fna.alias.name.value;
         }
-        var attributeSymbol = new symbols.AttributeSymbol(name, alias, fna.frozen, attrClone, this.classSymbol);
+        var attributeSymbol = new symbols.AttributeSymbol(name, alias, fna.frozen === undefined, attrClone, this.classSymbol);
 
         attrClone.sym = attributeSymbol;
         this.classSymbol.declaredFeatures.set(lcName, attributeSymbol);
@@ -1312,7 +1312,7 @@ module eiffel.semantics {
         if (fna.alias != null) {
           alias = fna.alias.name.value;
         }
-        var sym = new symbols.FunctionSymbol(lcFunctionName, alias, fna.frozen, funcClone, this.classSymbol);
+        var sym = new symbols.FunctionSymbol(lcFunctionName, alias, fna.frozen === undefined, funcClone, this.classSymbol);
 
         funcClone.sym = sym;
         this.classSymbol.declaredFeatures.set(lcFunctionName, sym);
@@ -1344,7 +1344,7 @@ module eiffel.semantics {
         if (fna.alias != null) {
           alias = fna.alias.name.value;
         }
-        var sym = new symbols.ProcedureSymbol(procedureName, alias, fna.frozen, procClone, this.classSymbol);
+        var sym = new symbols.ProcedureSymbol(procedureName, alias, fna.frozen === undefined, procClone, this.classSymbol);
 
         procClone.sym = sym;
         this.classSymbol.declaredFeatures.set(lcProcedureName, sym);
@@ -1369,7 +1369,7 @@ module eiffel.semantics {
         if (fna.alias != null) {
           alias = fna.alias.name.value;
         }
-        var attributeSymbol = new symbols.AttributeSymbol(name, alias, fna.frozen, attrClone, this.classSymbol);
+        var attributeSymbol = new symbols.AttributeSymbol(name, alias, fna.frozen === undefined, attrClone, this.classSymbol);
 
         attrClone.sym = attributeSymbol;
         this.classSymbol.declaredFeatures.set(lcName, attributeSymbol);

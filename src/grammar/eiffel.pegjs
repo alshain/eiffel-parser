@@ -444,21 +444,25 @@ NewFeatureList
   = first:NewFeatureName rest:(w "," w r:NewFeatureName {return r;})* {return buildList(first, rest, gId())}
 
 NewFeatureName
-  = f:(fi:FrozenToken w {return fi; })? na:ExtendedFeatureName
+  = start:pos f:(fi:FrozenToken w {return fi; })? na:ExtendedFeatureName end:pos
   {
     return new eiffel.ast.FrozenNameAlias(
       na.name,
       na.alias,
-      f
+      f,
+      start,
+      end
     );
   }
 
 ExtendedFeatureName
-  = n:FeatureName a:Alias?
+  = start:pos n:FeatureName a:Alias? end:pos
   {
     return new eiffel.ast.ExtendedFeatureName(
       n,
-      a
+      a,
+      start,
+      end
     );
   }
 
@@ -679,8 +683,8 @@ LabelledCondition
 
 ConditionLabel = i:Identifier w ":" w {return i;}
 
-Locals = W t:LocalToken vs:VarLists { return new eiffel.ast.LocalsBlock(t, vs); }
-VarLists = vs:(W v:VarList {return v;})+ {return vs;}
+Locals = W start:pos t:LocalToken vs:VarLists S end:pos { return new eiffel.ast.LocalsBlock(t, vs, start, end); }
+VarLists = vs:(W v:VarList {return v;})* {return optionalList(vs);}
 
 InstructionSeq
   = ret:(W i:Instruction rest:(ns:(Indent* LineTerminatorSequence w {return null;} / Indent+ {return null;} / Indent* n:NoOp Indent* {return n;})+ r:Instruction {if(ns !== null) { return ns.concat([r]);} else { return [r]}})* {return merge(i, rest)})? S {return ret;}
@@ -1090,11 +1094,43 @@ Choice
   = Expression
 
 AssignmentInstr
-  = lhs:LeftHandSide w ":=" w rhs:Expression
+  = SimpleAssignment
+  / SetterAssignment
+  / InvalidAssignment
+
+SetterAssignment
+  = start:pos lhs:AssignmentTarget w ":=" w rhs:Expression end:pos
   {
-    return new eiffel.ast.Assignment(
+    return new eiffel.ast.SetterAssignment(
       lhs,
-      rhs
+      rhs,
+      start,
+      end
+    );
+  }
+
+AssignmentTarget
+  = start:pos f:FirstExpr ops:(Index / Call)+ end:pos { return buildIndexArgTree(f, ops, start, end)}
+
+InvalidAssignment
+  = start:pos lhs:LeftHandSide w ":=" w rhs:Expression end:pos
+  {
+    return new eiffel.ast.InvalidAssignment(
+      lhs,
+      rhs,
+      start,
+      end
+    );
+  }
+
+SimpleAssignment
+  = start:pos lhs:Identifier w ":=" w rhs:Expression end:pos
+  {
+    return new eiffel.ast.SimpleAssignment(
+      lhs,
+      rhs,
+      start,
+      end
     );
   }
 
@@ -1148,11 +1184,14 @@ id "identifier" = [a-zA-Z][a-zA-Z0-9_]*
 Indent = (" " / "\t")+ ("--" (!(LineTerminatorSequence) .)*)
 
 W "whitespace"
-    = ([ \t\n\r] / ("--" (!(LineTerminatorSequence) .)*))+
+    = ([ \t\n\r] / Comment)+
 w = W?
 
-S "whitespace"
-  = (s1 & (s1))*
+s "whitespace"
+  = (s1 & (s1))+
+  / s1 Comment
+
+S = (s & LineTerminatorSequence)*
 
 s1 = [ \t\n\r]
 
@@ -1220,7 +1259,8 @@ Comment "comment"
   = SingleLineComment
 
 SingleLineComment
-  = "--" (!LineTerminator SourceCharacter)*
+  = ("--" (!(LineTerminatorSequence) .)*)
+
 
 BaseIntegerLiteral
   = ("-" w)? DecimalIntegerLiteral !IllegalAfterKeyword

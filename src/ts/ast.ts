@@ -322,37 +322,47 @@ module eiffel.ast {
   }
 
   export class ExtendedFeatureName extends AST implements VisitorAcceptor{
-    constructor(name:eiffel.ast.Identifier, alias:eiffel.ast.Alias) {
+    constructor(name:eiffel.ast.Identifier, alias:eiffel.ast.Alias, start: Pos, end: Pos) {
       super(this);
       this.name = name;
       this.alias = alias;
 
       this.children.push(this.name, this.alias);
+
+      this.start = start;
+      this.end = end;
     }
     name: Identifier;
     alias: Alias;
+
+    start: Pos;
+    end: Pos;
 
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vExtendedFeatureName(this, arg);
     }
 
     deepClone() {
-      return new ExtendedFeatureName(deepClone(this.name), deepClone(this.alias));
+      return new ExtendedFeatureName(deepClone(this.name), deepClone(this.alias), deepClone(this.start), deepClone(this.end));
     }
   }
 
   // TODO Missing children for frozen and missing token
   // TOdo missing start & end
   export class FrozenNameAlias extends ExtendedFeatureName {
-    constructor(name: eiffel.ast.Identifier, alias: eiffel.ast.Alias, frozen: boolean) {
-      super(name, alias);
+    constructor(name: eiffel.ast.Identifier, alias: eiffel.ast.Alias, frozen: Token, start: Pos, end: Pos) {
+      super(name, alias, start, end);
       this.frozen = frozen;
     }
 
-    frozen: boolean;
+    frozen: Token;
 
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vFrozenNameAlias(this, arg);
+    }
+
+    deepClone() {
+      return new FrozenNameAlias(deepClone(this.name), deepClone(this.alias), deepClone(this.frozen), deepClone(this.start), deepClone(this.end));
     }
   }
 
@@ -364,7 +374,7 @@ module eiffel.ast {
       this.bodyElements = bodyElements;
       this.rawType = rawType;
 
-      Array.prototype.push.apply(this.children, _.pluck(frozenNamesAndAliases, "name"));
+      Array.prototype.push.apply(this.children, frozenNamesAndAliases);
       Array.prototype.push.apply(this.children, parameters);
       Array.prototype.push.apply(this.children, this.aliases);
       this.children.push(this.rawType);
@@ -394,25 +404,31 @@ module eiffel.ast {
   }
 
   export class LocalsBlock extends AST implements VisitorAcceptor {
-    constructor(localToken: Token, linesOfVarDeclLists: VarDeclList[][]) {
+    constructor(localToken: Token, linesOfVarDeclLists: VarDeclList[][], start: Pos, end: Pos) {
       super(this);
       this.localToken = localToken;
       this.children.push(this.localToken);
       this.linesOfVarDeclLists = linesOfVarDeclLists;
       this.varDeclLists = _.flatten(linesOfVarDeclLists);
       Array.prototype.push.apply(this.children, this.varDeclLists);
+
+      this.start = start;
+      this.end = end;
     }
 
     localToken: Token;
     varDeclLists: VarDeclList[];
     linesOfVarDeclLists: VarDeclList[][];
 
+    start: Pos;
+    end: Pos;
+
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vLocalsBlock(this, arg);
     }
 
     deepClone() {
-      return new LocalsBlock(deepClone(this.localToken), this.linesOfVarDeclLists.map(duplicateAll));
+      return new LocalsBlock(deepClone(this.localToken), this.linesOfVarDeclLists.map(duplicateAll), deepClone(this.start), deepClone(this.end));
     }
   }
 
@@ -809,7 +825,7 @@ module eiffel.ast {
       super(this);
       this.frozenNamesAndAliases = frozenNamesAndAliases;
       this.rawType = rawType;
-      Array.prototype.push.apply(this.children, _.pluck(frozenNamesAndAliases, "name"));
+      Array.prototype.push.apply(this.children, frozenNamesAndAliases);
       this.children.push(rawType);
 
       this.start = start;
@@ -1256,25 +1272,84 @@ module eiffel.ast {
   }
 
 
-  export class Assignment extends AST implements Instruction {
-
-    constructor(left:eiffel.ast.Expression, right:eiffel.ast.Expression) {
+  export class SetterAssignment extends AST implements Instruction {
+    constructor(left:eiffel.ast.Expression, right:eiffel.ast.Expression, start: Pos, end: Pos) {
       super(this);
       this.left = left;
       this.right = right;
       this.children.push(left, right);
+
+      this.start = start;
+      this.end = end;
     }
 
     left:Expression;
     right:Expression;
     sym:TypeInstance;
 
+    start: Pos;
+    end: Pos;
+
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
-      return visitor.vAssignment(this, arg);
+      return visitor.vSetterAssignment(this, arg);
     }
 
     deepClone() {
-      return new Assignment(deepClone(this.left), deepClone(this.right));
+      return new SetterAssignment(deepClone(this.left), deepClone(this.right), deepClone(this.start), deepClone(this.end));
+    }
+  }
+
+  export class SimpleAssignment extends AST implements Instruction {
+    constructor(left:eiffel.ast.Identifier, right:eiffel.ast.Expression, start: Pos, end: Pos) {
+      super(this);
+      this.left = left;
+      this.right = right;
+      this.children.push(left, right);
+
+      this.start = start;
+      this.end = end;
+    }
+
+    left: Identifier;
+    right:Expression;
+    sym:TypeInstance;
+
+    start: Pos;
+    end: Pos;
+
+    accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
+      return visitor.vSimpleAssignment(this, arg);
+    }
+
+    deepClone() {
+      return new SimpleAssignment(deepClone(this.left), deepClone(this.right), deepClone(this.start), deepClone(this.end));
+    }
+  }
+
+  export class InvalidAssignment extends AST implements Instruction {
+    constructor(left:eiffel.ast.Expression, right:eiffel.ast.Expression, start: Pos, end: Pos) {
+      super(this);
+      this.left = left;
+      this.right = right;
+      this.children.push(left, right);
+
+      this.start = start;
+      this.end = end;
+    }
+
+    left: Expression;
+    right:Expression;
+    sym:TypeInstance;
+
+    start: Pos;
+    end: Pos;
+
+    accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
+      return visitor.vInvalidAssignment(this, arg);
+    }
+
+    deepClone() {
+      return new InvalidAssignment(deepClone(this.left), deepClone(this.right), deepClone(this.start), deepClone(this.end));
     }
   }
 
@@ -1412,6 +1487,9 @@ module eiffel.ast {
       this.right = right;
       this.start = start;
       this.end = end;
+      if (end === undefined) {
+        debugger;
+      }
 
       this.children.push(left, right);
     }
