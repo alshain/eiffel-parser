@@ -316,7 +316,7 @@ NoteValue
 
 ClassName = W name:Identifier { return name}
 CreationClause
-  = W start:pos CreateToken cs:(w cs:Clients { return cs;})? fs:(W fs:IdentifierList {return fs;})? end:pos
+  = W start:pos CreateToken cs:(w cs:Clients { return cs;})? fs:(W fs:IdentifierList {return fs;})? S end:pos
   {
     return new eiffel.ast.CreationClause(cs, optionalList(fs), start, end);
   }
@@ -330,17 +330,19 @@ Clients
 inherit = ParentGroup+
 
 ParentGroup
-  = W InheritToken c:(w "{" w i:(Identifier?) w "}" {return i;} / { return null; })? ps:Parent+
+  = W start:pos InheritToken c:(w "{" w i:(Identifier?) w "}" {return i;} / { return null; })? ps:Parent+ S end:pos
   {
-    return new eiffel.ast.ParentGroup(c, ps);
+    return new eiffel.ast.ParentGroup(c, ps, start, end);
   }
 
 Parent
-  = w t:Type adaptions:Adaptions?
+  = w start:pos t:Type adaptions:Adaptions? end:pos
   {
     return new eiffel.ast.Parent(
       t,
-      adaptions
+      adaptions,
+      start,
+      end
     );
   }
 /** FIXME: No backtracking, END of inheritance only mandatory if at least one rule fits */
@@ -423,7 +425,7 @@ ConversionProcedure = Identifier w "(" w "{" w TypeList w "}" w ")"
 ConversionQuery = Identifier w ":" w "{" TypeList w "}"
 
 FeatureList
-  = W start:pos FeatureToken access:(w acc:AccessSpecifier { return acc })? fs:Feature* end:pos
+  = W start:pos FeatureToken access:(w acc:AccessSpecifier { return acc })? fs:Feature* S end:pos
     { return new eiffel.ast.FeatureList(
         optionalList(access),
         fs,
@@ -578,33 +580,33 @@ RoutineBodyElement
   / Postconditions
 
 ExternalBlock
-  = W start:pos ExternalToken instructions:InstructionSeq end:pos
+  = W start:pos t:ExternalToken instructions:InstructionSeq end:pos
   {
-    return new eiffel.ast.ExternalBlock(instructions, start, end);
+    return new eiffel.ast.ExternalBlock(t, instructions, start, end);
   }
 
 DeferredBlock
-  = W start:pos DeferredToken instructions:InstructionSeq end:pos
+  = W start:pos t:DeferredToken instructions:InstructionSeq end:pos
   {
-    return new eiffel.ast.DeferredBlock(instructions, start, end);
+    return new eiffel.ast.DeferredBlock(t, instructions, start, end);
   }
 
 DoBlock
-  = W start:pos DoToken instructions:InstructionSeq end:pos
+  = W start:pos t:DoToken instructions:InstructionSeq end:pos
   {
-    return new eiffel.ast.DoBlock(instructions, start, end);
+    return new eiffel.ast.DoBlock(t, instructions, start, end);
   }
 
 OnceBlock
-= W start:pos OnceToken instructions:InstructionSeq end:pos
+= W start:pos t:OnceToken instructions:InstructionSeq end:pos
 {
-  return new eiffel.ast.OnceBlock(instructions, start, end);
+  return new eiffel.ast.OnceBlock(t, instructions, start, end);
 }
 
 ObsoleteBlock
-  = W start:pos ObsoleteToken instructions:InstructionSeq end:pos
+  = W start:pos t:ObsoleteToken instructions:InstructionSeq end:pos
   {
-    return new eiffel.ast.ObsoleteBlock(instructions, start, end);
+    return new eiffel.ast.ObsoleteBlock(t, instructions, start, end);
   }
 
 AliasBlock
@@ -681,7 +683,7 @@ Locals = W t:LocalToken vs:VarLists { return new eiffel.ast.LocalsBlock(t, vs); 
 VarLists = vs:(W v:VarList {return v;})+ {return vs;}
 
 InstructionSeq
-  = (W i:Instruction rest:(ns:(Indent* LineTerminatorSequence w {return null;} / Indent+ {return null;} / Indent* n:NoOp Indent* {return n;})+ r:Instruction {if(ns !== null) { return ns.concat([r]);} else { return [r]}})* {return merge(i, rest)})?
+  = ret:(W i:Instruction rest:(ns:(Indent* LineTerminatorSequence w {return null;} / Indent+ {return null;} / Indent* n:NoOp Indent* {return n;})+ r:Instruction {if(ns !== null) { return ns.concat([r]);} else { return [r]}})* {return merge(i, rest)})? S {return ret;}
   // = (W i:Instruction rest:(ns:(Indent* LineTerminatorSequence w {return null;} / Indent* n:NoOp Indent* {return n;}) r:Instruction {if(ns) { return [ns, r]} else {})* {return buildList(i, rest, gId())})?
 
 pos
@@ -1148,6 +1150,11 @@ Indent = (" " / "\t")+ ("--" (!(LineTerminatorSequence) .)*)
 W "whitespace"
     = ([ \t\n\r] / ("--" (!(LineTerminatorSequence) .)*))+
 w = W?
+
+S "whitespace"
+  = (s1 & (s1))*
+
+s1 = [ \t\n\r]
 
 Identifier "identifier"
   = !ReservedWord name:IdentifierName

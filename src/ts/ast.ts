@@ -591,17 +591,21 @@ module eiffel.ast {
   }
 
   export class RoutineInstructions extends AST implements VisitorAcceptor {
-    constructor(instructions:eiffel.ast.Expression[], start: Pos, end: Pos) {
+    constructor(token: Token, instructions:eiffel.ast.Expression[], start: Pos, end: Pos) {
       super(this);
       this.instructions = instructions;
       this.start = start;
       this.end = end;
+      this.token = token;
+      this.children.push(token);
       Array.prototype.push.apply(this.children, this.instructions);
     }
 
+    token: Token;
     instructions: Expression[];
     start: eiffel.ast.Pos;
     end: eiffel.ast.Pos;
+
 
 
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
@@ -623,7 +627,7 @@ module eiffel.ast {
     }
 
     deepClone() {
-      return new DoBlock(duplicateAll(this.instructions), deepClone(this.start), deepClone(this.end));
+      return new DoBlock(deepClone(this.token), duplicateAll(this.instructions), deepClone(this.start), deepClone(this.end));
     }
   }
 
@@ -633,7 +637,7 @@ module eiffel.ast {
     }
 
     deepClone() {
-      return new DeferredBlock(duplicateAll(this.instructions), deepClone(this.start), deepClone(this.end));
+      return new DeferredBlock(deepClone(this.token), duplicateAll(this.instructions), deepClone(this.start), deepClone(this.end));
     }
 
   }
@@ -644,7 +648,7 @@ module eiffel.ast {
     }
 
     deepClone() {
-      return new OnceBlock(duplicateAll(this.instructions), deepClone(this.start), deepClone(this.end));
+      return new OnceBlock(deepClone(this.token), duplicateAll(this.instructions), deepClone(this.start), deepClone(this.end));
     }
   }
 
@@ -654,7 +658,7 @@ module eiffel.ast {
     }
 
     deepClone() {
-      return new ExternalBlock(duplicateAll(this.instructions), deepClone(this.start), deepClone(this.end));
+      return new ExternalBlock(deepClone(this.token), duplicateAll(this.instructions), deepClone(this.start), deepClone(this.end));
     }
   }
 
@@ -664,7 +668,7 @@ module eiffel.ast {
     }
 
     deepClone() {
-      return new ObsoleteBlock(duplicateAll(this.instructions), deepClone(this.start), deepClone(this.end));
+      return new ObsoleteBlock(deepClone(this.token), duplicateAll(this.instructions), deepClone(this.start), deepClone(this.end));
     }
   }
 
@@ -854,31 +858,37 @@ module eiffel.ast {
   }
 
   export class ParentGroup extends AST implements VisitorAcceptor {
-    constructor(conforming: eiffel.ast.Identifier, parents: eiffel.ast.Parent[]) {
+    constructor(conforming: eiffel.ast.Identifier, parents: eiffel.ast.Parent[], start: Pos, end: Pos) {
       super(this);
 
       this.conforming = conforming;
       this.parents = parents;
       this.children.push(conforming);
       Array.prototype.push.apply(this.children, parents);
+
+      this.start = start;
+      this.end = end;
     }
 
     conforming: Identifier;
     parents: Parent[];
+
+    start: Pos;
+    end: Pos;
 
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vParentGroup(this, arg);
     }
 
     deepClone() {
-      return new ParentGroup(deepClone(this.conforming), duplicateAll(this.parents));
+      return new ParentGroup(deepClone(this.conforming), duplicateAll(this.parents), deepClone(this.start), deepClone(this.end));
     }
   }
 
   type Adaption = Undefines | Redefines | Renames | Selects | NewExports;
 
   export class Parent extends AST implements VisitorAcceptor {
-    constructor(rt: Type, adaptions: Adaption[]) {
+    constructor(rt: Type, adaptions: Adaption[], start: Pos, end: Pos) {
       super(this);
       this.rawType = rt;
       this.children.push(rt);
@@ -886,6 +896,9 @@ module eiffel.ast {
       this.adaptions = (adaptions == null) ? [] : adaptions;
       this.nullAdaptions = adaptions;
       Array.prototype.push.apply(this.children, adaptions);
+
+      this.start = start;
+      this.end = end;
     }
 
     rawType: Type;
@@ -894,12 +907,15 @@ module eiffel.ast {
     adaptions: Adaption[];
     nullAdaptions: Adaption[];
 
+    start: Pos;
+    end: Pos;
+
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vParent(this, arg);
     }
 
     deepClone() {
-      return new Parent(deepClone(this.rawType), duplicateAll(this.adaptions));
+      return new Parent(deepClone(this.rawType), duplicateAll(this.adaptions), deepClone(this.start), deepClone(this.end));
     }
   }
 
