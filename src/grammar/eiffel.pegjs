@@ -272,7 +272,7 @@ GenericParameter
 GenericConstraint
   = w "->" w cons:ConstrainingTypes crs:ConstraintCreators?
   {
-    console.warn("Generic constraint: not implemented");
+    // console.warn("Generic constraint: not implemented");
     return {
       cons: cons,
       creators: crs,
@@ -292,7 +292,7 @@ SingleConstraint
 ConstraintCreators
   = W CreateToken W is:IdentifierList W EndToken
   {
-    console.warn("Constraint Creators: Not implemented");
+    // console.warn("Constraint Creators: Not implemented");
     return is;
   }
 
@@ -790,9 +790,9 @@ FirstExpr
   / NonObjectCall
   / TupleExpression
   / ResultExpression
-  / i:IdentifierAccess a:Args
+  / start:pos i:IdentifierAccess a:Args end:pos
   {
-    return new eiffel.ast.UnqualifiedCallExpression(i, a);
+    return new eiffel.ast.UnqualifiedCallExpression(i, a, start, end);
   }
   / IdentifierAccess
   / StringLiteral
@@ -839,9 +839,9 @@ FactorExpr
   / Agent
 
 TypeExpression
-  = "{" w t:Type w "}"
+  = start:pos "{" w t:Type w "}" end:pos
   {
-    return new eiffel.ast.TypeExpression(t);
+    return new eiffel.ast.TypeExpression(t, start, end);
   }
 
 
@@ -914,6 +914,9 @@ CallAgent
 
 InlineAgent
   = "not implemented"
+  {
+    console.error("Inline agent not implemented");
+  }
 
 IllegalAfterKeyword
   = Letter
