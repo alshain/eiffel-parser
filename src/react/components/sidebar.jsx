@@ -22,7 +22,7 @@ var Sidebar = React.createClass({
     return (
       <div className="eiffel-sidebar">
         {this.state.hierarchy ? this.state.hierarchy.map(ast => <div>{ast.constructor.name}</div>) : ""}
-       Sidebar with explanations
+
       </div>
     );
   }

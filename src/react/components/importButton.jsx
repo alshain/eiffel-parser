@@ -1,6 +1,6 @@
 let React = require('react');
 let mui = require('material-ui');
-import {RaisedButton, Tab} from 'material-ui';
+import {RaisedButton, Tab, IconButton} from 'material-ui';
 let InlineCss = require('react-inline-css');
 let FileDragAndDrop = require('react-file-drag-and-drop');
 let Codemirror = require('react-codemirror');
@@ -30,9 +30,9 @@ var ImportButton = React.createClass({
 
   render: function () {
     return (
-      <RaisedButton onClick={this._click} style={{float: 'left', margin: '10px 24px', 'marginRight': '0'}} {...this.props} ref="button" label="Import Files" >
+      <IconButton iconClassName="eiffel-icon-file_upload" onClick={this._click} style={{float: 'left', margin: '4px 4px', 'marginLeft': '0'}} {...this.props} ref="button" tooltip="Import Files" >
         <form ref="form"><input onChange={this._onChange} ref="fileInput" type="file" multiple style={{display: 'none'}} /></form>
-      </RaisedButton>
+      </IconButton>
     );
 
   }

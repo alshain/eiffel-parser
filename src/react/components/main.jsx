@@ -4,11 +4,13 @@ let React = require('react');
 let mui = require('material-ui');
 let LoadingScreen = require('./loading.jsx');
 let Welcome = require('./welcome.jsx');
-let {AppBar, LeftNav, MenuItem, ToolbarGroup, Toolbar, RaisedButton, ToolbarSeparator, Dialog, FontIcon, CircularProgress } = mui;
+let {AppBar, LeftNav, MenuItem, ToolbarGroup, Toolbar, RaisedButton, ToolbarSeparator, Dialog, FontIcon, CircularProgress, IconButton } = mui;
 let ThemeManager = new mui.Styles.ThemeManager();
 let Colors = mui.Styles.Colors;
 import ImportButton from './importButton.jsx';
 let Workspace = require('./workspace.jsx');
+let JSZip = require('jszip');
+let saveAs = require('browser-filesaver');
 
 let importOnDrop = require('../util/importOnDrop');
 
@@ -60,7 +62,12 @@ let Main = React.createClass({
   _onImport: function() {
     this.refs.importDialog.show();
   },
-
+  _onExport: function() {
+    let zip = new JSZip();
+    this.props.model.activeWorkspace.files.forEach(file => zip.file(file.filename, file.code));
+    var content = zip.generate({type: "blob"});
+    saveAs(content, "export.zip");
+  },
   render: function() {
     var model = this.props.model;
 
@@ -120,7 +127,7 @@ let Main = React.createClass({
                   props.secondary = true;
                 }
 
-                return <RaisedButton iconClassName={iconClassName} style={buttonMargin} label={"Workspace " + (i + 1) + ""} {...props} onTouchTap={() => w.setActive()} />
+                return <RaisedButton key={w.reactKey} iconClassName={iconClassName} style={buttonMargin} label={"Workspace " + (i + 1) + ""} {...props} onTouchTap={() => w.setActive()} />
               })}
             </ToolbarGroup>
             <ToolbarGroup key={1} float="right">
@@ -128,14 +135,16 @@ let Main = React.createClass({
               {
                 // examplesButton
               }
+              <IconButton iconClassName="eiffel-icon-add" tooltip="Add Workspace" onTouchTap={model.addWorkspace.bind(model)}/>
+              <IconButton iconClassName="eiffel-icon-delete" tooltip="Delete Workspace" onTouchTap={model.deleteWorkspace.bind(model)}/>
               <ImportButton model={model} onFileRead={(...args) => model.activeWorkspace.importFile(...args)} />
-              <RaisedButton label="New Workspace" onClick={model.addWorkspace.bind(model)} />
+              <IconButton iconClassName="eiffel-icon-file_download" tooltip="Download Files" onTouchTap={this._onExport} />
             </ToolbarGroup>
           </Toolbar>
           {
-            model.workspaces.map(w => <Workspace style={{flex: 2, overflow:'auto', flexDirection: 'column', display: w.active ? 'flex' : 'none'}} workspace={w} />)
+            model.workspaces.map(w => <Workspace key={w.reactKey} style={{flex: 2, overflow:'auto', flexDirection: 'column', display: w.active ? 'flex' : 'none'}} workspace={w} />)
           }
-      </div>
+        </div>
       );
     }
     else {

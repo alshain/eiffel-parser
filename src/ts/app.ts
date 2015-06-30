@@ -23,6 +23,8 @@ module eiffel.app {
       }
     }
 
+    nextWorkspaceId: number = 0;
+
     isInitialized: boolean = false;
     loadingProgress: number = 0;
 
@@ -57,10 +59,29 @@ module eiffel.app {
     }
 
     addWorkspace() {
-      var workspace = new Workspace(this);
+      var workspace = new Workspace(this, this.nextWorkspaceId);
       this.workspaces.push(workspace);
       workspace.setActive();
       this.update();
+      this.nextWorkspaceId++;
+    }
+
+    deleteWorkspace() {
+      var currentIndex = this.workspaces.indexOf(this.activeWorkspace);
+      if (currentIndex === -1) {
+        console.error("Active workspace not found in array");
+        debugger;
+      }
+      this.workspaces.splice(currentIndex, 1);
+      if (currentIndex > 0) {
+        this.workspaces[currentIndex - 1].setActive();
+      }
+      else if (currentIndex === 0 && this.workspaces.length >= 1) {
+        this.workspaces[currentIndex].setActive();
+      }
+      else if (this.workspaces.length === 0) {
+        this.addWorkspace();
+      }
     }
 
     private finishInitialization() {
@@ -86,10 +107,12 @@ module eiffel.app {
   }
 
   export class Workspace {
-    constructor(model:eiffel.app.Model) {
+    constructor(model:eiffel.app.Model, reactKey: number) {
       this.model = model;
+      this.reactKey = reactKey;
     }
 
+    reactKey: number;
     model: Model;
     active: boolean;
     analysis: eiffel.semantics.AnalysisResult;
@@ -123,6 +146,10 @@ module eiffel.app {
 
       file.onParseSuccessful.subscribe(() => {
         this.hasError = this.files.some(f => f.hasError);
+        if (!this.hasError) {
+          this.hasError = false;
+          //this.analyze();
+        }
         this.model.update();
       });
       this.model.update();
