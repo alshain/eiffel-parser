@@ -4,6 +4,23 @@
 /// <reference path="fromJS.d.ts" />
 
 module eiffel.steps {
+  import sym = eiffel.symbols;
+  import TypeInstance = sym.TypeInstance;
+  import LookupTable = eiffel.util.LookupTable;
+
+  import ExecutionEdge = eiffel.util.ExecutionEdge;
+  import ExecutionGraph = eiffel.util.ExecutionGraph;
+  import ExecutionGraph = eiffel.util.ExecutionGraph;
+  import ExecutionNode = eiffel.util.ExecutionNode;
+
+  export class StepData {
+    summary: string;
+
+    constructor(summary:string) {
+      this.summary = summary;
+    }
+  }
+
   export class Steps extends eiffel.ast.Visitor<eiffel.ast.AST, any> {
     vClass(_class:eiffel.ast.Class, arg:eiffel.ast.AST):any {
       return undefined;
@@ -424,6 +441,9 @@ module eiffel.steps {
     }
 
     vFunction(func:eiffel.ast.Function, arg:eiffel.ast.AST):any {
+      var graph = new ExecutionGraph();
+
+
       return super.vFunction(func, arg);
     }
 

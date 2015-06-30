@@ -274,4 +274,49 @@ module eiffel.util {
     }
     return one;
   }
+
+  export class ExecutionEdge<N, E> {
+    constructor(label: string, data: E, fromNode, toNode) {
+      this.fromNode = fromNode;
+      this.toNode = toNode;
+
+      this.fromIndex = fromNode.edgesOut.length;
+      this.toIndex = toNode.edgesIn.length;
+
+      fromNode.edgesOut.push(this);
+      toNode.edgesIn.push(this);
+
+      this.label = label;
+      this.data = data;
+    }
+
+
+    label: string;
+    data: E;
+
+    fromIndex: number;
+    toIndex: number;
+
+    fromNode: ExecutionNode<N, E>;
+    toNode: ExecutionNode<N, E>;
+  }
+
+  export class ExecutionNode<N, E> {
+    edgesOut: ExecutionEdge<N, E>[] = [];
+    edgesIn: ExecutionEdge<N, E>[] = [];
+    belongingGraph: ExecutionGraph<N, E>;
+    subGraph: ExecutionGraph<N, E>;
+    data: N;
+
+    connectTo(to: ExecutionNode<N, E>, label: string, data: E) {
+      new ExecutionEdge<N, E>(label, data, this, to);
+      return to;
+    }
+
+    connectNew(data: N, label: string, edgeData: E);
+  }
+
+  export class ExecutionGraph<N, E> {
+    entryPoint: ExecutionNode<N>;
+  }
 }
