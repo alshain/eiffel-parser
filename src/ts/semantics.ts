@@ -1440,9 +1440,14 @@ module eiffel.semantics {
         setTimeout(parseOne, 50);
       }
       else {
-        builtinContext = analyze(parsed).context;
-        if (done) {
-          done(builtinContext);
+        try {
+          builtinContext = analyze(parsed).context;
+          if (done) {
+            done(builtinContext);
+          }
+        }
+        catch (e) {
+          console.error("Analysis error: ", e);
         }
       }
     }
