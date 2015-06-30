@@ -92,7 +92,7 @@ gulp.task('build', ["peg", "typescript", "typescriptTests", "collectTests", "vee
     .pipe(gulp.dest("dist"));
 });
 
-gulp.task('default', ["all", "serve"]);
+gulp.task('default', ["watch-react", "all", "serve"]);
 
 gulp.task("serve", function() {
  browserSync.create().init({
