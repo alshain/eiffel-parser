@@ -5,7 +5,6 @@ import {Tabs, Tab} from 'material-ui';
 let Editor = require('./editor.jsx');
 let Statusbar = require('./statusbar.jsx');
 let Sidebar = require('./sidebar.jsx');
-var FileDragAndDrop = require('react-file-drag-and-drop');
 
 var Workspace = React.createClass({
   propTypes: {
