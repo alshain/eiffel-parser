@@ -1430,7 +1430,8 @@ module eiffel.semantics {
         parseNext();
       }
       catch (e) {
-        error(e);
+        error && error(e);
+        parseError(source, e);
       }
     }
 
