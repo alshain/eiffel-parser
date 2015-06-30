@@ -566,22 +566,28 @@ module eiffel.ast {
   }
 
   export class TypeExpression extends AST implements Expression {
-    constructor(rt: eiffel.ast.Type) {
+    constructor(rt: eiffel.ast.Type, start: Pos, end: Pos) {
       super(this);
       this.rt = rt;
 
       this.children.push(this.rt);
+
+      this.start = start;
+      this.end = end;
     }
 
     rt: Type;
     sym: TypeInstance;
+
+    start: Pos;
+    end: Pos;
 
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vTypeExpression(this, arg);
     }
 
     deepClone() {
-      return new TypeExpression(deepClone(this.rt));
+      return new TypeExpression(deepClone(this.rt), deepClone(this.start), deepClone(this.end));
     }
   }
 
@@ -1632,13 +1638,16 @@ module eiffel.ast {
   }
 
   export class UnqualifiedCallExpression extends AST implements Expression, VisitorAcceptor {
-    constructor(identifier: eiffel.ast.IdentifierAccess, parameters:eiffel.ast.Expression[]) {
+    constructor(identifier: eiffel.ast.IdentifierAccess, parameters:eiffel.ast.Expression[], start: Pos, end: Pos) {
       super(this);
       this.identifier = identifier;
       this.parameters = parameters;
 
       this.children.push(this.identifier);
       Array.prototype.push.apply(this.children, parameters);
+
+      this.start = start;
+      this.end = end;
     }
 
     sym: TypeInstance;
@@ -1647,12 +1656,15 @@ module eiffel.ast {
     identifier: IdentifierAccess;
     parameters: Expression[];
 
+    start: Pos;
+    end: Pos;
+
     accept<A, R>(visitor:Visitor<A, R>, arg:A):R {
       return visitor.vUnqualifiedCallExpression(this, arg);
     }
 
     deepClone() {
-      return new UnqualifiedCallExpression(deepClone(this.identifier), duplicateAll(this.parameters));
+      return new UnqualifiedCallExpression(deepClone(this.identifier), duplicateAll(this.parameters), deepClone(this.start), deepClone(this.end));
     }
   }
 
