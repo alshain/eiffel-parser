@@ -21,7 +21,6 @@ module eiffel.app {
       else {
         this.finishInitialization();
       }
-      console.log(this);
     }
 
     isInitialized: boolean = false;
