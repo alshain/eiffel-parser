@@ -1,10 +1,10 @@
 @font-face {
 	font-family: 'eiffel-icons';
-	src:url('fonts/eiffel-icons.eot?st8865');
-	src:url('fonts/eiffel-icons.eot?#iefixst8865') format('embedded-opentype'),
-		url('fonts/eiffel-icons.ttf?st8865') format('truetype'),
-		url('fonts/eiffel-icons.woff?st8865') format('woff'),
-		url('fonts/eiffel-icons.svg?st8865#eiffel-icons') format('svg');
+	src:url('fonts/eiffel-icons.eot?-k2xmtt');
+	src:url('fonts/eiffel-icons.eot?#iefix-k2xmtt') format('embedded-opentype'),
+		url('fonts/eiffel-icons.ttf?-k2xmtt') format('truetype'),
+		url('fonts/eiffel-icons.woff?-k2xmtt') format('woff'),
+		url('fonts/eiffel-icons.svg?-k2xmtt#eiffel-icons') format('svg');
 	font-weight: normal;
 	font-style: normal;
 }
@@ -89,6 +89,9 @@
 .eiffel-icon-live_help:before {
 	content: "\e050";
 }
+.eiffel-icon-add:before {
+	content: "\e069";
+}
 .eiffel-icon-backspace:before {
 	content: "\e06e";
 }
@@ -163,6 +166,9 @@
 }
 .eiffel-icon-memory:before {
 	content: "\e11d";
+}
+.eiffel-icon-dehaze:before {
+	content: "\e15c";
 }
 .eiffel-icon-arrow_back:before {
 	content: "\e200";
@@ -287,11 +293,20 @@
 .eiffel-icon-done_all:before {
 	content: "\e28b";
 }
+.eiffel-icon-feedback:before {
+	content: "\e293";
+}
+.eiffel-icon-get_app:before {
+	content: "\e298";
+}
 .eiffel-icon-help:before {
 	content: "\e29b";
 }
 .eiffel-icon-highlight_remove:before {
 	content: "\e29c";
+}
+.eiffel-icon-home:before {
+	content: "\e29e";
 }
 .eiffel-icon-hourglass_empty:before {
 	content: "\e29f";
@@ -304,6 +319,12 @@
 }
 .eiffel-icon-info_outline:before {
 	content: "\e2a3";
+}
+.eiffel-icon-label:before {
+	content: "\e2a6";
+}
+.eiffel-icon-label_outline:before {
+	content: "\e2a7";
 }
 .eiffel-icon-report_problem:before {
 	content: "\e2c6";
@@ -325,6 +346,12 @@
 }
 .eiffel-icon-help_outline:before {
 	content: "\e30f";
+}
+.eiffel-icon-zoom_in:before {
+	content: "\e311";
+}
+.eiffel-icon-zoom_out:before {
+	content: "\e312";
 }
 .eiffel-icon-indeterminate_check_box:before {
 	content: "\e319";
