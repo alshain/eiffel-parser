@@ -95,6 +95,8 @@ module eiffel.app {
     analysis: eiffel.semantics.AnalysisResult;
     files: EiffelFile[] = [];
     hasError: boolean;
+    hasParseError: boolean;
+    errorMessage: string = "";
 
     analyze() {
       var astsArray = this.files.map((f) => {return {filename: f.filename, asts: f.asts}});
@@ -137,10 +139,36 @@ module eiffel.app {
         setTimeout(() => cm.refresh(), 100);
       });
 
+      var displayAstHint = () => {
+        if (this.hasError) {
+          this.astHierarchy = undefined;
+          this.onAstHierarchyChange.trigger(undefined);
+        }
+        else {
+          function sortIntervalsByLengthDescending(i_a, i_b) {
+            var lengthA = i_a.end - i_a.start;
+            var lengthB = i_b.end - i_b.start;
+            return lengthB - lengthA;
+          }
+          var astMapping = this.astMapping;
+          var offset = this.codeMirror.indexFromPos(this.codeMirror.getCursor());
+          astMapping.query({point: offset}, (interval) => {
+
+            // sort by length and get data, i.e. corresponding AST node
+            var sorted = interval.sort(sortIntervalsByLengthDescending).map(x => x.data);
+            if (this.differentAstHierarchies(this.astHierarchy, sorted)) {
+              this.astHierarchy = sorted;
+              this.onAstHierarchyChange.trigger(sorted);
+              console.log(sorted);
+            }
+          });
+          //sTree.matches(astMapping, )
+        }
+      };
+
       this.onParseSuccessful.subscribe((_, asts) => {
         var ranges = new eiffel.explain.RangeGatherer();
         asts.map(ast => ast.accept(ranges, null));
-        console.log(ranges);
         var segmentTree = null;
         sTree(function(tree) {
           segmentTree = tree;
@@ -151,38 +179,16 @@ module eiffel.app {
         });
 
         this.astMapping = segmentTree;
+        displayAstHint();
       });
 
       this.onError.subscribe(() => {
         this.astMapping = undefined;
+        displayAstHint();
       });
 
       this.onSetCodeMirror.subscribe(() => {
-        this.codeMirror.on("cursorActivity", (cm) => {
-          if (this.hasError) {
-            // Do nothing
-          }
-          else {
-            function sortIntervalsByLengthDescending(i_a, i_b) {
-              var lengthA = i_a.end - i_a.start;
-              var lengthB = i_b.end - i_b.start;
-              return lengthB - lengthA;
-            }
-            var astMapping = this.astMapping;
-            var offset = cm.indexFromPos(cm.getCursor());
-            astMapping.query({point: offset}, (interval) => {
-
-              // sort by length and get data, i.e. corresponding AST node
-              var sorted = interval.sort(sortIntervalsByLengthDescending).map(x => x.data);
-              if (this.differentAstHierarchies(this.astHierarchy, sorted)) {
-                this.astHierarchy = sorted;
-                this.onAstHierarchyChange.trigger(sorted);
-                console.log(sorted);
-              }
-            });
-            //sTree.matches(astMapping, )
-          }
-        })
+        this.codeMirror.on("cursorActivity", displayAstHint);
       });
     }
 
