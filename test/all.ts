@@ -298,17 +298,10 @@ function testAll() {
     var expected = n_s_t_e[3];
 
     test(name, function() {
-      var actual = eiffel.parser.parse(expression, {startRule: start});
+      var actual = eiffel.parser.parse(<string>  <any> expression, {startRule: start});
       okAst(compareAst(expected, actual));
 
     });
-  });
-
-  QUnit.module("AstTraversal");
-  test("should return correct class name", function() {
-    var ast = eiffel.parser.parse("class CLASSNAME end");
-    var trav = new eiffel.AstTraversal(ast[0]);
-    equal("CLASSNAME", trav.className());
   });
 
   QUnit.module("Analyzer");
