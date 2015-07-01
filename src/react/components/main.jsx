@@ -97,7 +97,7 @@ _onDelete: function() {
 
 
     if (eiffel.app.debug || model.isInitialized) {
-      let errorDialogu = undefined;
+      let errorDialogue = undefined;
       if (window.location.protocol === 'file:') {
         errorDialogue = <Dialog actionFocus="ok" title="Import unavailable" openImmediately={true} modal={true} actions={[{text: 'Ok', ref: 'ok'}]}>
           Sorry, but you cannot import files when accessing this web page directly from your local hard drive.
@@ -119,8 +119,8 @@ _onDelete: function() {
         { type: MenuItem.Types.SUBHEADER, text: 'Projects' },
       ];
 
-      let appBar = <AppBar title='eiffel-parser' onLeftIconButtonTouchTap={() => this.refs.leftNav.toggle()} />;
-      let leftNav = <LeftNav ref="leftNav" docked={false} menuItems={menuItems} selectedIndex={1} />;
+      //let appBar = <AppBar title='eiffel-parser' onLeftIconButtonTouchTap={() => this.refs.leftNav.toggle()} />;
+      //let leftNav = <LeftNav ref="leftNav" docked={false} menuItems={menuItems} selectedIndex={1} />;
 
       let fileDeleteButton = <FloatingActionButton onTouchTap={this._onDelete} secondary={true} mini={true} disabled={this.model.activeWorkspace.files.length === 0} iconClassName="eiffel-icon-delete"  tooltip="Delete File" style={{position: 'absolute', right: '116px', bottom: '154px'}} />;
 
@@ -131,7 +131,7 @@ _onDelete: function() {
       });
       return (
         <div style={{display: 'flex', height: '100%', 'flexFlow': 'column'}}>
-          { errorDialogu }
+          { errorDialogue }
           {
             //importDialog
           }
