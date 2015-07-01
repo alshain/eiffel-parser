@@ -358,12 +358,13 @@ module eiffel.app {
     }
 
     updateCode(code: string) {
+      var parseDelayInMs = 300;
       this.code = code;
       clearTimeout(this.timeout);
       this.timeout = setTimeout(() => {
         this.parse();
 
-      }, 200);
+      }, parseDelayInMs);
     }
 
     onActivate: Event = new Event("onActivate");
