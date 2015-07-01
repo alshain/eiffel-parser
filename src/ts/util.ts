@@ -35,14 +35,32 @@ module eiffel.util {
   }
 
   export function cartesianProduct<T>(...arrays: T[][]): T[][] {
-    return _.reduce(arrays, function (reduced, values) {
+    return arrays.reduce(function (reduced, values) {
       var partialCartesians = reduced;
-      return _.flatten(_.map(partialCartesians, function (partialCartesian) {
-          return _.map(<any> values, function (value) {
+      return flatten(partialCartesians.map(function (partialCartesian) {
+          return values.map(function (value) {
             return partialCartesian.concat([value]);
           });
-      }), true);
+      }));
     }, [[]]);
+  }
+
+  export function flatten<T>(xs: T[][]) {
+    var result = [];
+    xs.forEach(x => {
+      Array.prototype.push.apply(result, x);
+    });
+    return result;
+  }
+
+  export function all<T>(xs: T[], f: (x: T) => boolean): boolean {
+    for (var i = 0; i < xs.length; i++) {
+      var x = xs[i];
+      if (!f(x)) {
+        return false;
+      }
+    }
+    return true;
   }
 
   export function pairs<T>(ts: T[]): [T, T][] {

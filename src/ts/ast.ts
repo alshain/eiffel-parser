@@ -409,7 +409,7 @@ module eiffel.ast {
       this.localToken = localToken;
       this.children.push(this.localToken);
       this.linesOfVarDeclLists = linesOfVarDeclLists;
-      this.varDeclLists = _.flatten(linesOfVarDeclLists);
+      this.varDeclLists = eiffel.util.flatten(linesOfVarDeclLists);
       Array.prototype.push.apply(this.children, this.varDeclLists);
 
       this.start = start;

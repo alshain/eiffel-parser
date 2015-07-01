@@ -180,7 +180,7 @@ module eiffel.semantics {
       context.errors.uncategorized("Too many generic arguments, you can only have " + expectedParamCount + ", but you have " + actualParamCount);
     }
 
-    instance.typeParameters.forEach(<(TypeInstance) => void> _.partial(validateTypeInstance, _, context));
+    instance.typeParameters.forEach((actualType) => validateTypeInstance(actualType, context));
   };
 
   var initParentTypeInstancesAndValidate = function initParentTypeInstancesAndValidate(analysisContext: AnalysisContext): void {
@@ -205,7 +205,7 @@ module eiffel.semantics {
     });
 
     // Validate all
-    typeInstances.map(<any> _.partial(validateTypeInstance, _, analysisContext));
+    typeInstances.map((typeInstance) => validateTypeInstance(typeInstance, analysisContext));
   };
 
 
@@ -1205,7 +1205,7 @@ module eiffel.semantics {
        * Also add second element (might also be first element because of push() above^
        */
       descendants.push(descendants[1]);
-      this.add(SemanticErrorKind.InheritanceCycle, "... -> " + _.pluck(descendants, "name").join(" -> ") + " -> ...");
+      this.add(SemanticErrorKind.InheritanceCycle, "... -> " + descendants.map(x => x.name).join(" -> ") + " -> ...");
     }
 
     uncategorized(message: string): void {

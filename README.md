@@ -12,7 +12,6 @@ NodeJS is required.
 
     npm install
     npm install -g gulp
-    bower install
 
 ## Usage
 

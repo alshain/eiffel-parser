@@ -417,7 +417,7 @@ module eiffel.symbols {
       }
 
       var zipped = eiffel.util.zip(this.arguments, other.arguments);
-      return _.every(zipped, (x_y) => x_y[0].equals(x_y[0]));
+      return eiffel.util.all(zipped, (x_y) => x_y[0].equals(x_y[0]));
     }
 
     /**
