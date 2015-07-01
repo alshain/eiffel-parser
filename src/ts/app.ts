@@ -169,7 +169,7 @@ module eiffel.app {
     }
 
     addEmptyFile() {
-      var file = new EiffelFile(null, "class TEST end", this.nextFileId, this);
+      var file = new EiffelFile(null, "", this.nextFileId, this);
       this.nextFileId++;
       this.addFile(file);
     }
