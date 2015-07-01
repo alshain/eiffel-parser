@@ -1,10 +1,10 @@
 @font-face {
 	font-family: 'eiffel-icons';
-	src:url('fonts/eiffel-icons.eot?-k2xmtt');
-	src:url('fonts/eiffel-icons.eot?#iefix-k2xmtt') format('embedded-opentype'),
-		url('fonts/eiffel-icons.ttf?-k2xmtt') format('truetype'),
-		url('fonts/eiffel-icons.woff?-k2xmtt') format('woff'),
-		url('fonts/eiffel-icons.svg?-k2xmtt#eiffel-icons') format('svg');
+	src:url('fonts/eiffel-icons.eot?x4pvde');
+	src:url('fonts/eiffel-icons.eot?#iefixx4pvde') format('embedded-opentype'),
+		url('fonts/eiffel-icons.ttf?x4pvde') format('truetype'),
+		url('fonts/eiffel-icons.woff?x4pvde') format('woff'),
+		url('fonts/eiffel-icons.svg?x4pvde#eiffel-icons') format('svg');
 	font-weight: normal;
 	font-style: normal;
 }
@@ -100,6 +100,9 @@
 }
 .eiffel-icon-clear:before {
 	content: "\e070";
+}
+.eiffel-icon-create:before {
+	content: "\e074";
 }
 .eiffel-icon-flag:before {
 	content: "\e077";

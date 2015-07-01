@@ -784,6 +784,36 @@
 		{
 			"icon": {
 				"paths": [
+					"M884 300l-78 78-160-160 78-78q12-12 30-12t30 12l100 100q12 12 12 30t-12 30zM128 736l472-472 160 160-472 472h-160v-160z"
+				],
+				"attrs": [
+					{}
+				],
+				"isMulticolor": false,
+				"tags": [
+					"create"
+				],
+				"defaultCode": 57460,
+				"grid": 24
+			},
+			"attrs": [
+				{}
+			],
+			"properties": {
+				"order": 134,
+				"id": 116,
+				"prevSize": 24,
+				"code": 57460,
+				"name": "create",
+				"ligatures": "create"
+			},
+			"setIdx": 0,
+			"setId": 3,
+			"iconIdx": 116
+		},
+		{
+			"icon": {
+				"paths": [
 					"M614 256h240v426h-300l-16-84h-240v298h-84v-726h384z"
 				],
 				"attrs": [
@@ -3443,7 +3473,8 @@
 			"showSelector": false,
 			"showMetrics": false,
 			"showMetadata": false,
-			"showVersion": false
+			"showVersion": false,
+			"autoHost": true
 		},
 		"imagePref": {
 			"prefix": "icon-",
@@ -3453,6 +3484,10 @@
 			"bgColor": 16777215
 		},
 		"historySize": 100,
-		"showCodes": false
+		"showCodes": false,
+		"quickUsageToken": {
+			"UntitledProject": "OGQ4NDc4NGQ2OTYwZTNiMWUwYWJiMmU2MDljYjllM2MjMSMxNDM1NjgzOTE0IyMj"
+		},
+		"fontHostingName": false
 	}
 }
