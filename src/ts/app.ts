@@ -120,9 +120,11 @@ module eiffel.app {
     hasError: boolean;
     hasParseError: boolean;
     errorMessage: string = "";
+    nextFileId: number = 0;
+    activeFile: EiffelFile;
 
     analyze() {
-      var astsArray = this.files.map((f) => {return {filename: f.filename, asts: f.asts}});
+      var astsArray = this.files.map((f) => {return {filename: f.getFilename(), asts: f.asts}});
       this.analysis = eiffel.semantics.analyze(astsArray);
     }
 
@@ -137,8 +139,19 @@ module eiffel.app {
     }
 
     importFile(filename: string, content: string) {
-      var file = new EiffelFile(filename, content);
+      var file = new EiffelFile(filename, content, this.nextFileId, this);
+      this.nextFileId++;
+      this.addFile(file);
+    }
+
+    addFile(file) {
       this.files.push(file);
+
+      if (this.files.length === 1) {
+        this.activeFile = file;
+        file.isActive = true;
+      }
+
       file.onError.subscribe(() => {
         this.hasError = true;
         this.model.update();
@@ -154,22 +167,56 @@ module eiffel.app {
       });
       this.model.update();
     }
+
+    addEmptyFile() {
+      var file = new EiffelFile(null, "", this.nextFileId, this);
+      this.nextFileId++;
+      this.addFile(file);
+    }
+
+    removeFile(file: EiffelFile) {
+      var index = this.files.indexOf(file);
+      if (index === -1) {
+        console.error("Requested deletion of unmanaged file", file);
+        if (eiffel.app.debug) {
+          debugger;
+        }
+
+        return false;
+      }
+      else {
+        this.files.splice(index, 1);
+
+        return true;
+      }
+    }
   }
 
   export class EiffelFile {
-
-    constructor(filename: string, content: string) {
+    constructor(filename: string, content: string, reactKey: number, workspace: Workspace) {
       this.filename = filename;
+      this.dynamicFilename = undefined;
       this.code = content;
-      this.onActivate.subscribe((cm) => {
+      this.reactKey = reactKey;
+      this.workspace = workspace;
+      this.onActivate.subscribe(() => {
+        if (this.workspace.activeFile) {
+          console.log("set active file to", this.getFilename());
+          this.workspace.activeFile.isActive = false;
+        }
         this.isActive = true;
-        setTimeout(() => cm.refresh(), 100);
+        this.workspace.activeFile = this;
+
+        setTimeout(() => this.codeMirror.refresh(), 100);
       });
 
       var displayAstHint = () => {
         if (this.hasError) {
           this.astHierarchy = undefined;
           this.onAstHierarchyChange.trigger(undefined);
+        }
+        else if (this.astMapping === null) {
+          // This means we have an empty file
         }
         else {
           function sortIntervalsByLengthDescending(i_a, i_b) {
@@ -196,16 +243,22 @@ module eiffel.app {
       this.onParseSuccessful.subscribe((_, asts) => {
         var ranges = new eiffel.explain.RangeGatherer();
         asts.map(ast => ast.accept(ranges, null));
-        var segmentTree = null;
-        sTree(function(tree) {
-          segmentTree = tree;
-          ranges.ranges.forEach((range) => {
-            tree.push(range.start, range.end, range.id);
+        if(ranges.ranges.length > 0) {
+          var segmentTree = null;
+          sTree(function(tree) {
+            segmentTree = tree;
+            ranges.ranges.forEach((range) => {
+              tree.push(range.start, range.end, range.id);
+            });
+            tree.build();
           });
-          tree.build();
-        });
+          this.astMapping = segmentTree;
+          console.log(this.astMapping);
+        }
+        else {
+          this.astMapping = null;
+        }
 
-        this.astMapping = segmentTree;
         displayAstHint();
       });
 
@@ -245,7 +298,33 @@ module eiffel.app {
       }
     }
 
-    filename: string;
+    getFilename() {
+      var unnamedFilename = "Unnamed File " + (this.reactKey + 1);
+      if (this.filename) {
+        return this.filename;
+      }
+      else {
+        if (this.hasError) {
+          if (this.dynamicFilename) {
+            return this.dynamicFilename;
+          }
+          else {
+            return unnamedFilename;
+          }
+        }
+        else if (this.asts && this.asts.length >= 1) {
+          this.dynamicFilename = this.asts[0].name.name + ".e";
+          return this.dynamicFilename;
+        }
+        else {
+          return unnamedFilename;
+        }
+      }
+    }
+
+    private filename: string;
+    private dynamicFilename: string;
+    reactKey: number;
     asts: eiffel.ast.Class[];
     hasError: boolean;
     code: string;
@@ -256,6 +335,7 @@ module eiffel.app {
     isActive: boolean;
     codeMirror: any;
     astMapping: any;
+    workspace: Workspace;
 
     astHierarchy: eiffel.ast.AST[];
 
@@ -280,10 +360,10 @@ module eiffel.app {
     updateCode(code: string) {
       this.code = code;
       clearTimeout(this.timeout);
-      setTimeout(() => {
+      this.timeout = setTimeout(() => {
         this.parse();
 
-      }, 500);
+      }, 200);
     }
 
     onActivate: Event = new Event("onActivate");

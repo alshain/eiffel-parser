@@ -4,7 +4,9 @@ let React = require('react');
 let mui = require('material-ui');
 let LoadingScreen = require('./loading.jsx');
 let Welcome = require('./welcome.jsx');
-let {AppBar, LeftNav, MenuItem, ToolbarGroup, Toolbar, RaisedButton, ToolbarSeparator, Dialog, FontIcon, CircularProgress, IconButton } = mui;
+let {ToolbarGroup, Toolbar} = mui;
+let {Snackbar} = mui;
+let {AppBar, LeftNav, MenuItem, FloatingActionButton, RaisedButton, ToolbarSeparator, Dialog, FontIcon, CircularProgress, IconButton } = mui;
 let ThemeManager = new mui.Styles.ThemeManager();
 let Colors = mui.Styles.Colors;
 import ImportButton from './importButton.jsx';
@@ -25,6 +27,7 @@ let Main = React.createClass({
       showTutorial: true,
       activeWorkspace: 0,
       loadingFromGithub: true,
+      deleted: undefined,
     };
   },
 
@@ -64,9 +67,30 @@ let Main = React.createClass({
   },
   _onExport: function() {
     let zip = new JSZip();
-    this.props.model.activeWorkspace.files.forEach(file => zip.file(file.filename, file.code));
+    this.props.model.activeWorkspace.files.forEach(file => zip.file(file.getFilename(), file.code));
     var content = zip.generate({type: "blob"});
     saveAs(content, "export.zip");
+  },
+  _onUndelete: function() {
+    if (this.state.deleted) {
+      this.model.activeWorkspace.addFile(this.state.deleted);
+      this.setState({
+        deleted: undefined,
+      });
+    }
+    else {
+      console.error("Cannot undelete file", this.state.deleted);
+    }
+  },
+_onDelete: function() {
+  var deleted = this.model.activeWorkspace.activeFile;
+  this.model.activeWorkspace.removeFile(deleted);
+  this.setState({
+      deleted
+    });
+  },
+  _onNewFile: function() {
+    this.model.activeWorkspace.addEmptyFile();
   },
   render: function() {
     var model = this.props.model;
@@ -98,6 +122,8 @@ let Main = React.createClass({
       let appBar = <AppBar title='eiffel-parser' onLeftIconButtonTouchTap={() => this.refs.leftNav.toggle()} />;
       let leftNav = <LeftNav ref="leftNav" docked={false} menuItems={menuItems} selectedIndex={1} />;
 
+      let fileDeleteButton = <FloatingActionButton onTouchTap={this._onDelete} secondary={true} mini={true} disabled={this.model.activeWorkspace.files.length === 0} iconClassName="eiffel-icon-delete"  tooltip="Delete File" style={{position: 'absolute', right: '116px', bottom: '154px'}} />;
+
 
 
       model.workspaces.forEach((workspace, i) => {
@@ -113,6 +139,7 @@ let Main = React.createClass({
           {
             // appBar
             // leftNav
+
           }
 
           <Toolbar>
@@ -144,6 +171,11 @@ let Main = React.createClass({
           {
             model.workspaces.map(w => <Workspace key={w.reactKey} style={{flex: 2, overflow:'auto', flexDirection: 'column', display: w.active ? 'flex' : 'none'}} workspace={w} />)
           }
+          {
+            fileDeleteButton
+          }
+          <FloatingActionButton onTouchTap={this._onNewFile} secondary={true} iconClassName="eiffel-icon-add"  tooltip="Hello" style={{position: 'absolute', right: '50px', bottom: '150px'}} />
+          <Snackbar message="File removed" action="undo" onActionTouchTap={this._onUndelete} />
         </div>
       );
     }
