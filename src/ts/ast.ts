@@ -48,6 +48,9 @@ module eiffel.ast {
     source: Source;
     _acceptor:VisitorAcceptor;
 
+    start: Pos;
+    end: Pos;
+
     deepClone() {
       console.error("Should not call this method, missing override in: " + this.constructor.name);
       debugger;
