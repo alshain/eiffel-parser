@@ -207,7 +207,10 @@ module eiffel.app {
         this.isActive = true;
         this.workspace.activeFile = this;
 
-        setTimeout(() => this.codeMirror.refresh(), 100);
+        setTimeout(() => {
+          this.codeMirror.refresh();
+          this.onAstHierarchyChange.trigger(this.astHierarchy);
+        }, 100);
       });
 
       var displayAstHint = () => {
@@ -217,6 +220,8 @@ module eiffel.app {
         }
         else if (this.astMapping === null) {
           // This means we have an empty file
+          this.astHierarchy = [];
+          this.onAstHierarchyChange.trigger(this.astHierarchy);
         }
         else {
           function sortIntervalsByLengthDescending(i_a, i_b) {
@@ -328,8 +333,8 @@ module eiffel.app {
     asts: eiffel.ast.Class[];
     hasError: boolean;
     code: string;
-    onError: Event = new Event("Editor.onParseError");
-    onParseSuccessful: Event = new Event("Editor.onParseSuccessful");
+    onError: OneOffEvent = new OneOffEvent("Editor.onParseError");
+    onParseSuccessful: OneOffEvent = new OneOffEvent("Editor.onParseSuccessful");
     onSetCodeMirror: OneOffEvent = new OneOffEvent("Editor.onSetCodeMirror");
     onAstHierarchyChange: Event = new Event("Editor.onAstHierarchyChange");
     isActive: boolean;
@@ -345,6 +350,8 @@ module eiffel.app {
         this.asts = eiffel.parser.parse(this.code);
         console.info("Parsing successful: " + this.filename);
         this.hasError = false;
+        this.onParseSuccessful.reset();
+        this.onError.reset();
         this.onParseSuccessful.trigger(this, this.asts);
       }
       catch(e) {
@@ -352,6 +359,8 @@ module eiffel.app {
           setTimeout(() => this.codeMirror.refresh(), 100);
         }
         this.hasError = true;
+        this.onParseSuccessful.reset();
+        this.onError.reset();
         this.onError.trigger(e.line, e.column, e);
         console.error("Parse error: ", e);
       }
@@ -420,7 +429,7 @@ module eiffel.app {
     executed: boolean = false;
     executedData: any = undefined;
 
-    trigger(data?) {
+    trigger(...data) {
       if (this.executed) {
         console.error("Invalid state: Event already triggered");
         debugger;
@@ -429,7 +438,7 @@ module eiffel.app {
         // do this before triggering, maybe prevent race conditions?
         this.executedData = data;
         this.executed = true;
-        super.trigger(data);
+        super.trigger.apply(this, data);
       }
     }
 

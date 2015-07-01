@@ -1454,6 +1454,7 @@ module eiffel.semantics {
         }
         catch (e) {
           console.error("Analysis error: ", e);
+          error && error(e);
         }
       }
     }

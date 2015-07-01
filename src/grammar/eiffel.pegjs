@@ -223,7 +223,7 @@
     return value !== null ? value : [];
   }
 }
-start = class*
+start = w cs:class* {return cs;}
 class
   = w start:pos note:Note? deferred:MaybeDeferred frozen:MaybeFrozen expanded:(e:ExpandedToken W {return e})? ClassToken name:ClassName generics:GenericParams? inherit:inherit? create:CreationClause* convert:Convert? featureLists:FeatureList* Invariant? W (Note)? EndToken end:pos w
     {
