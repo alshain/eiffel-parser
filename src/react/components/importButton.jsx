@@ -1,8 +1,6 @@
 let React = require('react');
 let mui = require('material-ui');
 import {RaisedButton, Tab, IconButton} from 'material-ui';
-let InlineCss = require('react-inline-css');
-let FileDragAndDrop = require('react-file-drag-and-drop');
 let Codemirror = require('react-codemirror');
 let eol = require('eol');
 

@@ -1,7 +1,5 @@
 let React = require('react');
 let mui = require('material-ui');
-let InlineCss = require('react-inline-css');
-var FileDragAndDrop = require('react-file-drag-and-drop');
 var Codemirror = require('react-codemirror');
 let {Paper} = mui;
 let Wrapper = require('./codemirrorwrapper.jsx');
