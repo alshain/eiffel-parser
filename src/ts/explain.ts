@@ -18,7 +18,7 @@ module eiffel.explain {
     ranges: IntervalEntry[];
 
     vDefault(ast:eiffel.ast.AST, parent: eiffel.ast.AST):any {
-      if ("start" in ast && "end" in ast) {
+      if (ast.start && ast.end) {
         this.ranges.push({start: ast.start.offset, end: ast.end.offset, id: ast});
       }
       return super.vDefault(ast, ast);
