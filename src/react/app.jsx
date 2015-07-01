@@ -23,7 +23,8 @@
   }
   render();
   model.subscribe(render);
-  /**
+  /*
+  // Comment/uncomment this to prevent accidental reloads
   window.onbeforeunload = function (event) {
     return "Rebooting this app will take some time.";
   }
