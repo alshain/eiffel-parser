@@ -10,8 +10,6 @@ module eiffel.steps {
 
   import ExecutionEdge = eiffel.util.ExecutionEdge;
   import ExecutionGraph = eiffel.util.ExecutionGraph;
-  import ExecutionGraph = eiffel.util.ExecutionGraph;
-  import ExecutionNode = eiffel.util.ExecutionNode;
 
   export class StepData {
     summary: string;
