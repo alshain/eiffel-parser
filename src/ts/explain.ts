@@ -528,7 +528,11 @@ module eiffel.explain {
     }
 
     vFeature(feature:eiffel.ast.Feature, arg:eiffel.ast.AST): ContextExplanation {
-      return super.vFeature(feature, arg);
+      return context({
+        "rawType": () => {
+          return new ContextExplanation("Type of feature", "This is the type of object you will receive when calling this feature", arg);
+        }
+      }, feature, arg);
     }
 
     vAttr(attr:eiffel.ast.Attribute, arg:eiffel.ast.AST): ContextExplanation {
