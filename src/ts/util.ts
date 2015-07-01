@@ -326,15 +326,22 @@ module eiffel.util {
     subGraph: ExecutionGraph<N, E>;
     data: N;
 
+
+    constructor(data: N) {
+      this.data = data;
+    }
+
     connectTo(to: ExecutionNode<N, E>, label: string, data: E) {
       new ExecutionEdge<N, E>(label, data, this, to);
       return to;
     }
 
-    connectNew(data: N, label: string, edgeData: E);
+    connectNew(data: N, label: string, edgeData: E) {
+      new ExecutionEdge<N, E>(label, edgeData, this, new ExecutionNode<N, E>(data));
+    }
   }
 
   export class ExecutionGraph<N, E> {
-    entryPoint: ExecutionNode<N>;
+    entryPoint: ExecutionNode<N, E>;
   }
 }
