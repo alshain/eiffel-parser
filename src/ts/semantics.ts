@@ -160,27 +160,33 @@ module eiffel.semantics {
    * @param instance
    * @param context
    */
-  var validateTypeInstance = function validateTypeInstance(instance: eiffel.symbols.TypeInstance, context: AnalysisContext) {
+  var validateTypeInstance = function validateTypeInstance(actualType: eiffel.symbols.ActualType, context: AnalysisContext) {
     // TODO implement constraints
-    if (instance instanceof eiffel.symbols.GenericParameterSymbol) {
-      return true;
+    if (actualType instanceof eiffel.symbols.TypeInstance) {
+      var instance = actualType;
+      if (instance instanceof eiffel.symbols.GenericParameterSymbol) {
+        return true;
+      }
+
+      var sourceClass = instance.sourceClass;
+      var baseType = instance.baseType;
+
+      var expectedParamCount = baseType.genericParametersInOrder.length;
+      var actualParamCount = instance.typeParameters.length;
+
+      if (expectedParamCount < actualParamCount) {
+        var difference = actualParamCount - expectedParamCount;
+        context.errors.uncategorized("Missing " + difference + " generic parameters.");
+      }
+      else if (expectedParamCount > actualParamCount) {
+        context.errors.uncategorized("Too many generic arguments, you can only have " + expectedParamCount + ", but you have " + actualParamCount);
+      }
+
+      instance.typeParameters.forEach((actualType) => validateTypeInstance(actualType, context));
     }
-
-    var sourceClass = instance.sourceClass;
-    var baseType = instance.baseType;
-
-    var expectedParamCount = baseType.genericParametersInOrder.length;
-    var actualParamCount = instance.typeParameters.length;
-
-    if (expectedParamCount < actualParamCount) {
-      var difference = actualParamCount - expectedParamCount;
-      context.errors.uncategorized("Missing " + difference + " generic parameters.");
+    else {
+      // null or GenericTypeParameter
     }
-    else if (expectedParamCount > actualParamCount) {
-      context.errors.uncategorized("Too many generic arguments, you can only have " + expectedParamCount + ", but you have " + actualParamCount);
-    }
-
-    instance.typeParameters.forEach((actualType) => validateTypeInstance(actualType, context));
   };
 
   var initParentTypeInstancesAndValidate = function initParentTypeInstancesAndValidate(analysisContext: AnalysisContext): void {
