@@ -34,13 +34,11 @@ var Sidebar = React.createClass({
     let model = this.props.model;
     let explanation = "";
 
-    this.state.nodeToExplanation.forEach(node => console.log(node));
-
-    if (this.state.parentsToNode) {
-      if (this.state.parentsToNode.length > 0) {
+    if (this.state.nodeToParent) {
+      if (this.state.nodeToParent.length > 0) {
         explanation = <div>
           Your cursor is currently inside the following structure:
-          {this.state.parentsToNode.map(ast => <AstExplanation title={ast.constructor.name}>{ast.constructor.name}</AstExplanation>)}
+          {this.state.parentsToNode.map(ast => <AstExplanation data={this.state.nodeToExplanation.get(ast)} />)}
           </div>;
       }
       else {

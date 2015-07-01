@@ -169,7 +169,7 @@ module eiffel.app {
     }
 
     addEmptyFile() {
-      var file = new EiffelFile(null, "", this.nextFileId, this);
+      var file = new EiffelFile(null, "class TEST end", this.nextFileId, this);
       this.nextFileId++;
       this.addFile(file);
     }
@@ -201,7 +201,6 @@ module eiffel.app {
       this.workspace = workspace;
       this.onActivate.subscribe(() => {
         if (this.workspace.activeFile) {
-          console.log("set active file to", this.getFilename());
           this.workspace.activeFile.isActive = false;
         }
         this.isActive = true;
